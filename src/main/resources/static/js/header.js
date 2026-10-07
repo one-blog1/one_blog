@@ -44,8 +44,14 @@
         area.append(link('/my-blogs.html', '내 블로그'), link('/blog-new.html', '블로그 만들기'),
           link('/account.html', '내 정보'));
       }
-      document.dispatchEvent(new CustomEvent('header:user', { detail: result.data }));
       area.append(name, logout);
+      if (result.data.role !== 'ADMIN') {
+        // 알림 종(011): 일반 회원에게만. 모든 화면에 따로 넣지 않도록 여기서 불러온다
+        const script = document.createElement('script');
+        script.src = '/js/notifications.js';
+        document.body.append(script);
+      }
+      document.dispatchEvent(new CustomEvent('header:user', { detail: result.data }));
     } else {
       area.append(link('/login.html', '로그인'), link('/signup.html', '회원가입'));
     }

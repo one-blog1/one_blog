@@ -45,4 +45,36 @@ public interface BlogMemberRepository extends JpaRepository<BlogMember, Long> {
     default List<Object[]> findMyBlogs(Long userId) {
         return findMyBlogRows(userId, BlogMemberStatus.ACTIVE, BlogStatus.CLOSED);
     }
+
+    @Query("""
+            select m.userId from BlogMember m
+            where m.blogId = :blogId and m.status = :active
+              and (m.role = :owner or (m.role = :subOwner and m.canManageMembers = true))
+            """)
+    List<Long> findMemberManagerIdRows(@Param("blogId") Long blogId, @Param("active") BlogMemberStatus active,
+            @Param("owner") BlogRole owner, @Param("subOwner") BlogRole subOwner);
+
+    /** 멤버를 관리할 수 있는 사람: 블로그장과 멤버 관리 권한을 받은 부블로그장 (참여 신청 알림, 3.6). */
+    default List<Long> findMemberManagerIds(Long blogId) {
+        return findMemberManagerIdRows(blogId, BlogMemberStatus.ACTIVE, BlogRole.OWNER, BlogRole.SUB_OWNER);
+    }
+
+    @Query("select m.userId from BlogMember m where m.blogId = :blogId and m.status = :active and m.role = :role")
+    List<Long> findUserIdsByRole(@Param("blogId") Long blogId, @Param("active") BlogMemberStatus active,
+            @Param("role") BlogRole role);
+
+    /** 지금 블로그장 (없으면 null). */
+    default Long findOwnerId(Long blogId) {
+        List<Long> ids = findUserIdsByRole(blogId, BlogMemberStatus.ACTIVE, BlogRole.OWNER);
+        return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    /** 블로그장을 뺀 활성 멤버 (폐쇄 알림, 012). */
+    @Query("select m.userId from BlogMember m where m.blogId = :blogId and m.status = :active and m.role <> :owner")
+    List<Long> findUserIdsExceptRole(@Param("blogId") Long blogId, @Param("active") BlogMemberStatus active,
+            @Param("owner") BlogRole owner);
+
+    default List<Long> findMemberIdsExceptOwner(Long blogId) {
+        return findUserIdsExceptRole(blogId, BlogMemberStatus.ACTIVE, BlogRole.OWNER);
+    }
 }

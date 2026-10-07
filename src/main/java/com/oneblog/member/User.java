@@ -61,6 +61,11 @@ public class User {
     @Column(name = "status", length = 20, nullable = false)
     private UserStatus status;
 
+    /** 알림 보관 일수 30 또는 7 (4.5, 6.7). */
+    @JdbcTypeCode(SqlTypes.TINYINT)
+    @Column(name = "notification_retention_days", nullable = false)
+    private int notificationRetentionDays = 30;
+
     @Column(name = "terms_agreed_at")
     private LocalDateTime termsAgreedAt;
 
@@ -133,6 +138,14 @@ public class User {
 
     public void changePassword(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public void changeNotificationRetentionDays(int days) {
+        this.notificationRetentionDays = days;
+    }
+
+    public int getNotificationRetentionDays() {
+        return notificationRetentionDays;
     }
 
     public String getProfileImageUrl() {

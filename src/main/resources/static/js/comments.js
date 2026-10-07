@@ -52,6 +52,8 @@
 
   function renderComment(c, isReply) {
     const li = el('li', isReply ? 'comment reply' : 'comment');
+    // 알림의 링크(#comment-번호)로 바로 찾아갈 수 있게 (011)
+    li.id = 'comment-' + c.id;
     if (c.deleted) {
       li.append(el('p', 'comment-deleted', '삭제된 댓글입니다'));
     } else {

@@ -105,6 +105,37 @@
     $('password-message').textContent = '비밀번호를 바꿨어요. 다른 기기의 로그인은 끝났어요.';
   }
 
+  async function loadSettings() {
+    const result = await window.api.get('/api/me/notification-settings');
+    if (!result.ok || !result.data) {
+      return;
+    }
+    const box = $('notification-types');
+    box.replaceChildren();
+    result.data.items.forEach(item => {
+      const label = document.createElement('label');
+      label.className = 'checkbox';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset.type = item.type;
+      input.checked = item.enabled;
+      label.append(input, document.createTextNode(' ' + item.label));
+      box.append(label);
+    });
+    $('retention').value = String(result.data.retentionDays);
+  }
+
+  async function saveSettings(event) {
+    event.preventDefault();
+    const settings = {};
+    $('notification-types').querySelectorAll('input[data-type]').forEach(i => { settings[i.dataset.type] = i.checked; });
+    const result = await window.api.put('/api/me/notification-settings',
+      { retentionDays: parseInt($('retention').value, 10), settings: settings }, { userAction: true });
+    const message = $('settings-message');
+    message.className = result.ok ? 'message ok' : 'message error';
+    message.textContent = result.ok ? '저장했어요.' : ((result.data && result.data.message) || '저장하지 못했어요.');
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     const result = await window.api.get('/api/me/account', { userAction: true, redirectOnLogout: true });
     if (result.status === 401) {
@@ -125,5 +156,7 @@
     });
     $('profile-form').addEventListener('submit', saveProfile);
     $('password-form').addEventListener('submit', changePassword);
+    $('notification-settings').addEventListener('submit', saveSettings);
+    loadSettings();
   });
 })();

@@ -21,7 +21,7 @@
 | 008 | 카테고리·태그 | BRD-03, 04, 6.4 | categories, post_tags | 004 | 구현 (테스트 대기) |
 | 009 | 팔로우·블로그 구독·프로필·회원정보 수정 | SOC-01~03, USR-07, D-02, D-50 | follows, blog_subscriptions | 002 | 구현 (테스트 대기) |
 | 010 | 통합 검색·메인 피드·블로그 검색 | BRD-08, 09, BLG-03, 6.1, D-73 | recent_searches | 008, 009 | 구현 (테스트 대기) |
-| 011 | 알림 | SOC-04, 3.6, D-72 | notifications, notification_settings | 003, 006, 007, 009 | |
+| 011 | 알림 | SOC-04, 3.6, D-72 | notifications, notification_settings | 003, 006, 007, 009 | 구현 (테스트 대기) |
 | 012 | 블로그 운영: 부블로그장·위임·폐쇄·블로그 탈퇴, 회원탈퇴, 04:00 배치 | BLG-07~09, USR-05, 2장, 4.5, D-83 | blog_transfer_requests, shedlock | 011 | |
 | 013 | 제재·블랙리스트·신고·차단, 관리자 신고 처리·블로그장 제재·강제 폐쇄 | BLG-11~13, SOC-05, 06, ADM-02(강제 폐쇄), 04, 07, 3.7 | blog_blacklists, blacklist_inquiries, sanctions, reports, blocks | 007, 012 | |
 | 014 | 공유·조회수 | BRD-07, 11, 6.2 | post_views | 004 | |

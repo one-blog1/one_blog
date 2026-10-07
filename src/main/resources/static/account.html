@@ -63,6 +63,19 @@
         <p id="password-message" class="message" role="status"></p>
         <button class="primary" type="submit">비밀번호 바꾸기</button>
       </form>
+
+      <form id="notification-settings" novalidate>
+        <h2>알림 설정</h2>
+        <p class="hint">끌 수 있는 알림만 보여요. 계정과 블로그 운영에 꼭 필요한 알림은 끌 수 없어요.</p>
+        <div id="notification-types"></div>
+        <label for="retention">알림 보관 기간</label>
+        <select id="retention">
+          <option value="30">30일</option>
+          <option value="7">7일</option>
+        </select>
+        <p id="settings-message" class="message" role="status"></p>
+        <button class="primary" type="submit">알림 설정 저장</button>
+      </form>
     </section>
   </main>
   <script src="/js/api.js"></script>

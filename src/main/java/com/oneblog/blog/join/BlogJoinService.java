@@ -38,15 +38,17 @@ public class BlogJoinService {
     private final BlogMemberRepository memberRepository;
     private final BlogJoinRequestRepository requestRepository;
     private final UserRepository userRepository;
+    private final List<JoinListener> listeners;
 
     public BlogJoinService(BlogAccessService accessService, BlogRepository blogRepository,
             BlogMemberRepository memberRepository, BlogJoinRequestRepository requestRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository, List<JoinListener> listeners) {
         this.accessService = accessService;
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
         this.requestRepository = requestRepository;
         this.userRepository = userRepository;
+        this.listeners = listeners;
     }
 
     /** 내 참여 상태. 블로그를 볼 수 없으면 BlogAccessService가 403·404를 던진다. */
@@ -90,7 +92,7 @@ public class BlogJoinService {
             throw new ApiException(HttpStatus.CONFLICT, "REAPPLY_TOO_SOON", "거절된 신청은 7일 뒤에 다시 신청할 수 있습니다.");
         }
         requestRepository.save(BlogJoinRequest.pending(blog.getId(), principal.id()));
-        // 블로그장 알림(JOIN_REQUEST)은 011에서 연결한다
+        listeners.forEach(l -> l.requested(blog, principal.id()));
         return JoinStatusResponse.of("PENDING");
     }
 
@@ -131,14 +133,16 @@ public class BlogJoinService {
         request.approve(principal.id());
         addMember(blog.getId(), request.getUserId(),
                 memberRepository.findByBlogIdAndUserId(blog.getId(), request.getUserId()));
-        // 신청자 알림(JOIN_RESULT)은 011에서 연결한다
+        listeners.forEach(l -> l.processed(blog, request.getUserId(), true));
     }
 
     /** 거절 (BLG-05). 신청자는 7일 뒤 다시 신청할 수 있다 (6.5). */
     @Transactional
     public void reject(String slug, Long requestId, AuthenticatedUser principal) {
         Blog blog = requireManager(slug, principal);
-        lockPending(blog, requestId).reject(principal.id());
+        BlogJoinRequest request = lockPending(blog, requestId);
+        request.reject(principal.id());
+        listeners.forEach(l -> l.processed(blog, request.getUserId(), false));
     }
 
     private BlogJoinRequest lockPending(Blog blog, Long requestId) {
