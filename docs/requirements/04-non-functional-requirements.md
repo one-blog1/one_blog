@@ -14,7 +14,7 @@
 | SEC-06 | 입력값을 검증해 XSS와 SQL Injection을 막는다. 글 본문은 서버에서 jsoup으로 걸러 보내고, 화면은 사용자 입력을 textContent로 넣는다(7장 화면 방식). | BRD-01, BRD-06 |
 | SEC-07 | 모든 요청에서 서버가 블로그별 역할(블로그장, 멤버)을 확인한다. A 블로그의 블로그장이 B 블로그를 관리할 수 없다. | BLG 전체, BRD-01 |
 | SEC-08 | 업로드 파일의 확장자와 크기를 검사하고 실행 파일을 막는다. | BRD-05 |
-| SEC-09 | 관리자 계정은 일반 회원과 분리하고 활동을 기록한다. | ADM 전체 |
+| SEC-09 | 관리자 계정은 일반 회원 계정과 따로 만든다. 회원 계정에 관리자 권한을 붙이지 않는다. 저장은 같은 users 테이블에서 role = ADMIN으로 구분한다(D-90). 관리자 계정은 회원가입 화면으로 만들 수 없고, 운영자가 DB나 초기 데이터로 만든다. 관리자 계정은 블로그 만들기·참여·글쓰기·댓글·좋아요·팔로우를 할 수 없고, 메인 공지(BRD-10)와 관리 기능만 쓴다. 관리자 활동은 모두 기록한다(ADM-06). | ADM 전체 |
 | SEC-10 | 모든 통신은 HTTPS로 한다. 상태를 바꾸는 요청(POST·PUT·DELETE)은 Spring Security의 CSRF 토큰을 검사한다. 화면(JS)에서 보내는 요청은 토큰을 `X-XSRF-TOKEN` 헤더에 담아 보낸다. | 전체 |
 | SEC-11 | Spring Security로 인증(로그인)과 인가(접근 권한)를 처리한다. 주소 단위로 비회원·회원·관리자를 나누고, 블로그별 역할(블로그장·부블로그장·멤버)은 메서드 보안(`@PreAuthorize`)으로 확인한다. | 전체, SEC-07 |
 | SEC-12 | 보안 헤더를 설정한다. X-Frame-Options(다른 사이트가 화면을 프레임으로 심는 것 방지), X-Content-Type-Options: nosniff(파일 형식 위장 방지), Content-Security-Policy(허용한 곳의 스크립트만 실행), Strict-Transport-Security(HTTPS 강제), Referrer-Policy. | 전체, SEC-06 |
