@@ -18,6 +18,24 @@
       <ul id="notice-links"></ul>
     </section>
 
+    <form class="row search-row" action="/search" method="get" role="search">
+      <input name="q" type="search" maxlength="20" placeholder="블로그, 글 제목, 태그, 닉네임 검색" aria-label="검색어">
+      <button class="primary inline-button" type="submit">검색</button>
+    </form>
+
+    <section class="card" aria-labelledby="feed-title">
+      <h1 id="feed-title">글 피드</h1>
+      <div class="tabs" role="tablist" aria-label="피드">
+        <button type="button" role="tab" data-tab="latest" aria-selected="true">최신 글</button>
+        <button type="button" role="tab" data-tab="popular" aria-selected="false">인기 글</button>
+        <button type="button" role="tab" data-tab="following" aria-selected="false" class="hidden">팔로우</button>
+        <button type="button" role="tab" data-tab="subscriptions" aria-selected="false" class="hidden">구독</button>
+      </div>
+      <ul id="feed-list" class="post-list"></ul>
+      <p id="feed-empty" class="hint hidden">아직 글이 없어요.</p>
+      <nav id="feed-pagination" class="pagination" aria-label="피드 페이지"></nav>
+    </section>
+
     <section class="card">
       <div class="list-header">
         <h1>블로그 둘러보기</h1>
@@ -49,5 +67,8 @@
   <script src="/js/blog-card.js"></script>
   <script src="/js/blog-list.js"></script>
   <script src="/js/notice-strip.js"></script>
+  <script src="/js/pager.js"></script>
+  <script src="/js/post-item.js"></script>
+  <script src="/js/feed.js"></script>
 </body>
 </html>

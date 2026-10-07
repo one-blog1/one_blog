@@ -62,17 +62,31 @@ public class BlogQueryService {
             result = blogRepository.findPublicList(PageRequest.of(0, size, order));
         }
 
-        List<Blog> blogs = result.getContent();
+        List<BlogListItem> items = buildItems(result.getContent());
+        return new BlogPageResponse(items, sort, page, size, result.getTotalElements(),
+                Math.max(1, result.getTotalPages()));
+    }
+
+    /** 블로그 ID 순서대로 목록 한 줄을 만든다 (통합 검색 010). 보여도 되는지는 부르는 쪽이 골랐어야 한다. */
+    @Transactional(readOnly = true)
+    public List<BlogListItem> toListItems(List<Long> blogIds) {
+        if (blogIds.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Blog> byId = new HashMap<>();
+        blogRepository.findAllById(blogIds).forEach(b -> byId.put(b.getId(), b));
+        return buildItems(blogIds.stream().map(byId::get).filter(java.util.Objects::nonNull).toList());
+    }
+
+    private List<BlogListItem> buildItems(List<Blog> blogs) {
         List<Long> ids = blogs.stream().map(Blog::getId).toList();
         Map<Long, String> owners = ownerNicknames(ids);
         Map<Long, List<String>> tags = tagService.findBlogTags(ids);
-        List<BlogListItem> items = blogs.stream()
+        return blogs.stream()
                 .map(b -> new BlogListItem(b.getSlug(), b.getName(), b.getDescription(), b.getCoverImageUrl(),
                         tags.getOrDefault(b.getId(), List.of()), b.getMemberCount(), owners.get(b.getId()),
                         toOffset(b.getCreatedAt())))
                 .toList();
-        return new BlogPageResponse(items, sort, page, size, result.getTotalElements(),
-                Math.max(1, result.getTotalPages()));
     }
 
     /** 내 블로그: 블로그장인 블로그와 참여한 블로그를 나눈다 (BLG-06). 공개 범위와 상관없이 보인다. */

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>검색 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main class="wide">
+    <section class="card">
+      <form id="search-form" class="row search-row" role="search">
+        <input id="search-q" type="search" maxlength="20" placeholder="블로그, 글 제목, 태그, 닉네임" aria-label="검색어">
+        <button class="primary inline-button" type="submit">검색</button>
+      </form>
+      <p class="message error" data-error-for="q" role="alert"></p>
+      <div id="recent-area" class="recent-area hidden">
+        <span class="hint">최근 검색어</span>
+        <ul id="recent-list" class="tag-list"></ul>
+        <button id="recent-clear" class="link-button" type="button">모두 지우기</button>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="검색 대상">
+        <button id="tab-post" type="button" role="tab" aria-selected="true">글 <span id="post-count" class="count"></span></button>
+        <button id="tab-blog" type="button" role="tab" aria-selected="false">블로그 <span id="blog-count" class="count"></span></button>
+      </div>
+
+      <div class="list-controls">
+        <div id="target-bar" class="segmented" role="group" aria-label="글 검색 범위">
+          <button type="button" data-target="all" aria-pressed="true">전체</button>
+          <button type="button" data-target="title" aria-pressed="false">제목</button>
+          <button type="button" data-target="tag" aria-pressed="false">태그</button>
+          <button type="button" data-target="author" aria-pressed="false">작성자</button>
+        </div>
+        <div id="sort-bar" class="segmented" role="group" aria-label="정렬">
+          <button type="button" data-sort="relevance" aria-pressed="true">관련도</button>
+          <button type="button" data-sort="latest" aria-pressed="false">최신</button>
+          <button type="button" data-sort="popular" aria-pressed="false">인기</button>
+        </div>
+        <label class="inline" for="search-size">한 페이지
+          <select id="search-size">
+            <option value="10">10개</option>
+            <option value="20">20개</option>
+            <option value="30">30개</option>
+          </select>
+        </label>
+      </div>
+
+      <ul id="post-results" class="post-list"></ul>
+      <div id="blog-results" class="blog-grid hidden"></div>
+      <p id="search-empty" class="hint hidden">검색 결과가 없습니다</p>
+      <nav id="search-pagination" class="pagination" aria-label="검색 결과 페이지"></nav>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/pager.js"></script>
+  <script src="/js/post-item.js"></script>
+  <script src="/js/blog-card.js"></script>
+  <script src="/js/search.js"></script>
+</body>
+</html>

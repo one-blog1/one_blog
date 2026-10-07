@@ -870,3 +870,25 @@ button.primary.inline-button {
 #password-form {
   margin-top: 24px;
 }
+
+/* 010 검색·피드 */
+form.search-row {
+  margin-bottom: 16px;
+}
+
+form.search-row input {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.recent-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.tabs button.hidden {
+  display: none;
+}
