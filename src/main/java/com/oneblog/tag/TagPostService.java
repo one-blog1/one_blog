@@ -31,13 +31,15 @@ public class TagPostService {
     private final TagPolicy tagPolicy;
     private final TagService tagService;
     private final PostCardService cardService;
+    private final List<com.oneblog.search.SearchFilter> filters;
 
     public TagPostService(NamedParameterJdbcTemplate jdbc, TagPolicy tagPolicy, TagService tagService,
-            PostCardService cardService) {
+            PostCardService cardService, List<com.oneblog.search.SearchFilter> filters) {
         this.jdbc = jdbc;
         this.tagPolicy = tagPolicy;
         this.tagService = tagService;
         this.cardService = cardService;
+        this.filters = filters;
     }
 
     @Transactional(readOnly = true)
@@ -48,14 +50,23 @@ public class TagPostService {
             return new PostCardPage(List.of(), 1, params.size(), 0, 1);
         }
         MapSqlParameterSource args = new MapSqlParameterSource("tagId", tagId);
-        Long total = jdbc.queryForObject("SELECT COUNT(*) " + FROM, args, Long.class);
+        // 차단한 회원의 글을 뺀다 (013, 검색과 같은 조건)
+        StringBuilder from = new StringBuilder(FROM);
+        for (com.oneblog.search.SearchFilter filter : filters) {
+            String condition = filter.postCondition(viewerId, args);
+            if (condition != null) {
+                from.append(" AND ").append(condition);
+            }
+        }
+        String fromWhere = from.toString();
+        Long total = jdbc.queryForObject("SELECT COUNT(*) " + fromWhere, args, Long.class);
         long totalItems = total == null ? 0 : total;
         int totalPages = (int) Math.max(1, (totalItems + params.size() - 1) / params.size());
         if (params.page() > totalPages) {
             params = params.firstPage();
         }
         args.addValue("limit", params.size()).addValue("offset", (long) params.zeroBasedPage() * params.size());
-        List<Long> ids = jdbc.queryForList("SELECT p.id " + FROM
+        List<Long> ids = jdbc.queryForList("SELECT p.id " + fromWhere
                 + " ORDER BY p.created_at DESC, p.id DESC LIMIT :limit OFFSET :offset", args, Long.class);
         return new PostCardPage(cardService.cards(ids), params.page(), params.size(), totalItems, totalPages);
     }

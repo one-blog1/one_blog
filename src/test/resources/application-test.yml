@@ -13,6 +13,8 @@ app:
     secret: test-only-jwt-secret-0123456789abcdef0123456789abcdef
   verification:
     code-pepper: test-only-code-pepper
+  privacy:
+    hash-pepper: test-only-privacy-pepper
   mail:
     mode: log
   cookie:

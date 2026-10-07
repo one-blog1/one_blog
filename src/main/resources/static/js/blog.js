@@ -6,7 +6,8 @@
   const NOTICE = {
     BLOG_NOT_FOUND: ['블로그를 찾을 수 없습니다', '주소가 맞는지 확인해 주세요.'],
     LINK_REQUIRED: ['링크가 있어야 볼 수 있는 블로그입니다', '블로그장에게 공유 링크를 받아 들어와 주세요.'],
-    PRIVATE_BLOG: ['비공개 블로그입니다', '이 블로그의 멤버만 볼 수 있어요.']
+    PRIVATE_BLOG: ['비공개 블로그입니다', '이 블로그의 멤버만 볼 수 있어요.'],
+    MEMBER_SUSPENDED: ['이 블로그에서 정지되었습니다', '']
   };
 
   function $(id) {
@@ -18,8 +19,10 @@
     return parts.length >= 2 && parts[0] === 'blog' ? decodeURIComponent(parts[1]) : '';
   }
 
-  function showNotice(code) {
-    const [title, text] = NOTICE[code] || ['블로그를 불러오지 못했습니다', '잠시 후 다시 시도해 주세요.'];
+  function showNotice(code, serverMessage) {
+    const [title, fallback] = NOTICE[code] || ['블로그를 불러오지 못했습니다', '잠시 후 다시 시도해 주세요.'];
+    // 정지 안내는 서버가 기간과 사유를 담아 보낸다 (BLG-13)
+    const text = code === 'MEMBER_SUSPENDED' && serverMessage ? serverMessage : fallback;
     $('notice-title').textContent = title;
     $('notice-text').textContent = text;
     $('blog-notice').classList.remove('hidden');
@@ -80,7 +83,7 @@
     if (result.ok && result.data) {
       render(result.data);
     } else {
-      showNotice(result.data && result.data.code);
+      showNotice(result.data && result.data.code, result.data && result.data.message);
     }
     $('copy-share').addEventListener('click', copyShare);
   });

@@ -126,6 +126,12 @@
         const actions = el('span');
         actions.append(button(b.hidden ? '숨김 풀기' : '숨기기',
           () => act('/api/admin/blogs/' + b.id + '/hide', { hidden: !b.hidden }, load)));
+        actions.append(button('블로그장 경고', () => act('/api/admin/blogs/' + b.id + '/owner-warning', {}, load)));
+        actions.append(button('블로그장 강퇴', () => {
+          if (window.confirm('블로그장 권한을 박탈할까요? 부블로그장이 있으면 넘어가고, 없으면 7일 뒤 폐쇄돼요.')) {
+            act('/api/admin/blogs/' + b.id + '/owner-revoke', {}, load);
+          }
+        }, 'link-button danger'));
         actions.append(button('강제 폐쇄', () => act('/api/admin/blogs/' + b.id + '/close', {}, load), 'link-button danger'));
         return [b.name, link, b.visibility, b.status + (b.hidden ? ' (숨김)' : ''), b.ownerNickname, b.memberCount,
           b.postCount, actions];

@@ -91,6 +91,10 @@
       return;
     }
     $('join-message').textContent = (result.data && result.data.message) || '신청하지 못했어요. 다시 시도해 주세요.';
+    // 블랙리스트에 걸렸으면 해제 문의를 남길 수 있다 (BLG-12)
+    if (result.data && result.data.code === 'BLACKLISTED') {
+      $('inquiry-button').classList.remove('hidden');
+    }
   }
 
   async function cancel() {

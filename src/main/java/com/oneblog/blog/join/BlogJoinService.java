@@ -39,16 +39,18 @@ public class BlogJoinService {
     private final BlogJoinRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final List<JoinListener> listeners;
+    private final List<JoinGate> gates;
 
     public BlogJoinService(BlogAccessService accessService, BlogRepository blogRepository,
             BlogMemberRepository memberRepository, BlogJoinRequestRepository requestRepository,
-            UserRepository userRepository, List<JoinListener> listeners) {
+            UserRepository userRepository, List<JoinListener> listeners, List<JoinGate> gates) {
         this.accessService = accessService;
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
         this.requestRepository = requestRepository;
         this.userRepository = userRepository;
         this.listeners = listeners;
+        this.gates = gates;
     }
 
     /** 내 참여 상태. 블로그를 볼 수 없으면 BlogAccessService가 403·404를 던진다. */
@@ -74,8 +76,20 @@ public class BlogJoinService {
         if (membership.isPresent() && membership.get().isActive()) {
             throw new ApiException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 이 블로그의 멤버입니다.");
         }
-        if (membership.isPresent() && membership.get().getStatus() == BlogMemberStatus.KICKED) {
-            // 블랙리스트(BLG-11)는 013에서 붙인다. 그 전까지는 강제 퇴장된 회원의 재참여를 막는다
+        // 블랙리스트(BLG-11)에 걸리면 막고, 블로그장이 차단한 회원은 자동 거절한다 (SOC-05, D-36)
+        for (JoinGate gate : gates) {
+            if (gate.check(blog, principal.id()) == JoinGate.Decision.AUTO_REJECT) {
+                JoinStatusResponse current = currentStatus(blog.getId(), principal.id());
+                if ("REJECTED".equals(current.status())) {
+                    throw new ApiException(HttpStatus.CONFLICT, "REAPPLY_TOO_SOON", "거절된 신청은 7일 뒤에 다시 신청할 수 있습니다.");
+                }
+                BlogJoinRequest request = requestRepository.saveAndFlush(BlogJoinRequest.pending(blog.getId(), principal.id()));
+                Long ownerId = memberRepository.findOwnerId(blog.getId());
+                request.reject(ownerId == null ? principal.id() : ownerId);
+                return currentStatus(blog.getId(), principal.id());
+            }
+        }
+        if (membership.isPresent() && membership.get().getStatus() == BlogMemberStatus.KICKED && gates.isEmpty()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "JOIN_BLOCKED", "이 블로그에는 참여할 수 없습니다.");
         }
 

@@ -49,10 +49,11 @@ public class PostService {
     private final MarkdownRenderer markdown;
     private final UserDisplayService userDisplay;
     private final List<PostExtension> extensions;
+    private final com.oneblog.member.HiddenAuthors hiddenAuthorsOf;
 
     public PostService(PostRepository postRepository, BlogRepository blogRepository, BlogAccessService accessService,
             PostPolicy policy, MarkdownRenderer markdown, UserDisplayService userDisplay,
-            List<PostExtension> extensions) {
+            List<PostExtension> extensions, com.oneblog.member.HiddenAuthors hiddenAuthorsOf) {
         this.postRepository = postRepository;
         this.blogRepository = blogRepository;
         this.accessService = accessService;
@@ -60,6 +61,7 @@ public class PostService {
         this.markdown = markdown;
         this.userDisplay = userDisplay;
         this.extensions = extensions;
+        this.hiddenAuthorsOf = hiddenAuthorsOf;
     }
 
     @Transactional
@@ -157,15 +159,18 @@ public class PostService {
     /** 블로그 글 목록: 공지(최근 5개)와 일반 글(최신순, 번호 페이지) (BRD-02, D-06, D-76). */
     @Transactional(readOnly = true)
     public PostPageResponse list(String slug, String key, Long viewerId, PageParams params, Long categoryId) {
-        Blog blog = accessService.check(slug, key, viewerId).blog();
+        BlogAccessService.Access access = accessService.check(slug, key, viewerId);
+        Blog blog = access.blog();
         Sort latest = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
         List<Post> notices = postRepository.findVisibleInBlog(blog.getId(), List.of(PostType.BLOG_NOTICE),
                 PageRequest.of(0, NOTICE_LIMIT, latest)).getContent();
 
-        Page<Post> page = fetch(blog, categoryId, params, latest);
+        // 내가 차단한 회원의 글은 가린다. 이 블로그의 멤버면 그대로 보인다 (SOC-05, D-36)
+        Set<Long> hidden = access.isMember() ? Set.of() : hiddenAuthorsOf.of(viewerId);
+        Page<Post> page = fetch(blog, categoryId, params, latest, hidden);
         if (params.page() > 1 && params.page() > page.getTotalPages()) {
             params = params.firstPage();
-            page = fetch(blog, categoryId, params, latest);
+            page = fetch(blog, categoryId, params, latest, hidden);
         }
 
         List<Post> all = new ArrayList<>(notices);
@@ -179,8 +184,14 @@ public class PostService {
                 params.page(), params.size(), page.getTotalElements(), Math.max(1, page.getTotalPages()));
     }
 
-    private Page<Post> fetch(Blog blog, Long categoryId, PageParams params, Sort sort) {
+    private Page<Post> fetch(Blog blog, Long categoryId, PageParams params, Sort sort, Set<Long> hidden) {
         PageRequest request = PageRequest.of(params.zeroBasedPage(), params.size(), sort);
+        if (!hidden.isEmpty()) {
+            return categoryId != null
+                    ? postRepository.findVisibleInCategoryExcluding(blog.getId(), PostType.BLOG, categoryId, hidden,
+                            request)
+                    : postRepository.findVisibleInBlogExcluding(blog.getId(), List.of(PostType.BLOG), hidden, request);
+        }
         if (categoryId != null) {
             return postRepository.findVisibleInCategory(blog.getId(), PostType.BLOG, categoryId, request);
         }

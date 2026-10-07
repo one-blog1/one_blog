@@ -6,8 +6,42 @@
     return document.getElementById(id);
   }
 
+  let user = null;
+  let loadedBlog = null;
+
+  // 블로그 신고(SOC-06)는 로그인한 일반 회원 중 블로그장이 아닌 사람에게
+  function showReport() {
+    if (!user || !loadedBlog || user.role === 'ADMIN' || loadedBlog.myRole === 'OWNER') {
+      return;
+    }
+    const button = $('report-blog');
+    button.classList.remove('hidden');
+    $('ops-area').classList.remove('hidden');
+    button.onclick = () => window.report.open({ targetType: 'BLOG', blogSlug: loadedBlog.slug });
+  }
+
+  document.addEventListener('header:user', (event) => {
+    user = event.detail;
+    showReport();
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    $('inquiry-button').addEventListener('click', async () => {
+      const message = window.prompt('블랙리스트 해제를 요청하는 이유를 적어 주세요. (예: 전화번호 주인이 바뀌었어요)');
+      if (!message || !loadedBlog) {
+        return;
+      }
+      const result = await window.api.post('/api/blogs/' + encodeURIComponent(loadedBlog.slug) + '/blacklist-inquiries',
+        { message: message }, { userAction: true });
+      $('join-message').textContent = result.ok ? '문의를 남겼어요. 처리 결과는 알림으로 알려 드려요.'
+        : ((result.data && result.data.message) || '문의를 남기지 못했어요.');
+    });
+  });
+
   document.addEventListener('blog:loaded', (event) => {
     const blog = event.detail;
+    loadedBlog = blog;
+    showReport();
     if (blog.status === 'CLOSING' && blog.closeScheduledAt) {
       const when = new Date(blog.closeScheduledAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric' });
       $('closing-banner').textContent = '이 블로그는 ' + when + '에 폐쇄될 예정이에요. 필요한 글은 미리 챙겨 주세요.';

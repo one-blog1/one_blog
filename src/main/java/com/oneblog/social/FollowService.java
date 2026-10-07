@@ -27,13 +27,15 @@ public class FollowService {
     private final UserRepository userRepository;
     private final NamedParameterJdbcTemplate jdbc;
     private final List<FollowListener> listeners;
+    private final List<FollowGate> gates;
 
     public FollowService(FollowRepository followRepository, UserRepository userRepository,
-            NamedParameterJdbcTemplate jdbc, List<FollowListener> listeners) {
+            NamedParameterJdbcTemplate jdbc, List<FollowListener> listeners, List<FollowGate> gates) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.jdbc = jdbc;
         this.listeners = listeners;
+        this.gates = gates;
     }
 
     public record FollowState(boolean following, long followerCount) {
@@ -63,6 +65,7 @@ public class FollowService {
             followRepository.delete(existing.get());
             following = false;
         } else {
+            gates.forEach(g -> g.check(principal.id(), target.getId()));
             try {
                 followRepository.saveAndFlush(Follow.of(principal.id(), target.getId()));
             } catch (DataIntegrityViolationException e) {

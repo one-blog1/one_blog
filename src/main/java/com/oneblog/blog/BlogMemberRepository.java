@@ -77,4 +77,13 @@ public interface BlogMemberRepository extends JpaRepository<BlogMember, Long> {
     default List<Long> findMemberIdsExceptOwner(Long blogId) {
         return findUserIdsExceptRole(blogId, BlogMemberStatus.ACTIVE, BlogRole.OWNER);
     }
+
+    @Query("select m from BlogMember m where m.blogId = :blogId and m.status = :active and m.role = :role")
+    List<BlogMember> findByRole(@Param("blogId") Long blogId, @Param("active") BlogMemberStatus active,
+            @Param("role") BlogRole role);
+
+    /** 활성 부블로그장 (블로그장 권한 박탈 때 승계, ADM-07). */
+    default List<BlogMember> findSubOwners(Long blogId) {
+        return findByRole(blogId, BlogMemberStatus.ACTIVE, BlogRole.SUB_OWNER);
+    }
 }

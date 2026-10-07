@@ -124,6 +124,27 @@ public class BlogMember {
         this.canManagePosts = canManagePosts;
     }
 
+    /** 정지 (BLG-13, 3.7). 영구 정지는 9999-12-31. 정지 중에는 그 블로그에 들어갈 수 없다. */
+    public void suspendUntil(LocalDateTime until) {
+        this.suspendedUntil = until;
+    }
+
+    public void releaseSuspension() {
+        this.suspendedUntil = null;
+    }
+
+    public boolean isSuspended(LocalDateTime now) {
+        return suspendedUntil != null && suspendedUntil.isAfter(now);
+    }
+
+    /** 강제 퇴장 (BLG-11, BLG-13). 같은 행이 KICKED로 남는다. */
+    public void kick(LocalDateTime now) {
+        this.status = BlogMemberStatus.KICKED;
+        this.leftAt = now;
+        this.suspendedUntil = null;
+        clearPermissions();
+    }
+
     /** 일반 멤버로 (부블로그장 해제, 위임한 예전 블로그장, 권한 박탈된 블로그장 ADM-07). */
     public void makeMember() {
         this.role = BlogRole.MEMBER;
@@ -204,17 +225,20 @@ public class BlogMember {
 
     /** 멤버 관리(참여 승인·거절, 제재)를 할 수 있는지: 블로그장, 또는 멤버 관리 권한을 받은 부블로그장 (2장, D-71). */
     public boolean canManageMembers() {
-        return isActive() && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canManageMembers));
+        return isActive() && !isSuspended(LocalDateTime.now())
+                && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canManageMembers));
     }
 
     /** 글 관리(남의 글 삭제·숨김, 공지)를 할 수 있는지: 블로그장, 또는 글 관리 권한을 받은 부블로그장. */
     public boolean canManagePosts() {
-        return isActive() && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canManagePosts));
+        return isActive() && !isSuspended(LocalDateTime.now())
+                && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canManagePosts));
     }
 
     /** 블로그 정보를 고칠 수 있는지: 블로그장, 또는 정보 수정 권한을 받은 부블로그장. */
     public boolean canEditInfo() {
-        return isActive() && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canEditInfo));
+        return isActive() && !isSuspended(LocalDateTime.now())
+                && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canEditInfo));
     }
 
     public LocalDateTime getSuspendedUntil() {

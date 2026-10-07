@@ -42,6 +42,9 @@ app:
     secret: ${JWT_SECRET}
   verification:
     code-pepper: ${CODE_PEPPER}
+  privacy:
+    # 블랙리스트 해시용 비밀값 (BLG-11, 4.6). 비우면 CODE_PEPPER
+    hash-pepper: ${PRIVACY_HASH_PEPPER:${CODE_PEPPER}}
   mail:
     mode: ${MAIL_MODE:smtp}       # smtp | log
   cookie:

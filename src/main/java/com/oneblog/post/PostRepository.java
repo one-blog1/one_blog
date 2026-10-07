@@ -38,6 +38,33 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findVisibleInCategory(@Param("blogId") Long blogId, @Param("type") PostType type,
             @Param("categoryId") Long categoryId, Pageable pageable);
 
+    /** 가린 작성자(차단, 013)를 뺀 블로그 글. excluded는 비어 있으면 안 된다. */
+    @Query(value = """
+            select p from Post p
+            where p.blogId = :blogId and p.postType in :types and p.deletedAt is null and p.hidden = false
+              and p.userId not in :excluded
+            """,
+            countQuery = """
+            select count(p) from Post p
+            where p.blogId = :blogId and p.postType in :types and p.deletedAt is null and p.hidden = false
+              and p.userId not in :excluded
+            """)
+    Page<Post> findVisibleInBlogExcluding(@Param("blogId") Long blogId, @Param("types") Collection<PostType> types,
+            @Param("excluded") Collection<Long> excluded, Pageable pageable);
+
+    @Query(value = """
+            select p from Post p
+            where p.blogId = :blogId and p.postType = :type and p.deletedAt is null and p.hidden = false
+              and p.categoryId = :categoryId and p.userId not in :excluded
+            """,
+            countQuery = """
+            select count(p) from Post p
+            where p.blogId = :blogId and p.postType = :type and p.deletedAt is null and p.hidden = false
+              and p.categoryId = :categoryId and p.userId not in :excluded
+            """)
+    Page<Post> findVisibleInCategoryExcluding(@Param("blogId") Long blogId, @Param("type") PostType type,
+            @Param("categoryId") Long categoryId, @Param("excluded") Collection<Long> excluded, Pageable pageable);
+
     /** 블로그 글 수 (관리자 블로그 목록, ADM-02). */
     @Query("select count(p) from Post p where p.blogId = :blogId and p.deletedAt is null")
     long countInBlog(@Param("blogId") Long blogId);

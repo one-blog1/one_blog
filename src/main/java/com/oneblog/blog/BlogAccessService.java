@@ -13,7 +13,7 @@ import com.oneblog.common.web.ApiException;
 /**
  * 블로그를 볼 수 있는지 한 곳에서 판단한다 (BLG-01, SEC-07, research R7).
  * 역할은 화면이나 토큰이 아니라 요청마다 저장된 멤버십으로 확인한다 (constitution III).
- * 정지·블랙리스트(013), 관리자 숨김(007)은 해당 기능에서 여기에 조건을 더한다.
+ * 관리자 숨김(007), 정지(013)도 여기서 판단한다. 블랙리스트는 참여 신청에서 막는다(BlacklistService).
  */
 @Service
 public class BlogAccessService {
@@ -22,13 +22,16 @@ public class BlogAccessService {
     private final BlogMemberRepository memberRepository;
     private final BlogPolicy policy;
     private final BlogSubscriptionRepository subscriptionRepository;
+    private final org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc;
 
     public BlogAccessService(BlogRepository blogRepository, BlogMemberRepository memberRepository,
-            BlogPolicy policy, BlogSubscriptionRepository subscriptionRepository) {
+            BlogPolicy policy, BlogSubscriptionRepository subscriptionRepository,
+            org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc) {
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
         this.policy = policy;
         this.subscriptionRepository = subscriptionRepository;
+        this.jdbc = jdbc;
     }
 
     /** 볼 수 있으면 블로그와 내 역할(멤버가 아니면 null), 없으면 404, 볼 수 없으면 403. 403·404에는 블로그 정보를 싣지 않는다. */
@@ -47,12 +50,13 @@ public class BlogAccessService {
             throw new ApiException(HttpStatus.NOT_FOUND, "BLOG_NOT_FOUND", "블로그를 찾을 수 없습니다.");
         }
 
-        BlogRole myRole = null;
-        if (viewerId != null) {
-            myRole = memberRepository.findActive(blog.getId(), viewerId).map(BlogMember::getRole).orElse(null);
-        }
-        if (myRole != null) {
-            return new Access(blog, myRole);
+        BlogMember membership = viewerId == null ? null : memberRepository.findActive(blog.getId(), viewerId).orElse(null);
+        if (membership != null) {
+            // 정지된 멤버는 정지 기간 동안 이 블로그에 들어갈 수 없고, 기간과 사유를 안내받는다 (BLG-13, D-29)
+            if (membership.isSuspended(java.time.LocalDateTime.now())) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "MEMBER_SUSPENDED", suspensionMessage(blog, membership));
+            }
+            return new Access(blog, membership.getRole());
         }
         if (blog.isHidden()) {
             // 관리자가 숨긴 블로그는 멤버가 아니면 없는 블로그처럼 보인다 (ADM-02)
@@ -71,6 +75,18 @@ public class BlogAccessService {
             }
             case PRIVATE -> throw new ApiException(HttpStatus.FORBIDDEN, "PRIVATE_BLOG", "비공개 블로그입니다.");
         };
+    }
+
+    private String suspensionMessage(Blog blog, BlogMember membership) {
+        java.time.LocalDateTime until = membership.getSuspendedUntil();
+        String when = until.getYear() >= 9999 ? "영구히"
+                : until.format(java.time.format.DateTimeFormatter.ofPattern("yyyy년 M월 d일 H시")) + "까지";
+        java.util.List<String> reasons = jdbc.queryForList("""
+                SELECT reason FROM sanctions WHERE blog_id = :blogId AND user_id = :userId AND type = 'SUSPENSION'
+                ORDER BY id DESC LIMIT 1
+                """, new org.springframework.jdbc.core.namedparam.MapSqlParameterSource()
+                .addValue("blogId", blog.getId()).addValue("userId", membership.getUserId()), String.class);
+        return "이 블로그에서 " + when + " 정지되었습니다." + (reasons.isEmpty() ? "" : " 사유: " + reasons.get(0));
     }
 
     /** 길이와 내용을 함께, 시간 차이 없이 비교한다 (research R6). */

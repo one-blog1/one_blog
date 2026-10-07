@@ -4,7 +4,11 @@
   'use strict';
 
   const ROLE = { OWNER: '블로그장', SUB_OWNER: '부블로그장', MEMBER: '멤버' };
-  const state = { slug: '', blog: null, coverFileId: null, removeCover: false };
+  const state = { slug: '', blog: null, coverFileId: null, removeCover: false, me: null };
+
+  document.addEventListener('header:user', (event) => {
+    state.me = event.detail.id;
+  });
 
   function $(id) {
     return document.getElementById(id);
@@ -147,6 +151,16 @@
       const tr = el('tr');
       [m.nickname, m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));
       const actions = el('td');
+      if (m.suspensionCount >= 3) {
+        actions.append(el('span', 'badge', '정지 ' + m.suspensionCount + '회'));
+      }
+      if (m.suspendedUntil) {
+        actions.append(el('span', 'hint', ' 정지 중(' + formatTime(m.suspendedUntil) + '까지) '));
+      }
+      const canSanction = m.role === 'MEMBER' || (owner && m.role === 'SUB_OWNER');
+      if (canSanction && m.userId !== state.me) {
+        actions.append(sanctionButtons(m));
+      }
       if (owner && m.role !== 'OWNER') {
         const sub = permissionBox('부블로그장', m.role === 'SUB_OWNER');
         const info = permissionBox('정보 수정', m.canEditInfo);
@@ -181,6 +195,159 @@
     // 위임할 멤버가 없으면 폐쇄만 할 수 있다 (BLG-08)
     if (owner && result.data.length <= 1) {
       $('transfer-text').textContent = '위임할 멤버가 없어요. 블로그를 정리하려면 폐쇄해 주세요.';
+    }
+  }
+
+  // ---- 제재 (BLG-11, BLG-13) ----
+  function askDays() {
+    const raw = window.prompt('정지 기간을 골라 주세요: 3, 14, 30 (일) 또는 영구', '3');
+    if (raw === null) {
+      return undefined;
+    }
+    const value = raw.trim();
+    if (value === '영구') {
+      return null;
+    }
+    const days = parseInt(value, 10);
+    return [3, 14, 30].includes(days) ? days : undefined;
+  }
+
+  async function sanction(userId, nickname, type, reportId) {
+    const labels = { WARNING: '경고', SUSPENSION: '정지', RELEASE: '정지 해제', KICK: '강제 퇴장' };
+    let days = null;
+    if (type === 'SUSPENSION') {
+      days = askDays();
+      if (days === undefined) {
+        return false;
+      }
+    }
+    const reason = type === 'RELEASE' ? '' : window.prompt(nickname + '님에게 ' + labels[type] + ' 사유를 적어 주세요.');
+    if (reason === null || (type !== 'RELEASE' && !reason.trim())) {
+      return false;
+    }
+    if (type === 'KICK' && !window.confirm(nickname + '님을 강제 퇴장할까요? 블랙리스트에 올라 다시 참여할 수 없어요.')) {
+      return false;
+    }
+    const result = reportId
+      ? await window.api.post(base() + '/reports/' + reportId + '/resolve', { result: type, days: days, reason: reason },
+        { userAction: true })
+      : await window.api.post(base() + '/members/' + userId + '/sanctions', { type: type, days: days, reason: reason },
+        { userAction: true });
+    say(reportId ? 'reports-message' : 'members-message',
+      result.ok ? nickname + '님에게 ' + labels[type] + ' 처리했어요.' : errorText(result, '처리하지 못했어요.'), result.ok);
+    return result.ok;
+  }
+
+  function sanctionButtons(m) {
+    const box = el('span');
+    [['WARNING', '경고'], ['SUSPENSION', '정지'], ['RELEASE', '정지 해제'], ['KICK', '강제 퇴장']].forEach(([type, label]) => {
+      if (type === 'RELEASE' && !m.suspendedUntil) {
+        return;
+      }
+      const b = el('button', type === 'KICK' ? 'link-button danger' : 'link-button', label);
+      b.type = 'button';
+      b.addEventListener('click', async () => {
+        if (await sanction(m.userId, m.nickname, type)) {
+          loadMembers();
+          loadBlacklist();
+        }
+      });
+      box.append(b);
+    });
+    return box;
+  }
+
+  // ---- 신고 처리 ----
+  function snapshotText(raw) {
+    try {
+      const s = JSON.parse(raw);
+      return [s.title, s.postTitle, s.content, s.description].filter(Boolean).join(' / ');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  async function loadReports() {
+    const result = await window.api.get(base() + '/reports');
+    if (!result.ok || !Array.isArray(result.data)) {
+      return;
+    }
+    const list = $('report-list');
+    list.replaceChildren();
+    const TYPE = { POST: '글', COMMENT: '댓글', USER: '멤버' };
+    result.data.forEach(r => {
+      const li = el('li');
+      li.append(el('strong', null, (TYPE[r.targetType] || r.targetType) + ' · ' + (r.targetNickname || '') + ' · ' + r.reasonLabel));
+      li.append(el('p', 'hint', snapshotText(r.snapshot)));
+      if (r.detail) {
+        li.append(el('p', 'hint', '신고 내용: ' + r.detail));
+      }
+      li.append(el('p', 'hint', '신고한 사람 ' + r.reporterNickname + ' · ' + formatTime(r.createdAt)));
+      const actions = el('div', 'row');
+      const ok = el('button', 'link-button', '문제 없음');
+      ok.type = 'button';
+      ok.addEventListener('click', async () => {
+        const res = await window.api.post(base() + '/reports/' + r.id + '/resolve', { result: 'NO_ISSUE' }, { userAction: true });
+        say('reports-message', res.ok ? '처리했어요.' : errorText(res, '처리하지 못했어요.'), res.ok);
+        loadReports();
+      });
+      actions.append(ok);
+      if (r.targetUserId) {
+        [['WARNING', '경고'], ['SUSPENSION', '정지'], ['KICK', '강제 퇴장']].forEach(([type, label]) => {
+          const b = el('button', type === 'KICK' ? 'link-button danger' : 'link-button', label);
+          b.type = 'button';
+          b.addEventListener('click', async () => {
+            if (await sanction(r.targetUserId, r.targetNickname || '', type, r.id)) {
+              loadReports();
+              loadMembers();
+            }
+          });
+          actions.append(b);
+        });
+      }
+      li.append(actions);
+      list.append(li);
+    });
+    $('report-empty').classList.toggle('hidden', result.data.length > 0);
+  }
+
+  // ---- 블랙리스트·해제 문의 (BLG-11, BLG-12) ----
+  async function loadBlacklist() {
+    const inquiries = await window.api.get(base() + '/blacklist-inquiries');
+    if (inquiries.ok && Array.isArray(inquiries.data)) {
+      const list = $('inquiry-list');
+      list.replaceChildren();
+      inquiries.data.forEach(i => {
+        const li = el('li');
+        li.append(el('strong', null, i.nickname + ' · ' + (i.status === 'PENDING' ? '대기' : i.status === 'RELEASED' ? '해제함' : '거절함')));
+        li.append(el('p', null, i.message));
+        li.append(el('p', 'hint', '이름 ' + (i.nameMatched ? '일치' : '불일치') + ' · 전화번호 ' + (i.phoneMatched ? '일치' : '불일치')
+          + ' · ' + formatTime(i.createdAt)));
+        if (i.status === 'PENDING') {
+          ['release', 'reject'].forEach(action => {
+            const b = el('button', action === 'release' ? 'link-button' : 'link-button danger',
+              action === 'release' ? '해제' : '거절');
+            b.type = 'button';
+            b.addEventListener('click', async () => {
+              await window.api.post(base() + '/blacklist-inquiries/' + i.id + '/' + action, undefined, { userAction: true });
+              loadBlacklist();
+            });
+            li.append(b);
+          });
+        }
+        list.append(li);
+      });
+      $('inquiry-empty').classList.toggle('hidden', inquiries.data.length > 0);
+    }
+    const entries = await window.api.get(base() + '/blacklist');
+    if (entries.ok && Array.isArray(entries.data)) {
+      const list = $('blacklist-list');
+      list.replaceChildren();
+      entries.data.forEach(b => {
+        list.append(el('li', null, formatTime(b.createdAt) + ' · 등록 ' + (b.createdBy || '') + ' · 사유: ' + (b.reason || '')
+          + (b.releasedAt ? ' · 해제됨' : '')));
+      });
+      $('blacklist-empty').classList.toggle('hidden', entries.data.length > 0);
     }
   }
 
@@ -243,6 +410,8 @@
     $('info-form').classList.toggle('hidden', !p.canEditInfo);
     $('settings-form').classList.toggle('hidden', !owner);
     $('members-block').classList.toggle('hidden', !p.canManageMembers);
+    $('reports-block').classList.toggle('hidden', !p.canManageMembers);
+    $('blacklist-block').classList.toggle('hidden', !p.canManageMembers);
     $('transfer-block').classList.toggle('hidden', !owner);
     $('close-block').classList.toggle('hidden', !owner);
     if (!p.canEditInfo && !p.canManageMembers && !owner) {
@@ -274,6 +443,8 @@
     $('close-cancel').addEventListener('click', cancelClose);
     if (blog.permissions && blog.permissions.canManageMembers) {
       loadMembers();
+      loadReports();
+      loadBlacklist();
     }
     if (blog.myRole === 'OWNER') {
       loadTransfer();

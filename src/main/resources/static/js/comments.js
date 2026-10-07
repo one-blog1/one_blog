@@ -100,6 +100,7 @@
       const report = el('button', 'link-button report-comment hidden', '신고');
       report.type = 'button';
       report.dataset.commentId = String(c.id);
+      report.dataset.mine = String(!!c.canEdit);
       actions.append(report);
       li.append(actions);
     }

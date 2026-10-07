@@ -43,15 +43,18 @@ public class CommentService {
     private final BlogAccessService accessService;
     private final UserDisplayService userDisplay;
     private final List<CommentListener> listeners;
+    private final com.oneblog.member.HiddenAuthors hiddenAuthorsOf;
 
     public CommentService(CommentRepository commentRepository, PostRepository postRepository, PostService postService,
-            BlogAccessService accessService, UserDisplayService userDisplay, List<CommentListener> listeners) {
+            BlogAccessService accessService, UserDisplayService userDisplay, List<CommentListener> listeners,
+            com.oneblog.member.HiddenAuthors hiddenAuthorsOf) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.postService = postService;
         this.accessService = accessService;
         this.userDisplay = userDisplay;
         this.listeners = listeners;
+        this.hiddenAuthorsOf = hiddenAuthorsOf;
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +66,10 @@ public class CommentService {
         BlogMember member = accessService.activeMembership(blog.getId(), viewerId);
         boolean manager = member != null && member.canManagePosts();
 
-        List<Comment> all = commentRepository.findByPost(postId).stream().filter(c -> !c.isHidden()).toList();
+        // 내가 차단한 회원의 댓글은 가린다. 같은 블로그 멤버면 그대로 보인다 (SOC-05, D-36)
+        Set<Long> hiddenAuthors = member == null ? hiddenAuthorsOf.of(viewerId) : Set.of();
+        List<Comment> all = commentRepository.findByPost(postId).stream()
+                .filter(c -> !c.isHidden() && !hiddenAuthors.contains(c.getUserId())).toList();
         Set<Long> userIds = new HashSet<>();
         for (Comment c : all) {
             userIds.add(c.getUserId());

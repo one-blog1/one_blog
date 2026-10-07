@@ -24,12 +24,14 @@ public class ProfileService {
     private final FollowService followService;
     private final FollowRepository followRepository;
     private final BlogMemberRepository memberRepository;
+    private final com.oneblog.block.BlockRepository blockRepository;
 
     public ProfileService(FollowService followService, FollowRepository followRepository,
-            BlogMemberRepository memberRepository) {
+            BlogMemberRepository memberRepository, com.oneblog.block.BlockRepository blockRepository) {
         this.followService = followService;
         this.followRepository = followRepository;
         this.memberRepository = memberRepository;
+        this.blockRepository = blockRepository;
     }
 
     public record BlogItem(String slug, String name, String coverImageUrl, BlogVisibility visibility, BlogRole role,
@@ -37,7 +39,8 @@ public class ProfileService {
     }
 
     public record ProfileResponse(String nickname, String profileImageUrl, String bio, long followerCount,
-            long followingCount, boolean following, boolean me, List<BlogItem> ownedBlogs, List<BlogItem> joinedBlogs) {
+            long followingCount, boolean following, boolean me, boolean blocked, List<BlogItem> ownedBlogs,
+            List<BlogItem> joinedBlogs) {
     }
 
     @Transactional(readOnly = true)
@@ -58,6 +61,7 @@ public class ProfileService {
         }
         return new ProfileResponse(user.getNickname(), user.getProfileImageUrl(), user.getBio(),
                 followRepository.countFollowers(user.getId()), followRepository.countFollowing(user.getId()),
-                followService.isFollowing(viewerId, user.getId()), me, owned, joined);
+                followService.isFollowing(viewerId, user.getId()), me, blockRepository.exists(viewerId, user.getId()),
+                owned, joined);
     }
 }

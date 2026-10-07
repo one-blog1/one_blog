@@ -100,6 +100,46 @@
     loadList();
   }
 
+  function renderBlock() {
+    $('block-button').textContent = state.profile.blocked ? '차단 해제' : '차단';
+  }
+
+  async function toggleBlock() {
+    if (!state.profile.blocked
+      && !window.confirm(state.nickname + '님을 차단할까요? 서로의 팔로우가 끊기고 이 회원의 글과 댓글이 가려져요.')) {
+      return;
+    }
+    const result = await window.api.post('/api/users/' + encodeURIComponent(state.nickname) + '/block', undefined,
+      { userAction: true });
+    if (!result.ok || !result.data) {
+      $('follow-message').textContent = (result.data && result.data.message) || '처리하지 못했어요.';
+      return;
+    }
+    state.profile.blocked = result.data.blocked;
+    if (result.data.blocked) {
+      state.profile.following = false;
+      renderFollow();
+    }
+    renderBlock();
+  }
+
+  // 차단·신고는 로그인한 일반 회원에게만 (관리자 제외, D-90)
+  document.addEventListener('header:user', (event) => {
+    const enable = () => {
+      if (!state.profile || state.profile.me || event.detail.role === 'ADMIN') {
+        return;
+      }
+      renderBlock();
+      $('block-button').classList.remove('hidden');
+      $('report-user').classList.remove('hidden');
+    };
+    if (state.profile) {
+      enable();
+    } else {
+      document.addEventListener('profile:loaded', enable, { once: true });
+    }
+  });
+
   document.addEventListener('DOMContentLoaded', async () => {
     const parts = window.location.pathname.split('/');
     state.nickname = decodeURIComponent(parts[2] || '');
@@ -125,6 +165,9 @@
     $('show-following').addEventListener('click', () => showList('following'));
     renderBlogs('owned-list', 'owned-empty', p.ownedBlogs);
     renderBlogs('joined-list', 'joined-empty', p.joinedBlogs);
+    $('block-button').addEventListener('click', toggleBlock);
+    $('report-user').addEventListener('click', () => window.report.open({ targetType: 'PROFILE', nickname: p.nickname }));
     $('profile').classList.remove('hidden');
+    document.dispatchEvent(new CustomEvent('profile:loaded'));
   });
 })();

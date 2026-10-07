@@ -89,8 +89,10 @@ public class BlogManageService {
             boolean canManagePosts) {
     }
 
+    /** suspensionCount: 1년 안에 받은 정지 수. 3번 이상이면 화면에 표시하고 블로그장이 강제 퇴장을 판단한다 (D-46). */
     public record MemberItem(Long userId, String nickname, String name, String email, String phone, BlogRole role,
-            boolean canEditInfo, boolean canManageMembers, boolean canManagePosts, OffsetDateTime joinedAt) {
+            boolean canEditInfo, boolean canManageMembers, boolean canManagePosts, OffsetDateTime joinedAt,
+            OffsetDateTime suspendedUntil, long suspensionCount) {
     }
 
     @Transactional
@@ -168,7 +170,10 @@ public class BlogManageService {
         require(blog, principal, BlogMember::canManageMembers, "멤버 정보를 볼 권한이 없습니다.");
         return jdbc.query("""
                 SELECT u.id, u.nickname, u.name, u.email, u.phone, m.role, m.can_edit_info, m.can_manage_members,
-                       m.can_manage_posts, m.joined_at
+                       m.can_manage_posts, m.joined_at,
+                       CASE WHEN m.suspended_until > CURRENT_TIMESTAMP(6) THEN m.suspended_until END,
+                       (SELECT COUNT(*) FROM sanctions s WHERE s.blog_id = m.blog_id AND s.user_id = m.user_id
+                          AND s.type = 'SUSPENSION' AND s.created_at >= DATE_SUB(CURRENT_TIMESTAMP(6), INTERVAL 1 YEAR))
                 FROM blog_members m JOIN users u ON u.id = m.user_id
                 WHERE m.blog_id = :blogId AND m.status = 'ACTIVE'
                 ORDER BY FIELD(m.role, 'OWNER', 'SUB_OWNER', 'MEMBER'), m.joined_at ASC, m.id ASC
@@ -176,7 +181,9 @@ public class BlogManageService {
                 (rs, i) -> new MemberItem(rs.getLong(1), rs.getString(2), rs.getString(3),
                         Masking.email(rs.getString(4)), Masking.phone(rs.getString(5)),
                         BlogRole.valueOf(rs.getString(6)), rs.getBoolean(7), rs.getBoolean(8), rs.getBoolean(9),
-                        Times.toOffset(rs.getTimestamp(10).toLocalDateTime())));
+                        Times.toOffset(rs.getTimestamp(10).toLocalDateTime()),
+                        rs.getTimestamp(11) == null ? null : Times.toOffset(rs.getTimestamp(11).toLocalDateTime()),
+                        rs.getLong(12)));
     }
 
     /** 부블로그장 지정·권한 변경·해제 (블로그장만, D-71). */
