@@ -1,0 +1,39 @@
+# 비밀 정보 (절대 커밋하지 않기)
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.properties
+application-secret.yml
+*.pem
+*.key
+
+# Claude Code 개인 설정 (skills는 팀이 함께 쓰므로 커밋)
+.claude/settings.local.json
+
+# Build (Gradle / Maven)
+.gradle/
+build/
+target/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# 업로드 파일 (1차는 서버 디스크 저장, SCL-02)
+uploads/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (프론트 도구를 쓸 경우)
+node_modules/
