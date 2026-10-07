@@ -115,7 +115,8 @@ public class BlogTransferService {
         return items;
     }
 
-    @Transactional
+    /** noRollbackFor: 받을 수 없게 된 요청은 오류를 주면서도 취소로 남겨야 한다. */
+    @Transactional(noRollbackFor = ApiException.class)
     public void respond(Long requestId, boolean accept, AuthenticatedUser principal) {
         // 받는 회원을 먼저 잠가 같은 회원의 동시 수락(개수 제한)을 줄 세운다
         userRepository.findForUpdateById(principal.id());

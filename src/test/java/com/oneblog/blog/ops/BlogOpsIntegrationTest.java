@@ -209,6 +209,8 @@ class BlogOpsIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/posts/" + postId)).andExpect(jsonPath("$.authorName").value("탈퇴한 회원"));
         mvc.perform(get("/api/blogs/open-blog")).andExpect(jsonPath("$.memberCount").value(1));
         // 같은 이메일로 바로 다시 가입할 수 있다 (6.5)
+        // (가입 인증번호는 1분에 한 번만 다시 받을 수 있어, 앞서 쓴 번호 기록을 지우고 다시 가입한다)
+        jdbc.update("DELETE FROM verification_codes");
         signUp("member@example.com", "새멤버");
 
         // 30일 뒤 개인정보 삭제

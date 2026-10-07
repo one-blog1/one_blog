@@ -85,8 +85,8 @@ public class BlogManageService {
     public record SettingsRequest(BlogVisibility visibility, BlogJoinPolicy joinPolicy) {
     }
 
-    public record SubOwnerRequest(boolean subOwner, boolean canEditInfo, boolean canManageMembers,
-            boolean canManagePosts) {
+    public record SubOwnerRequest(Boolean subOwner, Boolean canEditInfo, Boolean canManageMembers,
+            Boolean canManagePosts) {
     }
 
     /** suspensionCount: 1년 안에 받은 정지 수. 3번 이상이면 화면에 표시하고 블로그장이 강제 퇴장을 판단한다 (D-46). */
@@ -196,8 +196,9 @@ public class BlogManageService {
         if (target.isOwner()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CANNOT_CHANGE_OWNER", "블로그장의 역할은 위임으로만 바꿀 수 있습니다.");
         }
-        if (request.subOwner()) {
-            target.makeSubOwner(request.canEditInfo(), request.canManageMembers(), request.canManagePosts(),
+        if (Boolean.TRUE.equals(request.subOwner())) {
+            target.makeSubOwner(Boolean.TRUE.equals(request.canEditInfo()),
+                    Boolean.TRUE.equals(request.canManageMembers()), Boolean.TRUE.equals(request.canManagePosts()),
                     LocalDateTime.now());
         } else {
             target.makeMember();
@@ -242,7 +243,7 @@ public class BlogManageService {
         }
     }
 
-    BlogMember requireOwner(Blog blog, AuthenticatedUser principal) {
+    public BlogMember requireOwner(Blog blog, AuthenticatedUser principal) {
         return require(blog, principal, BlogMember::isOwner, "블로그장만 할 수 있습니다.");
     }
 

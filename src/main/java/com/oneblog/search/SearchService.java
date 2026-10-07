@@ -140,7 +140,7 @@ public class SearchService {
     }
 
     /** 다른 기능(차단 013)이 글 목록에서 뺄 조건을 더한다. */
-    void appendFilters(StringBuilder fromWhere, MapSqlParameterSource args, Long viewerId) {
+    public void appendFilters(StringBuilder fromWhere, MapSqlParameterSource args, Long viewerId) {
         for (SearchFilter filter : filters) {
             String condition = filter.postCondition(viewerId, args);
             if (condition != null) {

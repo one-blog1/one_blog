@@ -186,10 +186,14 @@ class BlogJoinIntegrationTest extends BlogTestSupport {
     @Test
     void 강제_퇴장된_회원은_다시_참여할_수_없다() throws Exception {
         apply(alice, "open-blog").andExpect(status().isCreated());
-        jdbc.update("UPDATE blog_members SET status = 'KICKED' WHERE user_id = ?", userId("alice@example.com"));
+        // 강제 퇴장은 블랙리스트에 올리고(013, BLG-11), 블랙리스트에 걸리면 다시 참여할 수 없다
+        mvc.perform(post("/api/blogs/open-blog/members/" + userId("alice@example.com") + "/sanctions").with(csrf())
+                        .cookie(owner).contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"KICK\",\"reason\":\"규칙 위반\"}"))
+                .andExpect(status().isNoContent());
         apply(alice, "open-blog")
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("JOIN_BLOCKED"));
+                .andExpect(jsonPath("$.code").value("BLACKLISTED"));
     }
 
     @Test

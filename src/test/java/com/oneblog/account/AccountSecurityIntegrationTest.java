@@ -58,7 +58,9 @@ class AccountSecurityIntegrationTest extends IntegrationTestSupport {
         // 잠긴 동안에는 맞는 비밀번호도 안 된다
         loginWith(PASSWORD).andExpect(status().isLocked());
 
-        jdbc.update("UPDATE users SET locked_until = DATE_SUB(NOW(6), INTERVAL 1 SECOND) WHERE email = ?", EMAIL);
+        // 잠금 판단은 서버(JVM) 시각으로 하므로 같은 시계로 넣는다
+        jdbc.update("UPDATE users SET locked_until = ? WHERE email = ?", java.time.LocalDateTime.now().minusSeconds(1),
+                EMAIL);
         loginWith(PASSWORD).andExpect(status().isOk());
         assertThat(jdbc.queryForObject("SELECT failed_login_count FROM users WHERE email = ?", Integer.class, EMAIL))
                 .isZero();

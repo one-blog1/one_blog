@@ -21,6 +21,6 @@ class BlogPagesIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 없는_화면은_막힌다() throws Exception {
-        mvc.perform(get("/admin.html")).andExpect(status().is4xxClientError());
+        mvc.perform(get("/no-such-page.html")).andExpect(status().is4xxClientError());
     }
 }
