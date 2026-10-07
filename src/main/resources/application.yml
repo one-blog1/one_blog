@@ -54,3 +54,7 @@ app:
     reserved-slugs: main, admin, api, login, signup, search, blog, blogs, my, me, new, css, js, images, files, error, static, favicon, notice, settings, help
   file:
     storage-dir: ${FILE_STORAGE_DIR:./uploads}   # 업로드 파일 저장 폴더 (D-75). 저장소에 올리지 않음
+  admin:
+    # 처음 관리자 계정 (D-94). 둘 다 넣으면 서버가 시작하면서 한 번 만든다. 저장소에 올리지 않는다
+    initial-login-id: ${ADMIN_LOGIN_ID:}
+    initial-password: ${ADMIN_PASSWORD:}

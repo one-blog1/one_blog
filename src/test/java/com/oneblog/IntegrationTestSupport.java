@@ -144,4 +144,18 @@ public abstract class IntegrationTestSupport {
     protected void makeAdmin(String email, String loginId) {
         jdbc.update("UPDATE users SET role = 'ADMIN', login_id = ? WHERE email = ?", loginId, email.toLowerCase());
     }
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    /** 이메일 없는 관리자 계정을 만들고(D-94) 관리자 로그인으로 쿠키를 받는다 (D-98). */
+    protected Cookie createAdminAndLogin(String loginId) throws Exception {
+        jdbc.update("INSERT INTO users (login_id, password_hash, role, status) VALUES (?, ?, 'ADMIN', 'ACTIVE')",
+                loginId, passwordEncoder.encode(PASSWORD));
+        return mvc.perform(post("/api/auth/admin/login").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"" + loginId + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getCookie(CookieNames.ACCESS_TOKEN);
+    }
 }

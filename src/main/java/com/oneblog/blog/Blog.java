@@ -105,6 +105,11 @@ public class Blog {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /** 관리자 숨김 (ADM-02). 숨긴 블로그는 목록·검색에서 빠지고 멤버만 들어갈 수 있다. */
+    public void hide(boolean hidden) {
+        this.hidden = hidden;
+    }
+
     /** 폐쇄·삭제되지 않은 블로그 (폐쇄 예정 중에도 평소처럼 운영, D-67). */
     public boolean isOpen() {
         return status != BlogStatus.CLOSED && deletedAt == null;

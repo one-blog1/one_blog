@@ -12,6 +12,7 @@ import com.oneblog.common.web.ApiException;
 import com.oneblog.member.SignupPolicy;
 import com.oneblog.member.User;
 import com.oneblog.member.UserRepository;
+import com.oneblog.member.UserRole;
 
 /**
  * 로그인·Access Token 재발급·로그아웃 (USR-03, USR-04, SEC-04, research R3).
@@ -47,10 +48,26 @@ public class AuthService {
         String email = signupPolicy.normalizeEmail(rawEmail);
         User user = userRepository.findByEmail(email).orElse(null);
         boolean passwordMatches = passwordEncoder.matches(password, user != null ? user.getPasswordHash() : dummyHash);
-        if (user == null || !passwordMatches || !user.isActive()) {
+        // 관리자 계정은 회원 로그인 화면으로 들어올 수 없다 (SEC-09, D-98)
+        if (user == null || !passwordMatches || !user.isActive() || user.getRole() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", LOGIN_FAILED_MESSAGE);
         }
+        return issue(user, rememberMe);
+    }
 
+    /** 관리자 로그인: 이메일 대신 관리자 전용 아이디(login_id) (SEC-09, D-98). 회원 계정은 들어올 수 없다. */
+    @Transactional
+    public LoginResult adminLogin(String rawLoginId, String password, boolean rememberMe) {
+        String loginId = rawLoginId == null ? "" : rawLoginId.strip().toLowerCase(java.util.Locale.ROOT);
+        User user = userRepository.findByLoginId(loginId).orElse(null);
+        boolean passwordMatches = passwordEncoder.matches(password, user != null ? user.getPasswordHash() : dummyHash);
+        if (user == null || !passwordMatches || !user.isActive() || user.getRole() != UserRole.ADMIN) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", "아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+        return issue(user, rememberMe);
+    }
+
+    private LoginResult issue(User user, boolean rememberMe) {
         String rawRefreshToken = tokenHasher.randomToken();
         RefreshToken session = refreshTokenRepository.save(
                 RefreshToken.issue(user, tokenHasher.sha256(rawRefreshToken), rememberMe, LocalDateTime.now()));

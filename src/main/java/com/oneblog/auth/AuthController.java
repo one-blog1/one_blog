@@ -40,6 +40,23 @@ public class AuthController {
         return new LoginResponse(result.nickname());
     }
 
+    /** 관리자 로그인 (SEC-09, D-98). 쿠키는 회원 로그인과 같다. */
+    @PostMapping("/api/auth/admin/login")
+    public LoginResponse adminLogin(@RequestBody AdminLoginRequest request, HttpServletResponse response) {
+        AuthService.LoginResult result = authService.adminLogin(request.loginId(), request.password(),
+                Boolean.TRUE.equals(request.rememberMe()));
+        authCookies.setLoginCookies(response, result.accessToken(), result.refreshToken(), result.rememberMe());
+        return new LoginResponse(result.nickname());
+    }
+
+    public record AdminLoginRequest(String loginId, String password, Boolean rememberMe) {
+
+        @Override
+        public String toString() {
+            return "AdminLoginRequest[loginId=" + loginId + "]";
+        }
+    }
+
     @PostMapping("/api/auth/refresh")
     public ResponseEntity<Void> refresh(
             @CookieValue(name = CookieNames.REFRESH_TOKEN, required = false) String refreshToken,

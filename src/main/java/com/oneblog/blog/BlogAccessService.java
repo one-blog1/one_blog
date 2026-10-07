@@ -51,6 +51,10 @@ public class BlogAccessService {
         if (myRole != null) {
             return new Access(blog, myRole);
         }
+        if (blog.isHidden()) {
+            // 관리자가 숨긴 블로그는 멤버가 아니면 없는 블로그처럼 보인다 (ADM-02)
+            throw new ApiException(HttpStatus.NOT_FOUND, "BLOG_NOT_FOUND", "블로그를 찾을 수 없습니다.");
+        }
 
         return switch (blog.getVisibility()) {
             case PUBLIC -> new Access(blog, null);

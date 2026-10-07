@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>공지사항 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main class="wide">
+    <article id="notice" class="card hidden">
+      <p class="breadcrumb"><a href="/">메인</a> › 공지사항</p>
+      <h1 id="notice-title"></h1>
+      <p id="notice-meta" class="post-meta"></p>
+      <!-- 서버가 마크다운을 HTML로 바꾸고 jsoup으로 거른 본문 (SEC-06) -->
+      <div id="notice-body" class="post-body"></div>
+    </article>
+    <section id="notice-missing" class="card hidden"><h1>공지를 찾을 수 없습니다</h1></section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script>
+    (async () => {
+      const id = new URLSearchParams(window.location.search).get('id') || '';
+      const result = await window.api.get('/api/notices/' + encodeURIComponent(id));
+      if (!result.ok || !result.data) {
+        document.getElementById('notice-missing').classList.remove('hidden');
+        return;
+      }
+      const n = result.data;
+      document.title = n.title + ' - One Blog';
+      document.getElementById('notice-title').textContent = n.title;
+      document.getElementById('notice-meta').textContent = n.authorName + ' · ' + new Date(n.createdAt).toLocaleString('ko-KR');
+      document.getElementById('notice-body').innerHTML = n.contentHtml;
+      document.getElementById('notice').classList.remove('hidden');
+    })();
+  </script>
+</body>
+</html>

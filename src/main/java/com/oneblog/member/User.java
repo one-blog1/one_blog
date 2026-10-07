@@ -89,6 +89,19 @@ public class User {
         return user;
     }
 
+    /**
+     * 관리자 계정 (SEC-09, D-94, D-98). 회원가입 화면으로는 만들 수 없고 운영자가 초기 데이터로 만든다.
+     * 이메일 없이 관리자 전용 아이디(login_id)로 로그인한다.
+     */
+    public static User createAdmin(String loginId, String passwordHash) {
+        User user = new User();
+        user.loginId = loginId;
+        user.passwordHash = passwordHash;
+        user.role = UserRole.ADMIN;
+        user.status = UserStatus.ACTIVE;
+        return user;
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -107,6 +120,14 @@ public class User {
 
     public Long getId() {
         return id;
+    }
+
+    public String getLoginId() {
+        return loginId;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
     public String getEmail() {

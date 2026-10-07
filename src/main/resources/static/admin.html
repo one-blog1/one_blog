@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>관리자 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main class="wide">
+    <section class="card">
+      <h1>관리자</h1>
+      <nav class="tabs" role="tablist" aria-label="관리 메뉴">
+        <button type="button" role="tab" data-tab="stats" aria-selected="true">통계</button>
+        <button type="button" role="tab" data-tab="users" aria-selected="false">회원</button>
+        <button type="button" role="tab" data-tab="blogs" aria-selected="false">블로그</button>
+        <button type="button" role="tab" data-tab="posts" aria-selected="false">글</button>
+        <button type="button" role="tab" data-tab="comments" aria-selected="false">댓글</button>
+        <button type="button" role="tab" data-tab="reports" aria-selected="false">신고</button>
+        <button type="button" role="tab" data-tab="notices" aria-selected="false">공지</button>
+        <button type="button" role="tab" data-tab="actions" aria-selected="false">활동 기록</button>
+      </nav>
+      <form id="search-form" class="row search-row hidden">
+        <input id="search-input" type="text" placeholder="검색어">
+        <button class="secondary" type="submit">찾기</button>
+      </form>
+      <form id="notice-form" class="notice-form hidden" novalidate>
+        <label for="notice-title">공지 제목</label>
+        <input id="notice-title" type="text" maxlength="30">
+        <label for="notice-content">공지 내용 (마크다운)</label>
+        <textarea id="notice-content" rows="6"></textarea>
+        <button class="primary inline-button" type="submit">공지 올리기</button>
+      </form>
+      <p id="admin-message" class="message" role="status"></p>
+      <div id="admin-content" class="admin-content"></div>
+      <nav id="admin-pagination" class="pagination" aria-label="페이지"></nav>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/pager.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
