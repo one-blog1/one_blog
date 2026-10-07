@@ -9,6 +9,10 @@ spring:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:one_blog}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # 원격 DB(Crowfoot)가 쉬는 연결을 먼저 끊는다. 30초마다 확인 신호를 보내고 3분마다 새 연결로 바꾼다.
+      keepalive-time: 30000
+      max-lifetime: 180000
   jpa:
     hibernate:
       ddl-auto: validate   # 스키마는 Flyway로만 바꾼다 (constitution IV)
