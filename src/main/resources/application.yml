@@ -1,0 +1,38 @@
+# 비밀값은 모두 환경변수 또는 저장소 루트의 .env로만 넣는다 (constitution III).
+# .env 예시: .env.example
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+  application:
+    name: one-blog
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:one_blog}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate   # 스키마는 Flyway로만 바꾼다 (constitution IV)
+    open-in-view: false
+  flyway:
+    enabled: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+  verification:
+    code-pepper: ${CODE_PEPPER}
+  mail:
+    mode: ${MAIL_MODE:smtp}       # smtp | log
+  cookie:
+    secure: ${COOKIE_SECURE:true}  # 로컬 http는 false

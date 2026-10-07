@@ -10,9 +10,9 @@
 
 ## R2. JWT 발급·검증 방식 (D-53)
 
-- **Decision**: 외부 JWT 라이브러리 없이 Spring Security의 OAuth2 Resource Server(Nimbus `JwtEncoder`/`JwtDecoder`)를 쓴다. 서명은 HS256, 키는 환경변수 `JWT_SECRET`(32바이트 이상). 토큰은 쿠키에서 읽도록 `BearerTokenResolver`를 쿠키용으로 바꾼다.
-- **Rationale**: Spring Security에 포함된 검증된 구현이라 의존성이 하나 줄고, 서명·만료 검증을 프레임워크가 처리한다 (D-09 "검증된 코드").
-- **Alternatives considered**: JJWT — 널리 쓰이지만 같은 일을 하는 라이브러리를 하나 더 들여온다. 비대칭 키(RS256) — 서버 1대에서는 이점이 없다.
+- **Decision**: 외부 JWT 라이브러리 없이 Spring Security의 `spring-security-oauth2-jose`(Nimbus `JwtEncoder`/`JwtDecoder`)를 쓴다. 서명은 HS256, 키는 환경변수 `JWT_SECRET`(32바이트 이상). 쿠키에서 토큰을 읽어 검증하는 필터(`JwtCookieAuthenticationFilter`)를 직접 둔다.
+- **Rationale**: Spring Security에 포함된 검증된 구현이라 의존성이 하나 줄고, 서명·만료 검증을 프레임워크가 처리한다 (D-09 "검증된 코드"). Spring의 OAuth2 Resource Server 설정(`oauth2ResourceServer`)은 쓰지 않는다: 이 설정은 Bearer 토큰이 있는 요청을 CSRF 검사에서 빼는데, 이 프로젝트는 토큰을 쿠키로 보내므로 그대로 쓰면 CSRF 방어가 꺼진다 (SEC-10).
+- **Alternatives considered**: JJWT — 널리 쓰이지만 같은 일을 하는 라이브러리를 하나 더 들여온다. 비대칭 키(RS256) — 서버 1대에서는 이점이 없다. Resource Server 설정 + CSRF 예외 재설정 — 프레임워크 내부 동작에 기대게 되어 직접 필터보다 불명확하다.
 
 ## R3. 토큰 구성과 "로그인 유지" (SEC-04, D-61, D-62, D-82)
 

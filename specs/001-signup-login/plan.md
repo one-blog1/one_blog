@@ -12,7 +12,7 @@
 
 **Language/Version**: Java 21 (Temurin)
 
-**Primary Dependencies**: Spring Boot 4.1.x — `spring-boot-starter-webmvc`, `spring-boot-starter-security`, `spring-boot-starter-oauth2-resource-server`(JWT 인코딩·검증), `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-mail`, `spring-boot-starter-flyway` + `flyway-mysql`, `mysql-connector-j`. 빌드는 Gradle Kotlin DSL + Wrapper.
+**Primary Dependencies**: Spring Boot 4.1.x — `spring-boot-starter-webmvc`, `spring-boot-starter-security`, `spring-security-oauth2-jose`(JWT 인코딩·검증), `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-mail`, `spring-boot-starter-flyway` + `flyway-mysql`, `mysql-connector-j`. 빌드는 Gradle Kotlin DSL + Wrapper.
 
 **Storage**: MySQL 8.4 (utf8mb4). 스키마는 Flyway로만 바꾼다. 데이터 모델은 Crowfoot ERD를 따른다 ([data-model.md](data-model.md)).
 

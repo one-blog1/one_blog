@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>회원가입 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h1>회원가입</h1>
+      <ol class="steps" aria-label="가입 단계">
+        <li data-step="1" class="active">① 이메일 인증</li>
+        <li data-step="2">② 비밀번호</li>
+        <li data-step="3">③ 정보 입력</li>
+      </ol>
+
+      <!-- ① 이메일 인증 (USR-02) -->
+      <form id="step-1" novalidate>
+        <label for="email">이메일</label>
+        <div class="row">
+          <input id="email" name="email" type="email" autocomplete="email" required>
+          <button id="send-code" class="secondary" type="button">인증번호 받기</button>
+        </div>
+        <p id="send-message" class="message" role="status"></p>
+
+        <div id="code-area" class="hidden">
+          <label for="code">인증번호 6자리</label>
+          <input id="code" name="code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+          <p class="hint">메일로 받은 번호를 10분 안에 입력해 주세요. 5번 틀리면 다시 받아야 합니다.</p>
+          <p id="code-message" class="message error" role="alert"></p>
+          <button class="primary" type="submit">인증하기</button>
+        </div>
+      </form>
+
+      <!-- ② 비밀번호 (SEC-02) -->
+      <form id="step-2" class="hidden" novalidate>
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" maxlength="15" required>
+        <p class="hint">8~15자, 영문·숫자·특수문자를 모두 포함하고 대소문자를 구분합니다.</p>
+
+        <label for="password-confirm">비밀번호 확인</label>
+        <input id="password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" maxlength="15" required>
+
+        <p id="password-message" class="message error" role="alert"></p>
+        <button class="primary" type="submit">다음</button>
+      </form>
+
+      <!-- ③ 이름·닉네임·전화번호·동의 (USR-01, 4.6) -->
+      <form id="step-3" class="hidden" novalidate>
+        <label for="name">이름</label>
+        <input id="name" name="name" type="text" autocomplete="name" maxlength="50" required>
+        <p class="hint">이름은 가입 후 바꿀 수 없습니다.</p>
+
+        <label for="nickname">닉네임</label>
+        <div class="row">
+          <input id="nickname" name="nickname" type="text" maxlength="12" required>
+          <button id="check-nickname" class="secondary" type="button">중복 확인</button>
+        </div>
+        <p id="nickname-message" class="message" role="status"></p>
+        <p class="hint">2~12자의 한글, 영문, 숫자</p>
+
+        <label for="phone">휴대전화 번호</label>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="010-1234-5678" required>
+
+        <label class="checkbox" for="agree-terms">
+          <input id="agree-terms" name="agreeTerms" type="checkbox">
+          [필수] 이용약관에 동의합니다
+        </label>
+        <label class="checkbox" for="agree-privacy">
+          <input id="agree-privacy" name="agreePrivacy" type="checkbox">
+          [필수] 개인정보 수집·이용에 동의합니다
+        </label>
+
+        <p id="signup-message" class="message error" role="alert"></p>
+        <button class="primary" type="submit">가입하기</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/signup.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>로그인 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h1>로그인</h1>
+      <p id="signup-done" class="message ok hidden">가입이 완료되었습니다. 로그인해 주세요.</p>
+
+      <form id="login-form" novalidate>
+        <label for="email">이메일</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+        <label class="checkbox" for="remember-me">
+          <input id="remember-me" name="rememberMe" type="checkbox">
+          로그인 유지
+        </label>
+        <p class="hint">공용 PC에서는 체크하지 마세요. 체크하지 않으면 브라우저를 닫거나 30분 동안 활동이 없을 때 로그아웃됩니다.</p>
+
+        <p id="login-message" class="message error" role="alert"></p>
+        <button class="primary" type="submit">로그인</button>
+      </form>
+
+      <p class="footer-links">아직 회원이 아니신가요? <a href="/signup.html">회원가입</a></p>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

@@ -11,27 +11,21 @@
   GRANT ALL PRIVILEGES ON one_blog.* TO 'one_blog'@'localhost';
   GRANT ALL PRIVILEGES ON one_blog_test.* TO 'one_blog'@'localhost';
   ```
-- 환경변수 (저장소에 올리지 않음, constitution III)
+- 환경변수: 저장소 루트에 `.env`를 만든다 (저장소에 올리지 않음, constitution III). 애플리케이션이 자동으로 읽는다.
   ```bash
-  export DB_USERNAME=one_blog
-  export DB_PASSWORD='<비밀번호>'
-  export JWT_SECRET='<32바이트 이상 무작위 문자열>'
-  export CODE_PEPPER='<무작위 문자열>'
-  # 실제 메일을 보낼 때만
-  export MAIL_USERNAME='<gmail 주소>'
-  export MAIL_PASSWORD='<gmail 앱 비밀번호>'
+  cp .env.example .env   # DB_PASSWORD, JWT_SECRET, CODE_PEPPER를 채운다
+  openssl rand -base64 48  # JWT_SECRET, CODE_PEPPER용 무작위 값
   ```
-  무작위 값 만들기: `openssl rand -base64 48`
 
 ## 실행
 
 ```bash
-./gradlew test                                   # 단위·통합 테스트 (one_blog_test DB 사용)
-./gradlew bootRun --args='--spring.profiles.active=local'
+./gradlew test       # 통합 테스트 (one_blog_test DB 사용)
+./gradlew bootRun    # http://localhost:8080
 ```
 
-- `local` 프로필은 `app.mail.mode=log`라 인증번호가 메일 대신 서버 로그에 찍힌다. 실제 메일을 보내려면 `MAIL_*`를 설정하고 `--app.mail.mode=smtp`를 더한다.
-- 로컬은 `http://localhost:8080`에서 Secure 쿠키를 쓸 수 있도록 local 프로필에서만 `app.cookie.secure=false`로 둔다.
+- `MAIL_MODE=log`(기본값 예시)이면 인증번호가 메일 대신 서버 로그에 찍힌다. 실제 메일은 `MAIL_MODE=smtp`와 `MAIL_USERNAME`, `MAIL_PASSWORD`(Gmail 앱 비밀번호)를 채운다.
+- 로컬 http에서 쿠키를 받으려면 `COOKIE_SECURE=false`. 운영(HTTPS)은 반드시 `true`.
 - 첫 실행 때 Flyway가 `V1__create_member_auth_tables.sql`을 적용한다. 확인: `SELECT version, success FROM flyway_schema_history;`
 
 ## 검증 시나리오

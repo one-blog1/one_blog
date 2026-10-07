@@ -25,4 +25,29 @@
 
 ## 기술 스택
 
-Spring Boot · Spring Security · MySQL 8 · Flyway · 정적 HTML + JS · Toast UI Editor (자세한 내용은 요구사항 7장)
+Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 HTML + JS · Toast UI Editor (자세한 내용은 요구사항 7장)
+
+## 로컬 실행
+
+필요한 것: JDK 21, MySQL 8.4. Spring Boot와 Gradle은 `./gradlew`가 처음 실행할 때 자동으로 받습니다.
+
+1. DB와 계정을 만듭니다 (MySQL root로 한 번만).
+   ```sql
+   CREATE DATABASE one_blog CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+   CREATE DATABASE one_blog_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+   CREATE USER 'one_blog'@'localhost' IDENTIFIED BY '원하는_비밀번호';
+   GRANT ALL PRIVILEGES ON one_blog.* TO 'one_blog'@'localhost';
+   GRANT ALL PRIVILEGES ON one_blog_test.* TO 'one_blog'@'localhost';
+   ```
+2. 환경변수 파일을 만들고 값을 채웁니다. `.env`는 저장소에 올라가지 않습니다.
+   ```bash
+   cp .env.example .env
+   ```
+3. 테스트와 실행
+   ```bash
+   ./gradlew test
+   ./gradlew bootRun
+   ```
+   http://localhost:8080 에 접속합니다. `MAIL_MODE=log`이면 인증번호가 메일 대신 서버 로그에 찍힙니다.
+
+검증 시나리오는 [specs/001-signup-login/quickstart.md](specs/001-signup-login/quickstart.md)를 봅니다.

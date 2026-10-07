@@ -1,0 +1,17 @@
+# 테스트는 로컬 MySQL의 one_blog_test DB를 쓴다 (research R8).
+# DB 계정은 .env의 DB_USERNAME, DB_PASSWORD를 그대로 쓴다.
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/one_blog_test?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+  flyway:
+    clean-disabled: false
+
+app:
+  jwt:
+    secret: test-only-jwt-secret-0123456789abcdef0123456789abcdef
+  verification:
+    code-pepper: test-only-code-pepper
+  mail:
+    mode: log
+  cookie:
+    secure: false
