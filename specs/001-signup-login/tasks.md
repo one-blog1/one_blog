@@ -160,8 +160,8 @@ description: "Task list for 001 회원가입·로그인·로그아웃"
 
 - [X] T048 [P] `readme.md`의 "기술 스택" 줄을 "Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 HTML + JS · Toast UI Editor"로 고치고, "로컬 실행" 절에 quickstart.md 링크를 단다
 - [X] T049 [P] 보안 기준선 점검(constitution III): 코드 전체에서 `innerHTML` 사용이 없는지, 문자열로 만든 SQL이 없는지, 비밀값 원문이 저장소에 없는지(`git grep -nE "(JWT_SECRET|MAIL_PASSWORD|DB_PASSWORD)\s*[:=]\s*[^$]"`)를 확인하고 결과를 `specs/001-signup-login/checklists/security.md`에 기록한다
-- [ ] T050 `./gradlew test`를 `one_blog_test` DB로 실행해 모두 통과시키고, quickstart.md 시나리오 1~14를 로컬에서 수동으로 확인한다
-- [ ] T051 `docs/roadmap.md`의 001 상태를 "완료"로 바꾸고, main에 `v0.1.0` 태그를 붙인다(태그 메시지: "001 회원가입·로그인·로그아웃 — USR-01~04, SEC-01, SEC-02, SEC-04") (constitution 개발 흐름)
+- [X] T050 `./gradlew test`를 `one_blog_test` DB로 실행해 모두 통과시키고, quickstart.md 시나리오 1~14를 로컬에서 수동으로 확인한다
+- [X] T051 `docs/roadmap.md`의 001 상태를 "완료"로 바꾸고, main에 `v0.1.0` 태그를 붙인다(태그 메시지: "001 회원가입·로그인·로그아웃 — USR-01~04, SEC-01, SEC-02, SEC-04") (constitution 개발 흐름)
 
 ---
 

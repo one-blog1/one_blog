@@ -11,7 +11,7 @@
 
 | # | 기능 | 요구사항 | 새로 만드는 테이블 | 먼저 있어야 하는 기능 | 상태 |
 |---|---|---|---|---|---|
-| 001 | 회원가입·로그인·로그아웃 | USR-01~04, SEC-01, 02, 04 | users, verification_codes, refresh_tokens | - | plan 완료 |
+| 001 | 회원가입·로그인·로그아웃 | USR-01~04, SEC-01, 02, 04 | users, verification_codes, refresh_tokens | - | 완료 (v0.1.0) |
 | 002 | 블로그 생성·목록·내 블로그 | BLG-01, 02, 06, 10, 6.5(주소) | blogs, blog_members, tags, blog_tags, files | 001 | |
 | 003 | 블로그 참여 신청·승인 | BLG-04, 05, 6.5(참여 신청) | blog_join_requests | 002 | |
 | 004 | 글 작성·조회·수정·삭제, 목록 | BRD-01, 02, 6.6 | posts | 002 | |
