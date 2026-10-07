@@ -6,6 +6,7 @@
 
 - 요구사항 분석서: [docs/requirements](docs/requirements/README.md)
 - 프로젝트 원칙(Spec Kit constitution): [.specify/memory/constitution.md](.specify/memory/constitution.md)
+- 기능 로드맵(개발 순서): [docs/roadmap.md](docs/roadmap.md)
 
 ## 개발 방식
 
