@@ -34,13 +34,16 @@ public class BlogQueryService {
     private final BlogMemberRepository memberRepository;
     private final TagService tagService;
     private final BlogAccessService accessService;
+    private final com.oneblog.blog.subscription.BlogSubscriptionRepository subscriptionRepository;
 
     public BlogQueryService(BlogRepository blogRepository, BlogMemberRepository memberRepository,
-            TagService tagService, BlogAccessService accessService) {
+            TagService tagService, BlogAccessService accessService,
+            com.oneblog.blog.subscription.BlogSubscriptionRepository subscriptionRepository) {
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
         this.tagService = tagService;
         this.accessService = accessService;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     /** 메인 목록. 정렬·개수·페이지가 규칙 밖이면 기본값으로 바꾸고 실제 값을 응답에 넣는다. */
@@ -101,7 +104,9 @@ public class BlogQueryService {
         return new BlogDetailResponse(blog.getSlug(), blog.getName(), blog.getDescription(),
                 blog.getCoverImageUrl(), tagService.findBlogTags(blog.getId()), blog.getVisibility(),
                 blog.getJoinPolicy(), blog.getMemberCount(), ownerNicknames(List.of(blog.getId())).get(blog.getId()),
-                toOffset(blog.getCreatedAt()), access.myRole(), shareUrl, permissions(blog, viewerId));
+                toOffset(blog.getCreatedAt()), access.myRole(), shareUrl, permissions(blog, viewerId),
+                viewerId != null && subscriptionRepository.existsByBlogIdAndUserId(blog.getId(), viewerId),
+                subscriptionRepository.countByBlogId(blog.getId()));
     }
 
     private BlogDetailResponse.Permissions permissions(Blog blog, Long viewerId) {

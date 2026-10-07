@@ -20,9 +20,12 @@
     area.replaceChildren();
 
     if (result.ok && result.data) {
-      const name = document.createElement('span');
+      const name = document.createElement(result.data.role === 'ADMIN' ? 'span' : 'a');
       name.className = 'nickname';
       name.textContent = result.data.nickname;
+      if (result.data.role !== 'ADMIN') {
+        name.href = '/users/' + encodeURIComponent(result.data.nickname);
+      }
 
       const logout = document.createElement('button');
       logout.type = 'button';
@@ -38,7 +41,8 @@
         name.textContent = '관리자';
         area.append(link('/admin.html', '관리자 화면'));
       } else {
-        area.append(link('/my-blogs.html', '내 블로그'), link('/blog-new.html', '블로그 만들기'));
+        area.append(link('/my-blogs.html', '내 블로그'), link('/blog-new.html', '블로그 만들기'),
+          link('/account.html', '내 정보'));
       }
       document.dispatchEvent(new CustomEvent('header:user', { detail: result.data }));
       area.append(name, logout);

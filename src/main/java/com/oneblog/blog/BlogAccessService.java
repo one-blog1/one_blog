@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.oneblog.blog.subscription.BlogSubscriptionRepository;
 import com.oneblog.common.web.ApiException;
 
 /**
@@ -20,12 +21,14 @@ public class BlogAccessService {
     private final BlogRepository blogRepository;
     private final BlogMemberRepository memberRepository;
     private final BlogPolicy policy;
+    private final BlogSubscriptionRepository subscriptionRepository;
 
     public BlogAccessService(BlogRepository blogRepository, BlogMemberRepository memberRepository,
-            BlogPolicy policy) {
+            BlogPolicy policy, BlogSubscriptionRepository subscriptionRepository) {
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
         this.policy = policy;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     /** 볼 수 있으면 블로그와 내 역할(멤버가 아니면 null), 없으면 404, 볼 수 없으면 403. 403·404에는 블로그 정보를 싣지 않는다. */
@@ -59,7 +62,9 @@ public class BlogAccessService {
         return switch (blog.getVisibility()) {
             case PUBLIC -> new Access(blog, null);
             case UNLISTED -> {
-                if (matches(blog.getShareToken(), key)) {
+                // 링크로 들어와 구독한 회원은 그 뒤로 링크 없이 들어온다 (D-50)
+                if (matches(blog.getShareToken(), key)
+                        || (viewerId != null && subscriptionRepository.existsByBlogIdAndUserId(blog.getId(), viewerId))) {
                     yield new Access(blog, null);
                 }
                 throw new ApiException(HttpStatus.FORBIDDEN, "LINK_REQUIRED", "링크가 있어야 볼 수 있는 블로그입니다.");

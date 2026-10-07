@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>내 정보 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main>
+    <section class="card">
+      <h1>내 정보</h1>
+      <p class="hint">이메일과 이름은 바꿀 수 없어요.</p>
+      <dl class="account-fixed">
+        <dt>이메일</dt><dd id="account-email"></dd>
+        <dt>이름</dt><dd id="account-name"></dd>
+      </dl>
+
+      <form id="profile-form" novalidate>
+        <h2>프로필</h2>
+        <div class="cover-picker">
+          <img id="profile-preview" class="avatar large" src="/images/avatar-default.svg" alt="프로필 사진 미리보기">
+          <div>
+            <label for="profile-file">프로필 사진 <span class="hint-inline">(JPG·PNG·GIF·WEBP, 3MB까지)</span></label>
+            <input id="profile-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
+            <button id="profile-remove" class="link-button" type="button">기본 사진으로</button>
+          </div>
+        </div>
+        <p class="message error" data-error-for="file" role="alert"></p>
+
+        <label for="nickname">닉네임</label>
+        <input id="nickname" type="text" maxlength="12" required>
+        <p class="message error" data-error-for="nickname" role="alert"></p>
+
+        <label for="phone">휴대전화 번호</label>
+        <input id="phone" type="tel" autocomplete="tel" required>
+        <p class="message error" data-error-for="phone" role="alert"></p>
+
+        <label for="bio">소개 <span class="hint-inline">(300자까지)</span></label>
+        <textarea id="bio" rows="3" maxlength="300"></textarea>
+        <p class="message error" data-error-for="bio" role="alert"></p>
+
+        <p id="profile-message" class="message" role="status"></p>
+        <button class="primary" type="submit">프로필 저장</button>
+      </form>
+
+      <form id="password-form" novalidate>
+        <h2>비밀번호 바꾸기</h2>
+        <p class="hint">바꾸면 이 기기를 뺀 다른 기기에서는 모두 로그아웃돼요.</p>
+        <label for="current-password">현재 비밀번호</label>
+        <input id="current-password" type="password" autocomplete="current-password" maxlength="15" required>
+        <p class="message error" data-error-for="currentPassword" role="alert"></p>
+        <label for="new-password">새 비밀번호 <span class="hint-inline">(8~15자, 영문·숫자·특수문자 모두)</span></label>
+        <input id="new-password" type="password" autocomplete="new-password" maxlength="15" required>
+        <p class="message error" data-error-for="newPassword" role="alert"></p>
+        <label for="new-password-confirm">새 비밀번호 확인</label>
+        <input id="new-password-confirm" type="password" autocomplete="new-password" maxlength="15" required>
+        <p class="message error" data-error-for="newPasswordConfirm" role="alert"></p>
+        <p id="password-message" class="message" role="status"></p>
+        <button class="primary" type="submit">비밀번호 바꾸기</button>
+      </form>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/account.js"></script>
+</body>
+</html>

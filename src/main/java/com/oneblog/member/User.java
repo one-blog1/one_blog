@@ -45,6 +45,12 @@ public class User {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
+
+    @Column(name = "bio", length = 300)
+    private String bio;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "role", length = 20, nullable = false)
@@ -112,6 +118,29 @@ public class User {
     @PreUpdate
     void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    /** 회원정보 수정 (USR-07). 이메일·이름은 바꿀 수 없다. 값은 AccountService가 정리·검사한 값. */
+    public void changeProfile(String nickname, String phone, String bio) {
+        this.nickname = nickname;
+        this.phone = phone;
+        this.bio = bio;
+    }
+
+    public void changeProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+
+    public String getBio() {
+        return bio;
     }
 
     public boolean isActive() {

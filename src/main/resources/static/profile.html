@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>프로필 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main class="wide">
+    <section id="profile-missing" class="card hidden"><h1>회원을 찾을 수 없습니다</h1></section>
+    <section id="profile" class="card hidden">
+      <div class="profile-head">
+        <img id="profile-image" class="avatar large" src="/images/avatar-default.svg" alt="">
+        <div>
+          <h1 id="profile-nickname"></h1>
+          <p id="profile-bio" class="hint"></p>
+          <p class="profile-counts">
+            <button id="show-followers" class="link-button" type="button">팔로워 <strong id="follower-count">0</strong></button>
+            <button id="show-following" class="link-button" type="button">팔로잉 <strong id="following-count">0</strong></button>
+          </p>
+          <button id="follow-button" class="primary inline-button hidden" type="button">팔로우</button>
+          <a id="edit-link" class="button-link hidden" href="/account.html">내 정보 수정</a>
+          <p id="follow-message" class="message error" role="alert"></p>
+        </div>
+      </div>
+
+      <section id="follow-panel" class="manage-area hidden" aria-labelledby="follow-panel-title">
+        <h2 id="follow-panel-title"></h2>
+        <ul id="follow-list" class="request-list"></ul>
+        <p id="follow-empty" class="hint hidden">아직 아무도 없어요.</p>
+        <nav id="follow-pagination" class="pagination" aria-label="목록 페이지"></nav>
+      </section>
+
+      <h2>운영하는 블로그</h2>
+      <div id="owned-list" class="blog-grid"></div>
+      <p id="owned-empty" class="hint hidden">운영하는 블로그가 없어요.</p>
+      <h2>참여한 블로그</h2>
+      <div id="joined-list" class="blog-grid"></div>
+      <p id="joined-empty" class="hint hidden">참여한 블로그가 없어요.</p>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/pager.js"></script>
+  <script src="/js/blog-card.js"></script>
+  <script src="/js/profile.js"></script>
+</body>
+</html>

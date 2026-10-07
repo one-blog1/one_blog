@@ -26,7 +26,9 @@ public record BlogDetailResponse(
         OffsetDateTime createdAt,
         BlogRole myRole,
         @JsonInclude(JsonInclude.Include.NON_NULL) String shareUrl,
-        @JsonInclude(JsonInclude.Include.NON_NULL) Permissions permissions) {
+        @JsonInclude(JsonInclude.Include.NON_NULL) Permissions permissions,
+        boolean subscribed,
+        long subscriberCount) {
 
     /** 블로그장은 모두 true, 부블로그장은 받은 권한만 (2장, D-71). */
     public record Permissions(boolean canEditInfo, boolean canManageMembers, boolean canManagePosts) {

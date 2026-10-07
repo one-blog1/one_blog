@@ -23,6 +23,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByNickname(String nickname);
 
+    Optional<User> findByNickname(String nickname);
+
     /** 회원 행을 잠그고 읽는다 (SELECT ... FOR UPDATE). 블로그 개수 제한을 동시 요청에도 지키기 위해 (D-68). */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")

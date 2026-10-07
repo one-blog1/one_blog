@@ -1,4 +1,5 @@
 // 내 블로그 (BLG-06): 내가 만든 블로그와 참여한 블로그를 나눠 보여준다. 공개 범위와 상관없이 모두 보인다.
+// 구독한 블로그(SOC-01)도 함께 보여준다.
 (function () {
   'use strict';
 
@@ -24,5 +25,7 @@
     message.textContent = '';
     render('owned-list', 'owned-empty', result.data.owned);
     render('joined-list', 'joined-empty', result.data.joined);
+    const subscribed = await window.api.get('/api/me/subscriptions');
+    render('subscribed-list', 'subscribed-empty', subscribed.ok && Array.isArray(subscribed.data) ? subscribed.data : []);
   });
 })();

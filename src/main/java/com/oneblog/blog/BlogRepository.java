@@ -50,4 +50,16 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
     default long countOwned(Long userId, Collection<BlogVisibility> visibilities) {
         return countOwnedBlogs(userId, visibilities, BlogRole.OWNER, BlogMemberStatus.ACTIVE, BlogStatus.CLOSED);
     }
+
+    /** 내가 구독한 폐쇄·삭제되지 않은 블로그. 결과 행은 [Blog, 구독 시각]. */
+    @Query("""
+            select b, s.createdAt from Blog b, BlogSubscription s
+            where s.blogId = b.id and s.userId = :userId and b.status <> :closed and b.deletedAt is null
+            order by s.createdAt desc, s.id desc
+            """)
+    java.util.List<Object[]> findSubscribedRows(@Param("userId") Long userId, @Param("closed") BlogStatus closed);
+
+    default java.util.List<Object[]> findSubscribedRows(Long userId) {
+        return findSubscribedRows(userId, BlogStatus.CLOSED);
+    }
 }

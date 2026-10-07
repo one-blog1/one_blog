@@ -821,3 +821,52 @@ button.primary.inline-button {
   flex: 1 1 160px;
   min-width: 0;
 }
+
+/* 009 프로필·내 정보 */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar.large {
+  width: 88px;
+  height: 88px;
+}
+
+.profile-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.profile-counts {
+  display: flex;
+  gap: 12px;
+}
+
+.user-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.account-fixed {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+}
+
+.account-fixed dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+#password-form {
+  margin-top: 24px;
+}
