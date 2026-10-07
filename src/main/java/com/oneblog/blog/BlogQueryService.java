@@ -120,7 +120,8 @@ public class BlogQueryService {
                 blog.getJoinPolicy(), blog.getMemberCount(), ownerNicknames(List.of(blog.getId())).get(blog.getId()),
                 toOffset(blog.getCreatedAt()), access.myRole(), shareUrl, permissions(blog, viewerId),
                 viewerId != null && subscriptionRepository.existsByBlogIdAndUserId(blog.getId(), viewerId),
-                subscriptionRepository.countByBlogId(blog.getId()));
+                subscriptionRepository.countByBlogId(blog.getId()), blog.getStatus(),
+                blog.getCloseScheduledAt() == null ? null : toOffset(blog.getCloseScheduledAt()));
     }
 
     private BlogDetailResponse.Permissions permissions(Blog blog, Long viewerId) {

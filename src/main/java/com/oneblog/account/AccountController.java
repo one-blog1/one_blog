@@ -14,9 +14,37 @@ import com.oneblog.common.security.AuthenticatedUser;
 public class AccountController {
 
     private final AccountService accountService;
+    private final WithdrawalService withdrawalService;
+    private final com.oneblog.common.security.AuthCookies authCookies;
 
-    public AccountController(AccountService accountService) {
+    public AccountController(AccountService accountService, WithdrawalService withdrawalService,
+            com.oneblog.common.security.AuthCookies authCookies) {
         this.accountService = accountService;
+        this.withdrawalService = withdrawalService;
+        this.authCookies = authCookies;
+    }
+
+    public record WithdrawRequest(String password) {
+
+        @Override
+        public String toString() {
+            return "WithdrawRequest[***]";
+        }
+    }
+
+    /** 탈퇴 전에 정리해야 할 블로그 (USR-05). */
+    @GetMapping("/api/me/withdrawal")
+    public java.util.List<WithdrawalService.OwnedBlog> withdrawalCheck(
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        return withdrawalService.blockingBlogs(principal.id());
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/api/me/withdrawal")
+    public ResponseEntity<Void> withdraw(@AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestBody WithdrawRequest request, jakarta.servlet.http.HttpServletResponse response) {
+        withdrawalService.withdraw(principal, request.password());
+        authCookies.clearLoginCookies(response);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/api/me/account")

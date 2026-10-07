@@ -975,3 +975,23 @@ form.search-row input {
 #notification-settings {
   margin-top: 24px;
 }
+
+/* 012 블로그 관리 */
+.manage-block {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.danger-button {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+#withdraw-form {
+  margin-top: 24px;
+}

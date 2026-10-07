@@ -27,4 +27,10 @@ public class BlogPageController {
     public String editorPage(@PathVariable("slug") String slug) {
         return "forward:/post-edit.html";
     }
+
+    /** 블로그 관리 화면 (012). 권한은 화면이 부르는 API마다 서버가 확인한다. */
+    @GetMapping("/blog/{slug}/manage")
+    public String managePage(@PathVariable("slug") String slug) {
+        return "forward:/blog-manage.html";
+    }
 }

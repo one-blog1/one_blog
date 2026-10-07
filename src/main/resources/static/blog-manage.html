@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>블로그 관리 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main>
+    <section class="card">
+      <p class="breadcrumb"><a id="blog-link" href="/"></a> › 관리</p>
+      <h1>블로그 관리</h1>
+      <p id="page-message" class="message error" role="alert"></p>
+
+      <form id="info-form" class="manage-block hidden" novalidate>
+        <h2>블로그 정보</h2>
+        <label for="name">블로그 이름</label>
+        <input id="name" type="text" maxlength="50" required>
+        <p class="message error" data-error-for="name" role="alert"></p>
+        <label for="description">소개</label>
+        <textarea id="description" rows="3" maxlength="500"></textarea>
+        <p class="message error" data-error-for="description" role="alert"></p>
+        <label for="cover">대표 이미지</label>
+        <div class="cover-picker">
+          <img id="cover-preview" class="blog-cover" src="/images/blog-default.svg" alt="대표 이미지 미리보기">
+          <div>
+            <input id="cover" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
+            <button id="cover-remove" class="link-button" type="button">기본 이미지로</button>
+          </div>
+        </div>
+        <p class="message error" data-error-for="cover" role="alert"></p>
+        <label for="tags">태그 <span class="hint-inline">(쉼표로 나눠 최대 10개)</span></label>
+        <input id="tags" type="text" maxlength="250">
+        <p class="message error" data-error-for="tags" role="alert"></p>
+        <p id="info-message" class="message" role="status"></p>
+        <button class="primary" type="submit">정보 저장</button>
+      </form>
+
+      <form id="settings-form" class="manage-block hidden" novalidate>
+        <h2>공개 범위·참여 방식</h2>
+        <fieldset>
+          <legend>공개 범위</legend>
+          <label class="checkbox"><input type="radio" name="visibility" value="PUBLIC"> 공개</label>
+          <label class="checkbox"><input type="radio" name="visibility" value="UNLISTED"> 일부 공개 (공유 링크로만)</label>
+          <label class="checkbox"><input type="radio" name="visibility" value="PRIVATE"> 비공개 (멤버만)</label>
+        </fieldset>
+        <fieldset>
+          <legend>참여 방식</legend>
+          <label class="checkbox"><input type="radio" name="joinPolicy" value="OPEN"> 자유 참여</label>
+          <label class="checkbox"><input type="radio" name="joinPolicy" value="APPROVAL"> 승인제</label>
+        </fieldset>
+        <p class="hint">비공개로 바꾸면 멤버가 아닌 구독자에게 알림이 가요.</p>
+        <p id="settings-message" class="message" role="status"></p>
+        <button class="primary" type="submit">저장</button>
+        <div id="share-block" class="hidden">
+          <h3>공유 링크</h3>
+          <div class="row">
+            <input id="share-url" type="text" readonly aria-label="공유 링크">
+            <button id="share-regenerate" class="secondary" type="button">새 링크 만들기</button>
+          </div>
+          <p class="hint">새 링크를 만들면 이전 링크로는 들어올 수 없어요.</p>
+        </div>
+      </form>
+
+      <section id="members-block" class="manage-block hidden" aria-labelledby="members-title">
+        <h2 id="members-title">멤버</h2>
+        <div class="table-scroll">
+          <table class="admin-table">
+            <thead><tr><th>닉네임</th><th>이름</th><th>이메일</th><th>전화번호</th><th>역할</th><th></th></tr></thead>
+            <tbody id="member-rows"></tbody>
+          </table>
+        </div>
+        <p id="members-message" class="message" role="status"></p>
+      </section>
+
+      <section id="transfer-block" class="manage-block hidden" aria-labelledby="transfer-title">
+        <h2 id="transfer-title">블로그장 위임</h2>
+        <p id="transfer-text" class="hint">멤버 목록에서 "위임"을 누르면 그 멤버에게 요청이 가요. 받은 멤버가 수락해야 넘어가요.</p>
+        <button id="transfer-cancel" class="secondary hidden" type="button">위임 요청 취소</button>
+        <p id="transfer-message" class="message" role="status"></p>
+      </section>
+
+      <section id="close-block" class="manage-block hidden" aria-labelledby="close-title">
+        <h2 id="close-title">블로그 폐쇄</h2>
+        <p id="close-text" class="hint">폐쇄를 누르면 7일 뒤 새벽 4시에 닫혀요. 그동안 멤버와 구독자에게 알림이 가고, 철회할 수 있어요.</p>
+        <button id="close-button" class="secondary danger-button" type="button">블로그 폐쇄</button>
+        <button id="close-cancel" class="secondary hidden" type="button">폐쇄 철회</button>
+        <p id="close-message" class="message" role="status"></p>
+      </section>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/blog-manage.js"></script>
+</body>
+</html>

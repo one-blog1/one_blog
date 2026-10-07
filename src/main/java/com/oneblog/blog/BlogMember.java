@@ -106,6 +106,56 @@ public class BlogMember {
         this.joinedAt = LocalDateTime.now();
     }
 
+    /** 블로그를 떠난다 (BLG-07) 또는 회원탈퇴로 모든 블로그에서 빠진다 (USR-05). */
+    public void leave(LocalDateTime now) {
+        this.status = BlogMemberStatus.LEFT;
+        this.leftAt = now;
+        clearPermissions();
+    }
+
+    /** 부블로그장 지정·권한 변경 (2장, D-71). 처음 지정될 때만 지정 시각을 남긴다 (ADM-07 승계 순서). */
+    public void makeSubOwner(boolean canEditInfo, boolean canManageMembers, boolean canManagePosts, LocalDateTime now) {
+        if (this.role != BlogRole.SUB_OWNER) {
+            this.subOwnerSince = now;
+        }
+        this.role = BlogRole.SUB_OWNER;
+        this.canEditInfo = canEditInfo;
+        this.canManageMembers = canManageMembers;
+        this.canManagePosts = canManagePosts;
+    }
+
+    /** 일반 멤버로 (부블로그장 해제, 위임한 예전 블로그장, 권한 박탈된 블로그장 ADM-07). */
+    public void makeMember() {
+        this.role = BlogRole.MEMBER;
+        clearPermissions();
+    }
+
+    /** 블로그장이 된다 (위임 수락 BLG-08, 승계 ADM-07). */
+    public void makeOwner() {
+        this.role = BlogRole.OWNER;
+        clearPermissions();
+    }
+
+    private void clearPermissions() {
+        this.canEditInfo = false;
+        this.canManageMembers = false;
+        this.canManagePosts = false;
+        this.subOwnerSince = null;
+    }
+
+    /** 부블로그장에게 준 권한 값 그대로 (화면 표시용). 블로그장 여부는 따지지 않는다. */
+    public boolean grantedEditInfo() {
+        return canEditInfo;
+    }
+
+    public boolean grantedManageMembers() {
+        return canManageMembers;
+    }
+
+    public boolean grantedManagePosts() {
+        return canManagePosts;
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();

@@ -62,4 +62,14 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
     default java.util.List<Object[]> findSubscribedRows(Long userId) {
         return findSubscribedRows(userId, BlogStatus.CLOSED);
     }
+
+    java.util.List<Blog> findByStatus(BlogStatus status);
+
+    @Query("select b from Blog b where b.status = :status and b.closeScheduledAt <= :now")
+    java.util.List<Blog> findCloseDue(@Param("status") BlogStatus status, @Param("now") java.time.LocalDateTime now);
+
+    /** 폐쇄 30일이 지나 내용을 지울 블로그 (D-86). */
+    @Query("select b from Blog b where b.status = :status and b.closedAt <= :before and b.deletedAt is null")
+    java.util.List<Blog> findClosedBefore(@Param("status") BlogStatus status,
+            @Param("before") java.time.LocalDateTime before);
 }

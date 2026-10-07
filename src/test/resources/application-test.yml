@@ -19,3 +19,5 @@ app:
     secure: false
   file:
     storage-dir: build/test-uploads
+  scheduling:
+    enabled: false

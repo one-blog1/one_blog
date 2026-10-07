@@ -148,7 +148,8 @@ public class BlogCreateService {
         return new CreateBlogResponse(blog.getId(), slug, BlogUrls.blogUrl(slug), BlogUrls.shareUrl(blog));
     }
 
-    private void checkLimit(Long userId, BlogVisibility visibility) {
+    /** 이 공개 범위의 블로그를 하나 더 가질 수 있는지 (BLG-10). 회원 행을 잠근 뒤 부른다. 위임 수락·공개 범위 변경(012)도 쓴다. */
+    public void checkLimit(Long userId, BlogVisibility visibility) {
         BlogProperties.Limit limit = properties.limit();
         if (visibility == BlogVisibility.PRIVATE) {
             if (blogRepository.countOwned(userId, PRIVATE_KIND) >= limit.privateLimit()) {
@@ -164,7 +165,7 @@ public class BlogCreateService {
     }
 
     /** 내가 올린, 삭제되지 않은 대표 이미지여야 한다. */
-    private String resolveCover(Long userId, Long coverFileId) {
+    public String resolveCover(Long userId, Long coverFileId) {
         if (coverFileId == null) {
             return null;
         }
@@ -187,7 +188,7 @@ public class BlogCreateService {
     }
 
     /** 128비트 무작위 값, 소문자 16진수 32자 (research R6). */
-    static String newShareToken() {
+    public static String newShareToken() {
         byte[] bytes = new byte[16];
         RANDOM.nextBytes(bytes);
         return HexFormat.of().formatHex(bytes);

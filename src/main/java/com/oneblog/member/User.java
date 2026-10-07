@@ -78,6 +78,9 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "withdrawn_at")
+    private LocalDateTime withdrawnAt;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -138,6 +141,30 @@ public class User {
 
     public void changePassword(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    /**
+     * 회원탈퇴 (USR-05, 4.5). 로그인용 이메일은 바로 비워 같은 이메일로 다시 가입할 수 있게 하고(6.5),
+     * 나머지 개인정보는 30일 뒤 배치가 지운다 (purgePersonalInfo).
+     */
+    public void withdraw(LocalDateTime now) {
+        this.status = UserStatus.WITHDRAWN;
+        this.email = null;
+        this.withdrawnAt = now;
+    }
+
+    /** 탈퇴 30일 뒤 개인정보 삭제 (4.5). 쓴 글은 "탈퇴한 회원"으로 남는다. */
+    public void purgePersonalInfo(LocalDateTime now) {
+        this.name = null;
+        this.nickname = null;
+        this.phone = null;
+        this.profileImageUrl = null;
+        this.bio = null;
+        this.deletedAt = now;
+    }
+
+    public LocalDateTime getWithdrawnAt() {
+        return withdrawnAt;
     }
 
     public void changeNotificationRetentionDays(int days) {

@@ -136,6 +136,42 @@
     message.textContent = result.ok ? '저장했어요.' : ((result.data && result.data.message) || '저장하지 못했어요.');
   }
 
+  async function loadWithdrawal() {
+    const result = await window.api.get('/api/me/withdrawal');
+    if (!result.ok || !Array.isArray(result.data)) {
+      return;
+    }
+    const list = $('withdraw-blogs');
+    list.replaceChildren();
+    result.data.forEach(b => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '/blog/' + encodeURIComponent(b.slug) + '/manage';
+      a.textContent = b.name + (b.closing ? ' (폐쇄 예정)' : '');
+      li.append(a);
+      list.append(li);
+    });
+    $('withdraw-blocked').classList.toggle('hidden', result.data.length === 0);
+  }
+
+  async function withdraw(event) {
+    event.preventDefault();
+    setError('password', '');
+    $('withdraw-message').textContent = '';
+    if (!window.confirm('정말 탈퇴할까요? 되돌릴 수 없어요.')) {
+      return;
+    }
+    const result = await window.api.post('/api/me/withdrawal', { password: $('withdraw-password').value },
+      { userAction: true });
+    if (!result.ok) {
+      const data = result.data || {};
+      (data.fieldErrors || []).forEach(f => setError(f.field, f.message));
+      $('withdraw-message').textContent = data.message || '탈퇴하지 못했어요.';
+      return;
+    }
+    window.location.href = '/';
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     const result = await window.api.get('/api/me/account', { userAction: true, redirectOnLogout: true });
     if (result.status === 401) {
@@ -158,5 +194,7 @@
     $('password-form').addEventListener('submit', changePassword);
     $('notification-settings').addEventListener('submit', saveSettings);
     loadSettings();
+    $('withdraw-form').addEventListener('submit', withdraw);
+    loadWithdrawal();
   });
 })();

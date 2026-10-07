@@ -17,7 +17,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 /**
- * 블로그 (Crowfoot ERD blogs). 폐쇄 관련 컬럼(close_*)은 012에서 매핑한다.
+ * 블로그 (Crowfoot ERD blogs).
  */
 @Entity
 @Table(name = "blogs")
@@ -60,6 +60,15 @@ public class Blog {
 
     @Column(name = "is_hidden", nullable = false)
     private boolean hidden;
+
+    @Column(name = "close_scheduled_at")
+    private LocalDateTime closeScheduledAt;
+
+    @Column(name = "close_reason", length = 20)
+    private String closeReason;
+
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
 
     @Column(name = "member_count", nullable = false)
     private int memberCount;
@@ -108,6 +117,77 @@ public class Blog {
     /** 관리자 숨김 (ADM-02). 숨긴 블로그는 목록·검색에서 빠지고 멤버만 들어갈 수 있다. */
     public void hide(boolean hidden) {
         this.hidden = hidden;
+    }
+
+    /** 정보 수정 (2장). 값은 BlogPolicy로 정리·검사한 값. */
+    public void updateInfo(String name, String description, String coverImageUrl) {
+        this.name = name;
+        this.description = description;
+        this.coverImageUrl = coverImageUrl;
+    }
+
+    /** 공개 범위 바꾸기. 일부 공개가 되면 새 공유 토큰, 아니면 토큰을 비운다 (BLG-01). */
+    public void changeVisibility(BlogVisibility visibility, String newShareToken) {
+        this.visibility = visibility;
+        if (visibility != BlogVisibility.UNLISTED) {
+            this.shareToken = null;
+        } else if (this.shareToken == null) {
+            this.shareToken = newShareToken;
+        }
+    }
+
+    /** 공유 링크 다시 만들기. 이전 링크는 바로 무효가 된다 (BLG-01). */
+    public void regenerateShareToken(String newShareToken) {
+        if (visibility == BlogVisibility.UNLISTED) {
+            this.shareToken = newShareToken;
+        }
+    }
+
+    public void changeJoinPolicy(BlogJoinPolicy joinPolicy) {
+        this.joinPolicy = joinPolicy;
+    }
+
+    /** 폐쇄 예약 (BLG-09, ADM-07). reason: OWNER, ADMIN, OWNER_REVOKED. */
+    public void scheduleClose(LocalDateTime at, String reason) {
+        this.status = BlogStatus.CLOSING;
+        this.closeScheduledAt = at;
+        this.closeReason = reason;
+    }
+
+    /** 폐쇄 철회 (BLG-09). */
+    public void cancelClose() {
+        this.status = BlogStatus.ACTIVE;
+        this.closeScheduledAt = null;
+        this.closeReason = null;
+    }
+
+    /** 04:00 배치가 폐쇄한다. */
+    public void close(LocalDateTime now) {
+        this.status = BlogStatus.CLOSED;
+        this.closedAt = now;
+    }
+
+    /** 폐쇄 30일 뒤: 주소를 비워 다른 사람이 쓰게 하고 행은 남긴다 (D-86). */
+    public void purge(LocalDateTime now) {
+        this.slug = null;
+        this.shareToken = null;
+        this.deletedAt = now;
+    }
+
+    public boolean isClosing() {
+        return status == BlogStatus.CLOSING;
+    }
+
+    public LocalDateTime getCloseScheduledAt() {
+        return closeScheduledAt;
+    }
+
+    public String getCloseReason() {
+        return closeReason;
+    }
+
+    public LocalDateTime getClosedAt() {
+        return closedAt;
     }
 
     /** 폐쇄·삭제되지 않은 블로그 (폐쇄 예정 중에도 평소처럼 운영, D-67). */

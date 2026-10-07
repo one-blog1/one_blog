@@ -76,6 +76,20 @@
         <p id="settings-message" class="message" role="status"></p>
         <button class="primary" type="submit">알림 설정 저장</button>
       </form>
+
+      <form id="withdraw-form" novalidate>
+        <h2>회원탈퇴</h2>
+        <p class="hint">탈퇴하면 바로 로그인할 수 없고, 쓴 글은 "탈퇴한 회원"으로 남아요. 개인정보는 30일 뒤 지워져요.</p>
+        <div id="withdraw-blocked" class="hidden">
+          <p class="message error">블로그장인 블로그가 있어 탈퇴할 수 없어요. 블로그마다 위임하거나 폐쇄가 끝난 뒤에 탈퇴해 주세요.</p>
+          <ul id="withdraw-blogs"></ul>
+        </div>
+        <label for="withdraw-password">비밀번호 확인</label>
+        <input id="withdraw-password" type="password" autocomplete="current-password" maxlength="15">
+        <p class="message error" data-error-for="password" role="alert"></p>
+        <p id="withdraw-message" class="message error" role="alert"></p>
+        <button class="secondary danger-button" type="submit">탈퇴하기</button>
+      </form>
     </section>
   </main>
   <script src="/js/api.js"></script>

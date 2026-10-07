@@ -46,12 +46,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/signup.html", "/login.html",
                                 "/blog-new.html", "/my-blogs.html", "/blog.html", "/post.html", "/post-edit.html",
                                 "/admin.html", "/admin-login.html", "/notice.html", "/tag.html",
-                                "/profile.html", "/account.html", "/search.html",
+                                "/profile.html", "/account.html", "/search.html", "/blog-manage.html",
                                 "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
                         // 블로그 첫 화면과 업로드 이미지, 블로그 목록·첫 화면 정보는 비회원도 본다.
                         // 볼 수 있는지는 BlogAccessService가 판단한다 (research R7, R10)
-                        .requestMatchers(HttpMethod.GET, "/blog/*", "/blog/*/posts/*", "/blog/*/write",
+                        .requestMatchers(HttpMethod.GET, "/blog/*", "/blog/*/posts/*", "/blog/*/write", "/blog/*/manage",
                                 "/blog/*/posts/*/edit", "/files/*", "/api/blogs", "/api/blogs/*",
                                 "/api/blogs/*/posts", "/api/posts/*", "/api/posts/*/comments", "/api/notices",
                                 "/api/notices/*", "/api/blogs/*/categories", "/tags/*", "/api/tags/*/posts",
