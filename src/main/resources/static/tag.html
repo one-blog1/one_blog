@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>태그 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main class="wide">
+    <section class="card">
+      <p class="breadcrumb"><a href="/">메인</a> › 태그</p>
+      <h1 id="tag-title"></h1>
+      <p class="hint">전체 공개 블로그의 글만 보여요.</p>
+      <ul id="tag-posts" class="post-list"></ul>
+      <p id="tag-empty" class="hint hidden">이 태그가 달린 글이 없어요.</p>
+      <div class="list-controls">
+        <span></span>
+        <label class="inline" for="tag-size">한 페이지
+          <select id="tag-size">
+            <option value="10">10개</option>
+            <option value="20">20개</option>
+            <option value="30">30개</option>
+          </select>
+        </label>
+      </div>
+      <nav id="tag-pagination" class="pagination" aria-label="글 페이지"></nav>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/pager.js"></script>
+  <script src="/js/post-item.js"></script>
+  <script src="/js/tag-posts.js"></script>
+</body>
+</html>

@@ -101,7 +101,16 @@ public class BlogQueryService {
         return new BlogDetailResponse(blog.getSlug(), blog.getName(), blog.getDescription(),
                 blog.getCoverImageUrl(), tagService.findBlogTags(blog.getId()), blog.getVisibility(),
                 blog.getJoinPolicy(), blog.getMemberCount(), ownerNicknames(List.of(blog.getId())).get(blog.getId()),
-                toOffset(blog.getCreatedAt()), access.myRole(), shareUrl);
+                toOffset(blog.getCreatedAt()), access.myRole(), shareUrl, permissions(blog, viewerId));
+    }
+
+    private BlogDetailResponse.Permissions permissions(Blog blog, Long viewerId) {
+        BlogMember member = accessService.activeMembership(blog.getId(), viewerId);
+        if (member == null) {
+            return null;
+        }
+        return new BlogDetailResponse.Permissions(member.canEditInfo(), member.canManageMembers(),
+                member.canManagePosts());
     }
 
     private Map<Long, String> ownerNicknames(List<Long> blogIds) {

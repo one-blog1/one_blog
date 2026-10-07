@@ -55,6 +55,19 @@
           <h2 id="posts-title">글</h2>
           <a id="write-link" class="button-link hidden" href="#">글쓰기</a>
         </div>
+        <div id="category-area" class="category-area hidden">
+          <div id="category-nav" class="segmented category-nav" role="group" aria-label="카테고리"></div>
+          <button id="category-manage-toggle" class="link-button hidden" type="button">카테고리 관리</button>
+        </div>
+        <section id="category-manage" class="manage-area hidden" aria-labelledby="category-manage-title">
+          <h3 id="category-manage-title">카테고리 관리</h3>
+          <ul id="category-edit-list" class="request-list"></ul>
+          <form id="category-form" class="row">
+            <input id="category-name" type="text" maxlength="30" placeholder="새 카테고리 이름" aria-label="새 카테고리 이름">
+            <button class="secondary" type="submit">추가</button>
+          </form>
+          <p id="category-message" class="message error" role="alert"></p>
+        </section>
         <ul id="notice-list" class="post-list notices"></ul>
         <ul id="post-list" class="post-list"></ul>
         <p id="post-empty" class="hint hidden">아직 글이 없어요.</p>
@@ -81,5 +94,6 @@
   <script src="/js/pager.js"></script>
   <script src="/js/post-item.js"></script>
   <script src="/js/blog-posts.js"></script>
+  <script src="/js/blog-categories.js"></script>
 </body>
 </html>

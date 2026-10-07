@@ -26,7 +26,10 @@ public interface PostExtension {
     default void describe(Blog blog, Post post, AuthenticatedUser principal, PostView view) {
     }
 
-    /** 목록 정보 채우기 (한 번의 조회로 여러 글을). */
+    /**
+     * 목록 정보 채우기 (한 번의 조회로 여러 글을).
+     * 여러 블로그의 글이 섞인 목록(태그·검색·피드, PostCardService)에서는 blog가 null이다.
+     */
     default void describeList(Blog blog, PostListContext context) {
     }
 }

@@ -796,3 +796,28 @@ button.primary.inline-button {
 .notice-strip a {
   color: var(--text);
 }
+
+/* 008 카테고리 */
+.category-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.category-nav {
+  flex-wrap: wrap;
+}
+
+#category-edit-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#category-edit-list input {
+  flex: 1 1 160px;
+  min-width: 0;
+}
