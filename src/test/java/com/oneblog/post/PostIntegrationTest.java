@@ -46,7 +46,10 @@ class PostIntegrationTest extends PostTestSupport {
                 .andExpect(jsonPath("$.canEdit").value(true))
                 .andExpect(jsonPath("$.canDelete").value(true))
                 .andExpect(jsonPath("$.content").exists());
-        mvc.perform(get("/blog/open-blog/posts/" + id)).andExpect(forwardedUrl("/post.html"));
+        mvc.perform(get("/blog/open-blog/posts/" + id))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("id=\"post\"")));
     }
 
     @Test

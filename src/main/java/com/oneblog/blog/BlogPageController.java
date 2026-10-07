@@ -11,15 +11,26 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Controller
 public class BlogPageController {
 
+    private final com.oneblog.post.PostPageRenderer postPageRenderer;
+
+    public BlogPageController(com.oneblog.post.PostPageRenderer postPageRenderer) {
+        this.postPageRenderer = postPageRenderer;
+    }
+
     @GetMapping("/blog/{slug}")
     public String blogPage(@PathVariable("slug") String slug) {
         return "forward:/blog.html";
     }
 
-    /** 글 상세 (004). og 태그는 014에서 서버가 채운다 (BRD-07). */
-    @GetMapping("/blog/{slug}/posts/{id}")
-    public String postPage(@PathVariable("slug") String slug, @PathVariable("id") String id) {
-        return "forward:/post.html";
+    /** 글 상세 (004). SNS 미리보기를 위해 서버가 og 태그를 채운 HTML을 준다 (BRD-07, 014). */
+    @GetMapping(value = "/blog/{slug}/posts/{id}", produces = "text/html;charset=UTF-8")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public String postPage(@PathVariable("slug") String slug, @PathVariable("id") String id,
+            @org.springframework.web.bind.annotation.RequestParam(name = "key", required = false) String key,
+            jakarta.servlet.http.HttpServletRequest request) {
+        String base = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromContextPath(request)
+                .build().toUriString();
+        return postPageRenderer.render(id, key, base, request.getRequestURI());
     }
 
     /** 글쓰기·고치기 화면 (004). */

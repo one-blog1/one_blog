@@ -42,6 +42,8 @@ app:
     secret: ${JWT_SECRET}
   verification:
     code-pepper: ${CODE_PEPPER}
+  # SNS 미리보기(og:url, og:image)에 쓰는 사이트 주소. 비우면 요청 주소를 쓴다 (014). 예: https://oneblog.example.com
+  public-base-url: ${PUBLIC_BASE_URL:}
   privacy:
     # 블랙리스트 해시용 비밀값 (BLG-11, 4.6). 비우면 CODE_PEPPER
     hash-pepper: ${PRIVACY_HASH_PEPPER:${CODE_PEPPER}}

@@ -31,4 +31,11 @@ public record PostDetailResponse(
         boolean canEdit,
         boolean canDelete,
         boolean canComment) {
+
+    /** 이번 요청에서 센 조회수를 더한 응답 (014). */
+    public PostDetailResponse withViewCount(int count) {
+        return new PostDetailResponse(id, blogSlug, blogName, title, contentHtml, content, authorId, authorName, notice,
+                categoryId, categoryName, tags, count, likeCount, commentCount, liked, createdAt, updatedAt, canEdit,
+                canDelete, canComment);
+    }
 }
