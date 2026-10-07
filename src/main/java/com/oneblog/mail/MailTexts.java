@@ -9,6 +9,7 @@ final class MailTexts {
     static final String SENDER_NAME = "One Blog";
     static final String SIGNUP_CODE_SUBJECT = "[One Blog] 회원가입 인증번호";
     static final String ALREADY_REGISTERED_SUBJECT = "[One Blog] 회원가입 안내";
+    static final String PASSWORD_RESET_SUBJECT = "[One Blog] 비밀번호 재설정 인증번호";
 
     private static final String ACCENT = "#0F766E";
 
@@ -41,6 +42,34 @@ final class MailTexts {
                 </p>
                 """.formatted(ACCENT, code);
         return layout("One Blog 회원가입 인증번호 " + code, body);
+    }
+
+    static String passwordResetCode(String code) {
+        return """
+                One Blog 비밀번호 재설정 인증번호입니다.
+
+                인증번호: %s
+
+                30분 안에 비밀번호 찾기 화면에 입력해 주세요. 한 번만 쓸 수 있고, 5번 틀리면 새 번호를 받아야 합니다.
+                본인이 요청하지 않았다면 이 메일을 무시해 주세요. 비밀번호는 바뀌지 않습니다.
+                """.formatted(code);
+    }
+
+    static String passwordResetCodeHtml(String code) {
+        String body = """
+                <h1 style="margin:0 0 12px;font-size:22px;line-height:1.4;color:#17191C;">비밀번호 재설정 인증번호</h1>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#3F444B;">
+                  One Blog 비밀번호 찾기 화면에 아래 인증번호 6자리를 입력해 주세요.
+                </p>
+                <div style="margin:0 0 24px;padding:20px 0;border-radius:12px;background:#E3F2EF;text-align:center;">
+                  <span style="font-size:34px;font-weight:700;letter-spacing:10px;color:%s;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">%s</span>
+                </div>
+                <p style="margin:0;font-size:14px;line-height:1.7;color:#5B616B;">
+                  인증번호는 <strong style="color:#17191C;">30분 동안 한 번만</strong> 쓸 수 있고, 5번 틀리면 새 번호를 받아야 합니다.<br>
+                  본인이 요청하지 않았다면 이 메일을 무시해 주세요. 비밀번호는 바뀌지 않습니다.
+                </p>
+                """.formatted(ACCENT, code);
+        return layout("One Blog 비밀번호 재설정 인증번호 " + code, body);
     }
 
     static String alreadyRegistered() {

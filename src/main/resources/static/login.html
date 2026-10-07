@@ -16,6 +16,7 @@
     <section class="card">
       <h1>로그인</h1>
       <p id="signup-done" class="message ok hidden">가입이 완료되었습니다. 로그인해 주세요.</p>
+      <p id="reset-done" class="message ok hidden">비밀번호를 바꿨습니다. 새 비밀번호로 로그인해 주세요.</p>
 
       <form id="login-form" novalidate>
         <label for="email">이메일</label>
@@ -30,9 +31,11 @@
         </label>
         <p class="hint">공용 PC에서는 체크하지 마세요. 체크하지 않으면 브라우저를 닫거나 30분 동안 활동이 없을 때 로그아웃됩니다.</p>
 
+        <div id="captcha" class="captcha hidden"></div>
         <p id="login-message" class="message error" role="alert"></p>
         <button class="primary" type="submit">로그인</button>
       </form>
+      <p class="footer-links"><a href="/find-account.html">비밀번호 찾기</a> · <a href="/find-account.html#email">이메일 찾기</a></p>
 
       <p class="footer-links">아직 회원이 아니신가요? <a href="/signup.html">회원가입</a></p>
     </section>
@@ -40,6 +43,7 @@
 
   <script src="/js/api.js"></script>
   <script src="/js/header.js"></script>
+  <script src="/js/captcha.js"></script>
   <script src="/js/login.js"></script>
 </body>
 </html>

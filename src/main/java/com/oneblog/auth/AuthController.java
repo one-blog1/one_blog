@@ -26,30 +26,35 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthCookies authCookies;
+    private final com.oneblog.common.security.TurnstileVerifier turnstile;
 
-    public AuthController(AuthService authService, AuthCookies authCookies) {
+    public AuthController(AuthService authService, AuthCookies authCookies,
+            com.oneblog.common.security.TurnstileVerifier turnstile) {
         this.authService = authService;
         this.authCookies = authCookies;
+        this.turnstile = turnstile;
     }
 
     @PostMapping("/api/auth/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
         AuthService.LoginResult result = authService.login(request.email(), request.password(),
-                request.rememberMeOrFalse());
+                request.rememberMeOrFalse(), httpRequest.getRemoteAddr(), request.captchaToken());
         authCookies.setLoginCookies(response, result.accessToken(), result.refreshToken(), result.rememberMe());
         return new LoginResponse(result.nickname());
     }
 
     /** 관리자 로그인 (SEC-09, D-98). 쿠키는 회원 로그인과 같다. */
     @PostMapping("/api/auth/admin/login")
-    public LoginResponse adminLogin(@RequestBody AdminLoginRequest request, HttpServletResponse response) {
+    public LoginResponse adminLogin(@RequestBody AdminLoginRequest request, HttpServletResponse response,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
         AuthService.LoginResult result = authService.adminLogin(request.loginId(), request.password(),
-                Boolean.TRUE.equals(request.rememberMe()));
+                Boolean.TRUE.equals(request.rememberMe()), httpRequest.getRemoteAddr(), request.captchaToken());
         authCookies.setLoginCookies(response, result.accessToken(), result.refreshToken(), result.rememberMe());
         return new LoginResponse(result.nickname());
     }
 
-    public record AdminLoginRequest(String loginId, String password, Boolean rememberMe) {
+    public record AdminLoginRequest(String loginId, String password, Boolean rememberMe, String captchaToken) {
 
         @Override
         public String toString() {
@@ -78,6 +83,15 @@ public class AuthController {
         authService.logout(refreshToken);
         authCookies.clearLoginCookies(response);
         return ResponseEntity.noContent().build();
+    }
+
+    /** 사람 확인 설정 (SEC-13). 꺼져 있으면 enabled=false. */
+    @GetMapping("/api/auth/captcha-config")
+    public java.util.Map<String, Object> captchaConfig() {
+        java.util.Map<String, Object> config = new java.util.HashMap<>();
+        config.put("enabled", turnstile.enabled());
+        config.put("siteKey", turnstile.siteKey());
+        return config;
     }
 
     @GetMapping("/api/me")

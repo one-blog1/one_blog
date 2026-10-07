@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>계정 찾기 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main>
+    <section class="card">
+      <h1>계정 찾기</h1>
+      <div class="tabs" role="tablist" aria-label="찾을 것">
+        <button id="tab-password" type="button" role="tab" aria-selected="true">비밀번호 찾기</button>
+        <button id="tab-email" type="button" role="tab" aria-selected="false">이메일 찾기</button>
+      </div>
+
+      <section id="password-panel" aria-labelledby="tab-password">
+        <form id="code-form" novalidate>
+          <label for="reset-email">가입한 이메일</label>
+          <div class="row">
+            <input id="reset-email" type="email" autocomplete="username" required>
+            <button class="secondary" type="submit">인증번호 받기</button>
+          </div>
+          <p id="code-message" class="message" role="status"></p>
+        </form>
+      </section>
+
+      <section id="email-panel" class="hidden" aria-labelledby="tab-email">
+        <form id="find-form" novalidate>
+          <label for="find-name">이름</label>
+          <input id="find-name" type="text" autocomplete="name" maxlength="50" required>
+          <label for="find-phone">휴대전화 번호</label>
+          <input id="find-phone" type="tel" autocomplete="tel" placeholder="010-1234-5678" required>
+          <p id="find-message" class="message error" role="alert"></p>
+          <button class="primary" type="submit">찾기</button>
+        </form>
+        <ul id="found-list" class="request-list"></ul>
+      </section>
+
+      <form id="reset-form" class="hidden" novalidate>
+        <h2>새 비밀번호 설정</h2>
+        <p class="hint">메일로 받은 인증번호 6자리를 30분 안에 입력해 주세요. 바꾸면 모든 기기에서 로그아웃돼요.</p>
+        <label for="reset-code">인증번호</label>
+        <input id="reset-code" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+        <p class="message error" data-error-for="code" role="alert"></p>
+        <label for="new-password">새 비밀번호 <span class="hint-inline">(8~15자, 영문·숫자·특수문자 모두)</span></label>
+        <input id="new-password" type="password" autocomplete="new-password" maxlength="15">
+        <p class="message error" data-error-for="newPassword" role="alert"></p>
+        <label for="new-password-confirm">새 비밀번호 확인</label>
+        <input id="new-password-confirm" type="password" autocomplete="new-password" maxlength="15">
+        <p class="message error" data-error-for="newPasswordConfirm" role="alert"></p>
+        <p id="reset-message" class="message error" role="alert"></p>
+        <button class="primary" type="submit">비밀번호 바꾸기</button>
+      </form>
+      <p class="footer-links"><a href="/login.html">로그인으로</a></p>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/find-account.js"></script>
+</body>
+</html>

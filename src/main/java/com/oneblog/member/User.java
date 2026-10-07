@@ -61,6 +61,12 @@ public class User {
     @Column(name = "status", length = 20, nullable = false)
     private UserStatus status;
 
+    @Column(name = "failed_login_count", nullable = false)
+    private int failedLoginCount;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
     /** 알림 보관 일수 30 또는 7 (4.5, 6.7). */
     @JdbcTypeCode(SqlTypes.TINYINT)
     @Column(name = "notification_retention_days", nullable = false)
@@ -165,6 +171,38 @@ public class User {
 
     public LocalDateTime getWithdrawnAt() {
         return withdrawnAt;
+    }
+
+    /**
+     * 로그인 실패 기록 (SEC-03, 6.7). 5번 연속 틀리면 5분 잠그고 횟수를 0으로 되돌린다.
+     * @return 잠겼으면 true
+     */
+    public boolean recordLoginFailure(LocalDateTime now, int maxFailures, java.time.Duration lockFor) {
+        this.failedLoginCount++;
+        if (failedLoginCount >= maxFailures) {
+            this.lockedUntil = now.plus(lockFor);
+            this.failedLoginCount = 0;
+            return true;
+        }
+        return false;
+    }
+
+    /** 로그인 성공·비밀번호 재설정 때 실패 횟수와 잠금을 푼다 (USR-06). */
+    public void clearLoginFailures() {
+        this.failedLoginCount = 0;
+        this.lockedUntil = null;
+    }
+
+    public boolean isLocked(LocalDateTime now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    public int getFailedLoginCount() {
+        return failedLoginCount;
+    }
+
+    public LocalDateTime getLockedUntil() {
+        return lockedUntil;
     }
 
     public void changeNotificationRetentionDays(int days) {

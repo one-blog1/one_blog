@@ -24,4 +24,9 @@ public class LogMailService implements MailService {
     public void sendAlreadyRegistered(String email) {
         log.info("[메일 log 모드] 이미 가입된 이메일 안내 to={}", email);
     }
+
+    @Override
+    public void sendPasswordResetCode(String email, String code) {
+        log.info("[메일 log 모드] 비밀번호 재설정 인증번호 to={} code={}", email, code);
+    }
 }

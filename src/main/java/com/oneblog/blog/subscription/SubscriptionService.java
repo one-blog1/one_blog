@@ -33,10 +33,12 @@ public class SubscriptionService {
     private final BlogPolicy blogPolicy;
     private final UserRepository userRepository;
     private final List<SubscriptionListener> listeners;
+    private final com.oneblog.common.security.RateLimiter rateLimiter;
 
     public SubscriptionService(BlogSubscriptionRepository repository, BlogRepository blogRepository,
             BlogAccessService accessService, BlogPolicy blogPolicy, UserRepository userRepository,
-            List<SubscriptionListener> listeners) {
+            List<SubscriptionListener> listeners, com.oneblog.common.security.RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.repository = repository;
         this.blogRepository = blogRepository;
         this.accessService = accessService;
@@ -57,6 +59,8 @@ public class SubscriptionService {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 블로그를 구독할 수 없습니다.");
         }
+        rateLimiter.check("toggle", String.valueOf(principal.id()), com.oneblog.like.LikeService.TOGGLES_PER_MINUTE,
+                java.time.Duration.ofMinutes(1));
         String slug = blogPolicy.normalizeSlug(rawSlug);
         Blog blog = slug == null ? null : blogRepository.findBySlug(slug).filter(Blog::isOpen).orElse(null);
         if (blog == null) {

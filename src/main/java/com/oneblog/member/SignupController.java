@@ -33,8 +33,12 @@ public class SignupController {
     private final NicknameService nicknameService;
     private final AuthCookies authCookies;
 
+    private final com.oneblog.common.security.RateLimiter rateLimiter;
+
     public SignupController(EmailVerificationService verificationService, SignupService signupService,
-            NicknameService nicknameService, AuthCookies authCookies) {
+            NicknameService nicknameService, AuthCookies authCookies,
+            com.oneblog.common.security.RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.verificationService = verificationService;
         this.signupService = signupService;
         this.nicknameService = nicknameService;
@@ -44,7 +48,10 @@ public class SignupController {
     /** 인증번호 받기. 가입 여부와 관계없이 같은 응답 (D-28). */
     @PostMapping("/email-code")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public Map<String, Object> sendCode(@Valid @RequestBody EmailCodeRequest request) {
+    public Map<String, Object> sendCode(@Valid @RequestBody EmailCodeRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        // 같은 IP가 여러 이메일로 메일을 마구 보내게 하지 않는다 (D-80)
+        rateLimiter.check("signup-code", httpRequest.getRemoteAddr(), 10, java.time.Duration.ofMinutes(10));
         verificationService.sendSignupCode(request.email());
         return Map.of(
                 "message", "인증번호를 보냈습니다.",

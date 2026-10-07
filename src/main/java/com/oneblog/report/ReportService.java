@@ -71,12 +71,14 @@ public class ReportService {
     private final AdminService adminService;
     private final AdminActionLogger actionLogger;
     private final NotificationService notifications;
+    private final com.oneblog.common.security.RateLimiter rateLimiter;
 
     public ReportService(NamedParameterJdbcTemplate jdbc, BlogAccessService accessService,
             BlogRepository blogRepository, BlogMemberRepository memberRepository, PostRepository postRepository,
             CommentRepository commentRepository, UserRepository userRepository, SanctionService sanctionService,
             OwnerSanctionService ownerSanctionService, AdminService adminService, AdminActionLogger actionLogger,
-            NotificationService notifications) {
+            NotificationService notifications, com.oneblog.common.security.RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.jdbc = jdbc;
         this.accessService = accessService;
         this.blogRepository = blogRepository;
@@ -112,6 +114,8 @@ public class ReportService {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 신고하지 않습니다.");
         }
+        // 신고를 마구 넣지 못하게 한다 (D-80)
+        rateLimiter.check("report", String.valueOf(principal.id()), 20, java.time.Duration.ofHours(1));
         ReportReason reason = parseReason(request.reason());
         String detail = request.detail() == null ? null : request.detail().strip();
         if (detail != null && detail.codePointCount(0, detail.length()) > 500) {

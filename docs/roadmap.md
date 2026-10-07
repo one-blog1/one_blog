@@ -25,7 +25,7 @@
 | 012 | 블로그 운영: 부블로그장·위임·폐쇄·블로그 탈퇴, 회원탈퇴, 04:00 배치 (+ 블로그 정보 수정) | BLG-01(수정), 07~09, USR-05, 2장, 4.5, D-83 | blog_transfer_requests, shedlock | 011 | 구현 (테스트 대기) |
 | 013 | 제재·블랙리스트·신고·차단, 관리자 신고 처리·블로그장 제재·강제 폐쇄 | BLG-11~13, SOC-05, 06, ADM-02(강제 폐쇄), 04, 07, 3.7 | blog_blacklists, blacklist_inquiries, sanctions, reports, blocks | 007, 012 | 구현 (테스트 대기) |
 | 014 | 공유·조회수 | BRD-07, 11, 6.2 | post_views | 004 | 구현 (테스트 대기) |
-| 015 | 계정 보안 세부: 로그인 잠금·CAPTCHA·IP 제한·비밀번호/이메일 찾기 | SEC-03, 05, 13, USR-06, 08, D-80 | account_lookup_tokens | 001 | |
+| 015 | 계정 보안 세부: 로그인 잠금·CAPTCHA·IP 제한·비밀번호/이메일 찾기 (+ 보안 헤더) | SEC-03, 05, 12, 13, USR-06, 08, D-80 | account_lookup_tokens | 001 | 구현 (테스트 대기) |
 
 ## 아직 번호가 없는 기능
 

@@ -30,8 +30,15 @@ public class LikeService {
     private final UserRepository userRepository;
     private final List<LikeListener> listeners;
 
+    /** 좋아요·팔로우·구독은 한 회원이 1분에 이만큼까지 누른다 (6.6). */
+    public static final int TOGGLES_PER_MINUTE = 60;
+
+    private final com.oneblog.common.security.RateLimiter rateLimiter;
+
     public LikeService(PostLikeRepository likeRepository, PostRepository postRepository, PostService postService,
-            BlogAccessService accessService, UserRepository userRepository, List<LikeListener> listeners) {
+            BlogAccessService accessService, UserRepository userRepository, List<LikeListener> listeners,
+            com.oneblog.common.security.RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.likeRepository = likeRepository;
         this.postRepository = postRepository;
         this.postService = postService;
@@ -49,6 +56,8 @@ public class LikeService {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 좋아요를 누를 수 없습니다.");
         }
+        // 좋아요를 빠르게 반복하지 못하게 한다 (6.6 "트래픽 제한")
+        rateLimiter.check("toggle", String.valueOf(principal.id()), TOGGLES_PER_MINUTE, java.time.Duration.ofMinutes(1));
         Post post = postService.findBlogPost(postId);
         Blog blog = postService.blogOf(post);
         accessService.check(blog, key, principal.id());

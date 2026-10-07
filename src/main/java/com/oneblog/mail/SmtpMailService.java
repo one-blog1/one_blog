@@ -46,6 +46,13 @@ public class SmtpMailService implements MailService {
                 MailTexts.alreadyRegisteredHtml());
     }
 
+    @Async(AsyncConfig.MAIL_EXECUTOR)
+    @Override
+    public void sendPasswordResetCode(String email, String code) {
+        send(email, MailTexts.PASSWORD_RESET_SUBJECT, MailTexts.passwordResetCode(code),
+                MailTexts.passwordResetCodeHtml(code));
+    }
+
     /** HTML 본문과 평문 본문을 함께 보낸다. 메일 앱이 HTML을 못 보여 주면 평문이 보인다. */
     private void send(String to, String subject, String text, String html) {
         try {

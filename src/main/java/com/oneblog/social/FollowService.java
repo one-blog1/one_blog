@@ -28,9 +28,12 @@ public class FollowService {
     private final NamedParameterJdbcTemplate jdbc;
     private final List<FollowListener> listeners;
     private final List<FollowGate> gates;
+    private final com.oneblog.common.security.RateLimiter rateLimiter;
 
     public FollowService(FollowRepository followRepository, UserRepository userRepository,
-            NamedParameterJdbcTemplate jdbc, List<FollowListener> listeners, List<FollowGate> gates) {
+            NamedParameterJdbcTemplate jdbc, List<FollowListener> listeners, List<FollowGate> gates,
+            com.oneblog.common.security.RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.jdbc = jdbc;
@@ -53,6 +56,8 @@ public class FollowService {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 팔로우할 수 없습니다.");
         }
+        rateLimiter.check("toggle", String.valueOf(principal.id()), com.oneblog.like.LikeService.TOGGLES_PER_MINUTE,
+                java.time.Duration.ofMinutes(1));
         User target = findMember(nickname);
         if (target.getId().equals(principal.id())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CANNOT_FOLLOW_SELF", "자기 자신은 팔로우할 수 없습니다.");

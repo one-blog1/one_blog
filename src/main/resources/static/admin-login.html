@@ -20,6 +20,7 @@
         <input id="login-id" type="text" autocomplete="username" required>
         <label for="password">비밀번호</label>
         <input id="password" type="password" autocomplete="current-password" required>
+        <div id="captcha" class="captcha hidden"></div>
         <p id="login-message" class="message error" role="alert"></p>
         <button class="primary" type="submit">로그인</button>
       </form>
@@ -27,22 +28,7 @@
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/header.js"></script>
-  <script>
-    // 관리자 로그인 (SEC-09, D-98). 인라인 스크립트는 이 화면 하나뿐이고 사용자 입력을 화면에 넣지 않는다
-    document.getElementById('admin-login-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const message = document.getElementById('login-message');
-      message.textContent = '';
-      const result = await window.api.post('/api/auth/admin/login', {
-        loginId: document.getElementById('login-id').value.trim(),
-        password: document.getElementById('password').value
-      }, { userAction: true });
-      if (result.ok) {
-        window.location.href = '/admin.html';
-        return;
-      }
-      message.textContent = (result.data && result.data.message) || '로그인하지 못했습니다.';
-    });
-  </script>
+  <script src="/js/captcha.js"></script>
+  <script src="/js/admin-login.js"></script>
 </body>
 </html>

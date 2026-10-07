@@ -9,7 +9,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 04:00 배치의 정리 단계.
- * - 만료·폐기된 Refresh Token (D-83), 만료·사용한 인증번호 (4.5 예외)
+ * - 만료·폐기된 Refresh Token (D-83), 만료·사용한 인증번호와 이메일 찾기 임시 토큰 (4.5 예외)
  * - 보관 기간(30일 또는 7일)이 지난 알림 (4.5, 6.7)
  * - 1년 지난 관리자 활동 기록 (4.5 예외). 신고·제재 기록은 SanctionCleanupTask
  * - 이틀 지난 글 조회 기록 (014)
@@ -43,6 +43,7 @@ public class CleanupTask implements DailyTask {
             int total = 0;
             total += jdbc.update("DELETE FROM refresh_tokens WHERE expires_at <= :now OR revoked_at IS NOT NULL", args);
             total += jdbc.update("DELETE FROM verification_codes WHERE expires_at <= :now OR used_at IS NOT NULL", args);
+            total += jdbc.update("DELETE FROM account_lookup_tokens WHERE expires_at <= :now OR used_at IS NOT NULL", args);
             total += jdbc.update("""
                     DELETE n FROM notifications n JOIN users u ON u.id = n.user_id
                     WHERE n.created_at < DATE_SUB(:now, INTERVAL u.notification_retention_days DAY)

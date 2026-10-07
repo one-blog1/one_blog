@@ -11,4 +11,7 @@ public interface MailService {
 
     /** 이미 가입된 이메일로 가입을 시도했을 때 인증번호 대신 보내는 안내 메일. */
     void sendAlreadyRegistered(String email);
+
+    /** 비밀번호 재설정 인증번호 메일 (USR-06, 30분). */
+    void sendPasswordResetCode(String email, String code);
 }

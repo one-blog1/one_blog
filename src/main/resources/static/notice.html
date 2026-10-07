@@ -23,21 +23,6 @@
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/header.js"></script>
-  <script>
-    (async () => {
-      const id = new URLSearchParams(window.location.search).get('id') || '';
-      const result = await window.api.get('/api/notices/' + encodeURIComponent(id));
-      if (!result.ok || !result.data) {
-        document.getElementById('notice-missing').classList.remove('hidden');
-        return;
-      }
-      const n = result.data;
-      document.title = n.title + ' - One Blog';
-      document.getElementById('notice-title').textContent = n.title;
-      document.getElementById('notice-meta').textContent = n.authorName + ' · ' + new Date(n.createdAt).toLocaleString('ko-KR');
-      document.getElementById('notice-body').innerHTML = n.contentHtml;
-      document.getElementById('notice').classList.remove('hidden');
-    })();
-  </script>
+  <script src="/js/notice.js"></script>
 </body>
 </html>

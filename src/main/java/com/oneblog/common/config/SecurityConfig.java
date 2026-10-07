@@ -14,6 +14,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.oneblog.auth.SessionService;
@@ -31,6 +32,23 @@ import jakarta.servlet.http.HttpServletResponse;
 @Configuration
 public class SecurityConfig {
 
+    /**
+     * 허용한 곳의 스크립트만 실행한다 (SEC-12, SEC-06). 화면 스크립트는 모두 /js 파일(인라인 없음).
+     * 에디터(Toast UI, D-74)와 사람 확인(Turnstile, D-79)만 밖에서 불러온다. 에디터가 인라인 style을 쓰므로 style만 허용.
+     */
+    static final String CONTENT_SECURITY_POLICY = String.join("; ",
+            "default-src 'self'",
+            "script-src 'self' https://uicdn.toast.com https://challenges.cloudflare.com",
+            "style-src 'self' 'unsafe-inline' https://uicdn.toast.com",
+            "img-src 'self' data: blob:",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "frame-src https://challenges.cloudflare.com",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'");
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder,
             SessionService sessionService, AuthCookies authCookies) throws Exception {
@@ -38,6 +56,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // XSRF-TOKEN 쿠키(JS가 읽음) + X-XSRF-TOKEN 헤더 (SEC-10)
                 .csrf(csrf -> csrf.spa())
+                // 보안 헤더 (SEC-12). X-Frame-Options DENY, nosniff, HSTS(HTTPS 요청)는 Spring Security 기본값
+                .headers(headers -> headers
+                        .referrerPolicy(referrer -> referrer.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(CONTENT_SECURITY_POLICY)))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
@@ -46,7 +69,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/signup.html", "/login.html",
                                 "/blog-new.html", "/my-blogs.html", "/blog.html", "/post.html", "/post-edit.html",
                                 "/admin.html", "/admin-login.html", "/notice.html", "/tag.html",
-                                "/profile.html", "/account.html", "/search.html", "/blog-manage.html",
+                                "/profile.html", "/account.html", "/search.html", "/blog-manage.html", "/find-account.html",
                                 "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
                         // 블로그 첫 화면과 업로드 이미지, 블로그 목록·첫 화면 정보는 비회원도 본다.
@@ -61,7 +84,8 @@ public class SecurityConfig {
                         // 관리자 API는 관리자만 (SEC-09, SEC-11). 역할은 인증 필터가 매 요청 DB에서 읽는다
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/auth/signup/nickname-availability").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/signup/nickname-availability",
+                                "/api/auth/captcha-config").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedEntryPoint()))

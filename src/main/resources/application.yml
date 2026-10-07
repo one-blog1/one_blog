@@ -37,6 +37,10 @@ spring:
       mail.smtp.timeout: 10000
       mail.smtp.writetimeout: 10000
 
+server:
+  # 로드밸런서 뒤에 둘 때만 framework로 바꿔 X-Forwarded-For/Proto를 읽는다 (4.3). 직접 받을 때 켜면 IP를 속일 수 있다
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+
 app:
   jwt:
     secret: ${JWT_SECRET}
@@ -44,6 +48,10 @@ app:
     code-pepper: ${CODE_PEPPER}
   # SNS 미리보기(og:url, og:image)에 쓰는 사이트 주소. 비우면 요청 주소를 쓴다 (014). 예: https://oneblog.example.com
   public-base-url: ${PUBLIC_BASE_URL:}
+  # 사람 확인 Cloudflare Turnstile (SEC-13). 둘 다 있어야 켜진다
+  turnstile:
+    site-key: ${TURNSTILE_SITE_KEY:}
+    secret-key: ${TURNSTILE_SECRET_KEY:}
   privacy:
     # 블랙리스트 해시용 비밀값 (BLG-11, 4.6). 비우면 CODE_PEPPER
     hash-pepper: ${PRIVACY_HASH_PEPPER:${CODE_PEPPER}}
