@@ -3,24 +3,23 @@
 ## 준비
 
 - JDK 21, MySQL 8.4 실행 중
-- DB와 계정 (한 번만)
+- 개발 DB: Crowfoot이 발급한 MySQL(`s4.java21.net:13306`, `cf_u36_d1`). 접속 계정은 Crowfoot 데이터베이스 탭에서 확인한다. 테이블은 앱이 시작할 때 Flyway가 만든다.
+- 테스트 DB (한 번만, 로컬 MySQL root로). 테스트는 실행마다 테이블을 비우므로 개발 DB와 다른 DB를 쓴다.
   ```sql
-  CREATE DATABASE one_blog CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
   CREATE DATABASE one_blog_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
   CREATE USER 'one_blog'@'localhost' IDENTIFIED BY '<비밀번호>';
-  GRANT ALL PRIVILEGES ON one_blog.* TO 'one_blog'@'localhost';
   GRANT ALL PRIVILEGES ON one_blog_test.* TO 'one_blog'@'localhost';
   ```
 - 환경변수: 저장소 루트에 `.env`를 만든다 (저장소에 올리지 않음, constitution III). 애플리케이션이 자동으로 읽는다.
   ```bash
-  cp .env.example .env   # DB_PASSWORD, JWT_SECRET, CODE_PEPPER를 채운다
+  cp .env.example .env   # DB_USERNAME, DB_PASSWORD(Crowfoot), TEST_DB_USERNAME, TEST_DB_PASSWORD(로컬), JWT_SECRET, CODE_PEPPER를 채운다
   openssl rand -base64 48  # JWT_SECRET, CODE_PEPPER용 무작위 값
   ```
 
 ## 실행
 
 ```bash
-./gradlew test       # 통합 테스트 (one_blog_test DB 사용)
+./gradlew test       # 통합 테스트 (테스트 DB 사용, 개발 DB에 연결되면 멈춤)
 ./gradlew bootRun    # http://localhost:8080
 ```
 

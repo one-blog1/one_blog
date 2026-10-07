@@ -29,20 +29,22 @@ Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 H
 
 ## 로컬 실행
 
-필요한 것: JDK 21, MySQL 8.4. Spring Boot와 Gradle은 `./gradlew`가 처음 실행할 때 자동으로 받습니다.
+필요한 것: JDK 21, MySQL 8.4(테스트용). Spring Boot와 Gradle은 `./gradlew`가 처음 실행할 때 자동으로 받습니다.
 
-1. DB와 계정을 만듭니다 (MySQL root로 한 번만).
+- 개발 DB: Crowfoot이 발급한 MySQL(`s4.java21.net:13306`, `cf_u36_d1`). ERD 문서와 연결돼 있고, 테이블은 앱이 시작할 때 Flyway가 만듭니다. Crowfoot의 "변경 반영"으로 테이블을 만들지 않습니다 (constitution IV).
+- 테스트 DB: 테스트는 실행마다 테이블을 비우므로 개발 DB와 다른 DB를 씁니다. 기본은 로컬 MySQL의 `one_blog_test`.
+
+1. 테스트 DB와 계정을 만듭니다 (로컬 MySQL root로 한 번만).
    ```sql
-   CREATE DATABASE one_blog CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
    CREATE DATABASE one_blog_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
    CREATE USER 'one_blog'@'localhost' IDENTIFIED BY '원하는_비밀번호';
-   GRANT ALL PRIVILEGES ON one_blog.* TO 'one_blog'@'localhost';
    GRANT ALL PRIVILEGES ON one_blog_test.* TO 'one_blog'@'localhost';
    ```
 2. 환경변수 파일을 만들고 값을 채웁니다. `.env`는 저장소에 올라가지 않습니다.
    ```bash
    cp .env.example .env
    ```
+   `DB_USERNAME`, `DB_PASSWORD`는 Crowfoot 데이터베이스 탭의 값, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD`는 1번에서 만든 로컬 계정입니다.
 3. 테스트와 실행
    ```bash
    ./gradlew test

@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -25,7 +26,8 @@ import com.oneblog.mail.MailService;
 import jakarta.servlet.http.Cookie;
 
 /**
- * 통합 테스트 공통: 로컬 MySQL의 one_blog_test DB를 쓰고, 테스트마다 회원·인증 테이블을 비운다 (research R8).
+ * 통합 테스트 공통: 테스트 DB(기본 one_blog_test)를 쓰고, 테스트마다 회원·인증 테이블을 비운다 (research R8).
+ * 개발 DB를 실수로 비우지 않도록, 접속한 DB 이름이 DB_NAME과 같으면 테스트를 멈춘다.
  * 메일은 가짜(MailService 목)로 바꿔 보낸 인증번호를 읽는다.
  */
 @SpringBootTest
@@ -44,8 +46,15 @@ public abstract class IntegrationTestSupport {
     @MockitoBean
     protected MailService mailService;
 
+    @Value("${DB_NAME:one_blog}")
+    private String devDatabaseName;
+
     @BeforeEach
     void cleanTables() {
+        String current = jdbc.queryForObject("SELECT DATABASE()", String.class);
+        if (current == null || current.equalsIgnoreCase(devDatabaseName)) {
+            throw new IllegalStateException("테스트가 개발 DB(" + current + ")에 연결됐습니다. .env의 TEST_DB_NAME을 다른 DB로 지정하세요.");
+        }
         jdbc.update("DELETE FROM refresh_tokens");
         jdbc.update("DELETE FROM verification_codes");
         jdbc.update("DELETE FROM users");
