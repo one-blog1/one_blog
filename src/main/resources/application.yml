@@ -19,6 +19,11 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      # 한 파일 3MB 검사는 서비스가 한다(6.3). 여기는 요청 전체의 상한 (글 이미지 묶음 10MB 대비)
+      max-file-size: 10MB
+      max-request-size: 10MB
   mail:
     host: smtp.gmail.com
     # 465 = 처음부터 SSL로 접속 (587 STARTTLS가 일부 네트워크에서 응답 대기 중 끊겨 465로 바꿈)
@@ -41,3 +46,11 @@ app:
     mode: ${MAIL_MODE:smtp}       # smtp | log
   cookie:
     secure: ${COOKIE_SECURE:true}  # 로컬 http는 false
+  blog:
+    limit:
+      public: ${BLOG_LIMIT_PUBLIC:3}    # 공개 + 일부 공개, 1~5 (BLG-10, D-52)
+      private: ${BLOG_LIMIT_PRIVATE:5}  # 비공개
+    # 블로그 주소로 쓸 수 없는 값 (6.5). 사이트 경로가 늘면 여기에 더한다
+    reserved-slugs: main, admin, api, login, signup, search, blog, blogs, my, me, new, css, js, images, files, error, static, favicon, notice, settings, help
+  file:
+    storage-dir: ${FILE_STORAGE_DIR:./uploads}   # 업로드 파일 저장 폴더 (D-75). 저장소에 올리지 않음

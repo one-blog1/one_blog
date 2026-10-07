@@ -12,6 +12,8 @@ import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import com.oneblog.member.ValidationFailedException;
 
@@ -44,6 +46,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({HttpMessageNotReadableException.class, MissingServletRequestParameterException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(Exception e) {
         return ResponseEntity.badRequest().body(ErrorResponse.of("VALIDATION_FAILED", VALIDATION_MESSAGE));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(MissingServletRequestPartException e) {
+        return ResponseEntity.badRequest().body(new ErrorResponse("VALIDATION_FAILED", VALIDATION_MESSAGE,
+                List.of(new ErrorResponse.FieldError(e.getRequestPartName(), "파일을 골라 주세요.")), null, null));
+    }
+
+    /** 요청 전체가 업로드 상한(10MB)을 넘음. 한 파일 3MB 검사는 FileUploadService가 한다 (6.3). */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleTooLarge(MaxUploadSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
+                .body(ErrorResponse.of("FILE_TOO_LARGE", "파일은 3MB까지 올릴 수 있습니다."));
     }
 
     @ExceptionHandler(MissingRequestCookieException.class)

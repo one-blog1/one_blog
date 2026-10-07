@@ -200,3 +200,279 @@ button:disabled {
     padding: 18px;
   }
 }
+
+/* ── 블로그 (002) ───────────────────────────────────── */
+
+h2 {
+  font-size: 17px;
+  margin: 24px 0 12px;
+}
+
+textarea,
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 15px;
+  background: var(--surface);
+}
+
+select {
+  width: auto;
+  margin-left: 6px;
+  padding: 6px 10px;
+}
+
+fieldset {
+  margin: 18px 0 0;
+  padding: 0;
+  border: none;
+}
+
+legend {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.required {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--error);
+}
+
+.hint-inline {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.prefix {
+  align-self: center;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+label.inline {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  font-weight: 400;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.button-link {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-text);
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 8px;
+  font-size: 14px;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segmented button {
+  padding: 6px 14px;
+  border: none;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.blog-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.blog-card:hover,
+.blog-card:focus-visible {
+  border-color: var(--accent);
+}
+
+.blog-cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #e8eefc;
+}
+
+.blog-card-body {
+  padding: 12px 14px 14px;
+}
+
+.blog-name {
+  display: block;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.blog-description {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.blog-meta {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: var(--accent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.tag-list.editable {
+  margin-bottom: 8px;
+}
+
+.tag-remove {
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+}
+
+.cover-picker {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cover-picker .blog-cover {
+  width: 160px;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 20px;
+}
+
+.pagination button {
+  min-width: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.pagination button[aria-current="page"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.blog-hero {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  aspect-ratio: 16 / 6;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background: #e8eefc;
+}
+
+.blog-description-full {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.share-area {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+
+@media (max-width: 480px) {
+  .cover-picker {
+    flex-direction: column;
+  }
+
+  .cover-picker .blog-cover {
+    width: 100%;
+  }
+}
+
+/* 좁은 화면에서 상단 메뉴가 글자 단위로 끊기지 않게 */
+.site-header .logo,
+#header-user a,
+#header-user .nickname,
+#header-user .link-button {
+  white-space: nowrap;
+}
+
+#header-user {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 4px;
+}

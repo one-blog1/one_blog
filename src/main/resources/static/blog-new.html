@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>블로그 만들기 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h1>블로그 만들기</h1>
+      <p id="quota" class="hint"></p>
+
+      <form id="blog-form" novalidate>
+        <label for="name">블로그 이름 <span class="required">필수</span></label>
+        <input id="name" name="name" type="text" maxlength="50" required>
+        <p class="message error" data-error-for="name" role="alert"></p>
+
+        <label for="slug">블로그 주소 <span class="required">필수</span></label>
+        <div class="row">
+          <span class="prefix">/blog/</span>
+          <input id="slug" name="slug" type="text" maxlength="30" autocomplete="off" spellcheck="false"
+                 placeholder="my-blog" required>
+          <button id="check-slug" class="secondary" type="button">확인</button>
+        </div>
+        <p class="hint">영문 소문자, 숫자, -로 3~30자. 만든 뒤에는 바꿀 수 없습니다.</p>
+        <p id="slug-message" class="message" data-error-for="slug" role="status"></p>
+
+        <label for="description">소개</label>
+        <textarea id="description" name="description" maxlength="500" rows="3"></textarea>
+        <p class="hint"><span id="description-count">0</span>/500</p>
+        <p class="message error" data-error-for="description" role="alert"></p>
+
+        <label for="cover">대표 이미지</label>
+        <div class="cover-picker">
+          <img id="cover-preview" class="blog-cover" src="/images/blog-default.svg" alt="대표 이미지 미리보기">
+          <div>
+            <input id="cover" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/gif,image/webp">
+            <p class="hint">jpg, png, gif, webp 3MB까지. 사진의 위치 정보는 지우고 저장합니다.</p>
+            <button id="cover-remove" class="link-button hidden" type="button">이미지 빼기</button>
+          </div>
+        </div>
+        <p id="cover-message" class="message error" data-error-for="cover" role="alert"></p>
+
+        <label for="tag-input">태그 <span class="hint-inline">(최대 10개)</span></label>
+        <ul id="tag-chips" class="tag-list editable" aria-label="입력한 태그"></ul>
+        <input id="tag-input" type="text" maxlength="40" placeholder="입력 후 Enter 또는 쉼표">
+        <p class="hint">한글, 영문, 숫자, _만 1~20자. 앞의 #은 빼고, 띄어쓰기는 _로 바꿔 저장합니다.</p>
+        <p class="message error" data-error-for="tags" role="alert"></p>
+
+        <fieldset>
+          <legend>공개 범위 <span class="required">필수</span></legend>
+          <label class="checkbox"><input type="radio" name="visibility" value="PUBLIC" checked>
+            공개 — 목록·검색에 보이고 누구나 볼 수 있어요</label>
+          <label class="checkbox"><input type="radio" name="visibility" value="UNLISTED">
+            일부 공개 — 공유 링크로 들어온 사람만 볼 수 있어요</label>
+          <label class="checkbox"><input type="radio" name="visibility" value="PRIVATE">
+            비공개 — 멤버만 볼 수 있어요</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>참여 방식 <span class="required">필수</span></legend>
+          <label class="checkbox"><input type="radio" name="joinPolicy" value="OPEN" checked>
+            자유 참여 — 신청하면 바로 멤버가 돼요</label>
+          <label class="checkbox"><input type="radio" name="joinPolicy" value="APPROVAL">
+            승인제 — 블로그장이 승인해야 멤버가 돼요</label>
+        </fieldset>
+
+        <p id="form-message" class="message error" role="alert"></p>
+        <button class="primary" type="submit">만들기</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/blog-new.js"></script>
+</body>
+</html>

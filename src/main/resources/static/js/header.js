@@ -33,6 +33,10 @@
         window.location.href = '/';
       });
 
+      // 블로그 활동은 일반 회원만 (관리자 제외, D-90)
+      if (result.data.role !== 'ADMIN') {
+        area.append(link('/my-blogs.html', '내 블로그'), link('/blog-new.html', '블로그 만들기'));
+      }
       area.append(name, logout);
     } else {
       area.append(link('/login.html', '로그인'), link('/signup.html', '회원가입'));

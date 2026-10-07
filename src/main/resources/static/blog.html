@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 공유 링크의 key가 다른 사이트로 넘어가지 않게 한다 (research R6) -->
+  <meta name="referrer" content="no-referrer">
+  <title>블로그 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+
+  <main class="wide">
+    <section id="blog-notice" class="card hidden">
+      <h1 id="notice-title"></h1>
+      <p id="notice-text" class="hint"></p>
+      <p class="footer-links"><a href="/">블로그 둘러보기</a></p>
+    </section>
+
+    <section id="blog-home" class="card hidden">
+      <img id="blog-cover" class="blog-hero" src="/images/blog-default.svg" alt="">
+      <h1 id="blog-name"></h1>
+      <p id="blog-meta" class="blog-meta"></p>
+      <p id="blog-description" class="blog-description-full"></p>
+      <ul id="blog-tags" class="tag-list"></ul>
+
+      <div id="share-area" class="share-area hidden">
+        <p class="hint">이 블로그는 일부 공개예요. 아래 링크를 받은 사람만 볼 수 있어요.</p>
+        <div class="row">
+          <input id="share-url" type="text" readonly aria-label="공유 링크">
+          <button id="copy-share" class="secondary" type="button">링크 복사</button>
+        </div>
+        <p id="share-message" class="message ok" role="status"></p>
+      </div>
+
+      <p class="hint">글 목록은 다음 기능에서 이곳에 들어옵니다.</p>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/blog-card.js"></script>
+  <script src="/js/blog.js"></script>
+</body>
+</html>

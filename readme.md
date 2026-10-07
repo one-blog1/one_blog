@@ -52,4 +52,6 @@ Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 H
    ```
    http://localhost:8080 에 접속합니다. `MAIL_MODE=log`이면 인증번호가 메일 대신 서버 로그에 찍힙니다.
 
-검증 시나리오는 [specs/001-signup-login/quickstart.md](specs/001-signup-login/quickstart.md)를 봅니다.
+블로그 대표 이미지 같은 업로드 파일은 `FILE_STORAGE_DIR`(기본 `./uploads`)에 저장되고 저장소에는 올라가지 않습니다. 블로그 생성 개수는 `BLOG_LIMIT_PUBLIC`(기본 3), `BLOG_LIMIT_PRIVATE`(기본 5)로 바꿀 수 있습니다.
+
+검증 시나리오는 기능별 quickstart를 봅니다: [001 회원가입·로그인](specs/001-signup-login/quickstart.md), [002 블로그 생성·목록](specs/002-blog-create-list/quickstart.md).

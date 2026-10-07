@@ -13,7 +13,8 @@
 
   async function send(method, url, body, userAction) {
     const headers = { 'Accept': 'application/json' };
-    if (body !== undefined) {
+    const isForm = body instanceof FormData;
+    if (body !== undefined && !isForm) {
       headers['Content-Type'] = 'application/json';
     }
     if (method !== 'GET') {
@@ -28,7 +29,8 @@
     return fetch(url, {
       method: method,
       headers: headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      // 파일은 FormData 그대로 보낸다. Content-Type(경계 값 포함)은 브라우저가 붙인다
+      body: body === undefined ? undefined : (isForm ? body : JSON.stringify(body)),
       credentials: 'same-origin'
     });
   }
@@ -73,6 +75,12 @@
 
   window.api = {
     get: (url, options) => request('GET', url, options),
-    post: (url, body, options) => request('POST', url, Object.assign({}, options, { body: body }))
+    post: (url, body, options) => request('POST', url, Object.assign({}, options, { body: body })),
+    /** 파일 하나를 multipart로 올린다 (필드 이름 file). */
+    upload: (url, file, options) => {
+      const form = new FormData();
+      form.append('file', file);
+      return request('POST', url, Object.assign({}, options, { body: form }));
+    }
   };
 })();

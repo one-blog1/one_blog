@@ -55,6 +55,12 @@ public abstract class IntegrationTestSupport {
         if (current == null || current.equalsIgnoreCase(devDatabaseName)) {
             throw new IllegalStateException("테스트가 개발 DB(" + current + ")에 연결됐습니다. .env의 TEST_DB_NAME을 다른 DB로 지정하세요.");
         }
+        // 외래 키 순서대로 지운다 (002 블로그 테이블 → 001 회원 테이블)
+        jdbc.update("DELETE FROM blog_tags");
+        jdbc.update("DELETE FROM blog_members");
+        jdbc.update("DELETE FROM blogs");
+        jdbc.update("DELETE FROM tags");
+        jdbc.update("DELETE FROM files");
         jdbc.update("DELETE FROM refresh_tokens");
         jdbc.update("DELETE FROM verification_codes");
         jdbc.update("DELETE FROM users");
@@ -106,5 +112,21 @@ public abstract class IntegrationTestSupport {
                                 + "\",\"rememberMe\":" + rememberMe + "}"))
                 .andExpect(status().isOk())
                 .andReturn();
+    }
+
+    /** 로그인하고 ACCESS_TOKEN 쿠키를 돌려준다. 로그인이 필요한 요청에 .cookie(...)로 붙인다. */
+    protected Cookie loginCookie(String email) throws Exception {
+        return login(email, false).getResponse().getCookie(CookieNames.ACCESS_TOKEN);
+    }
+
+    /** 가입하고 로그인해 ACCESS_TOKEN 쿠키를 돌려준다. */
+    protected Cookie signUpAndLogin(String email, String nickname) throws Exception {
+        signUp(email, nickname);
+        return loginCookie(email);
+    }
+
+    /** 회원을 관리자로 바꾼다 (관리자 로그인 화면은 007). 인증 필터가 매 요청 DB에서 권한을 읽으므로 바로 반영된다. */
+    protected void makeAdmin(String email, String loginId) {
+        jdbc.update("UPDATE users SET role = 'ADMIN', login_id = ? WHERE email = ?", loginId, email.toLowerCase());
     }
 }

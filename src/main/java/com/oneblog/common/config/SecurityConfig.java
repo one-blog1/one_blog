@@ -44,8 +44,13 @@ public class SecurityConfig {
                 .requestCache(cache -> cache.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/signup.html", "/login.html",
-                                "/css/**", "/js/**", "/favicon.ico").permitAll()
+                                "/blog-new.html", "/my-blogs.html", "/blog.html",
+                                "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // 블로그 첫 화면과 업로드 이미지, 블로그 목록·첫 화면 정보는 비회원도 본다.
+                        // 볼 수 있는지는 BlogAccessService가 판단한다 (research R7, R10)
+                        .requestMatchers(HttpMethod.GET, "/blog/*", "/files/*", "/api/blogs", "/api/blogs/*")
+                        .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/signup/nickname-availability").permitAll()
                         .requestMatchers("/api/**").authenticated()

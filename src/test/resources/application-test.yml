@@ -17,3 +17,5 @@ app:
     mode: log
   cookie:
     secure: false
+  file:
+    storage-dir: build/test-uploads
