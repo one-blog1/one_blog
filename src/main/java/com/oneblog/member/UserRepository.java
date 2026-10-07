@@ -1,5 +1,7 @@
 package com.oneblog.member;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +23,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")
     Optional<User> findForUpdateById(@Param("id") Long id);
+
+    /** 결과 행은 [id, nickname, status]. 작성자 이름 표시용 (UserDisplayService). */
+    @Query("select u.id, u.nickname, u.status from User u where u.id in :ids")
+    List<Object[]> findNicknameRows(@Param("ids") Collection<Long> ids);
 }

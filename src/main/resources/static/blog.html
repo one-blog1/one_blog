@@ -50,7 +50,26 @@
         <p id="request-empty" class="hint hidden">대기 중인 신청이 없어요.</p>
       </section>
 
-      <p class="hint">글 목록은 다음 기능에서 이곳에 들어옵니다.</p>
+      <section class="post-area" aria-labelledby="posts-title">
+        <div class="list-header">
+          <h2 id="posts-title">글</h2>
+          <a id="write-link" class="button-link hidden" href="#">글쓰기</a>
+        </div>
+        <ul id="notice-list" class="post-list notices"></ul>
+        <ul id="post-list" class="post-list"></ul>
+        <p id="post-empty" class="hint hidden">아직 글이 없어요.</p>
+        <div class="list-controls">
+          <span></span>
+          <label class="inline" for="post-size">한 페이지
+            <select id="post-size">
+              <option value="10">10개</option>
+              <option value="20">20개</option>
+              <option value="30">30개</option>
+            </select>
+          </label>
+        </div>
+        <nav id="post-pagination" class="pagination" aria-label="글 페이지"></nav>
+      </section>
     </section>
   </main>
 
@@ -59,5 +78,8 @@
   <script src="/js/blog-card.js"></script>
   <script src="/js/blog.js"></script>
   <script src="/js/blog-join.js"></script>
+  <script src="/js/pager.js"></script>
+  <script src="/js/post-item.js"></script>
+  <script src="/js/blog-posts.js"></script>
 </body>
 </html>

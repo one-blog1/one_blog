@@ -515,3 +515,146 @@ button.primary.inline-button {
   flex: 1;
   overflow-wrap: anywhere;
 }
+
+/* ── 글 (004) ──────────────────────────────────────── */
+
+.post-area {
+  margin-top: 24px;
+}
+
+.post-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.post-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.post-list.notices .post-item {
+  background: #f8fafc;
+  padding-left: 8px;
+}
+
+.post-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.post-link:hover .post-title {
+  text-decoration: underline;
+}
+
+.post-thumb {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 10;
+  width: 160px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.post-link:hover .post-thumb,
+.post-link:focus .post-thumb {
+  display: block;
+}
+
+.badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.post-meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.breadcrumb {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.breadcrumb a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.post-body {
+  margin: 20px 0;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.post-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+.post-body pre {
+  padding: 12px;
+  overflow-x: auto;
+  background: #f3f4f6;
+  border-radius: 6px;
+}
+
+.post-body table {
+  border-collapse: collapse;
+}
+
+.post-body th,
+.post-body td {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+}
+
+.post-body blockquote {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+}
+
+.post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.link-button.danger {
+  color: var(--error);
+}
+
+.editor {
+  margin-bottom: 8px;
+}
+
+.editor-fallback {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+}
+
+.session-warning {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>글 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+
+  <main class="wide">
+    <section id="post-notice" class="card hidden">
+      <h1 id="notice-title"></h1>
+      <p id="notice-text" class="hint"></p>
+      <p class="footer-links"><a id="notice-back" href="/">메인으로</a></p>
+    </section>
+
+    <article id="post" class="card hidden">
+      <p class="breadcrumb"><a id="blog-link" href="/"></a> <span id="category-name"></span></p>
+      <h1 id="post-title"></h1>
+      <p id="post-meta" class="post-meta"></p>
+      <!-- 본문은 서버가 마크다운을 HTML로 바꾸고 jsoup으로 거른 값이라 innerHTML로 넣는다 (SEC-06, constitution III) -->
+      <div id="post-body" class="post-body"></div>
+      <ul id="post-tags" class="tag-list"></ul>
+
+      <div class="post-actions">
+        <button id="like-button" class="secondary hidden" type="button" aria-pressed="false">좋아요</button>
+        <button id="share-button" class="secondary" type="button">링크 복사</button>
+        <a id="edit-link" class="button-link hidden" href="#">수정</a>
+        <button id="delete-button" class="link-button danger hidden" type="button">삭제</button>
+        <button id="report-button" class="link-button hidden" type="button">신고</button>
+      </div>
+      <p id="post-message" class="message" role="status"></p>
+    </article>
+
+    <section id="comments" class="card hidden" aria-labelledby="comments-title">
+      <h2 id="comments-title">댓글 <span id="comment-count" class="count"></span></h2>
+      <form id="comment-form" class="comment-form hidden" novalidate>
+        <textarea id="comment-input" maxlength="500" rows="3" placeholder="댓글을 남겨 주세요 (500자까지)"></textarea>
+        <button class="primary inline-button" type="submit">댓글 쓰기</button>
+      </form>
+      <p id="comment-login" class="hint hidden"><a href="/login.html">로그인</a>하면 댓글을 쓸 수 있어요.</p>
+      <ul id="comment-list" class="comment-list"></ul>
+      <p id="comment-message" class="message" role="status"></p>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/post.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>글쓰기 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+
+  <main class="wide">
+    <section class="card">
+      <p class="breadcrumb"><a id="blog-link" href="/"></a></p>
+      <h1 id="page-title">글쓰기</h1>
+      <div id="session-warning" class="session-warning hidden" role="alert">
+        곧 로그인 시간이 끝나요. <button id="session-extend" class="link-button" type="button">로그인 연장</button>
+      </div>
+
+      <form id="post-form" novalidate>
+        <label for="title">제목</label>
+        <input id="title" name="title" type="text" maxlength="30" required>
+        <p class="message error" data-error-for="title" role="alert"></p>
+
+        <div id="category-field" class="hidden">
+          <label for="category">카테고리</label>
+          <select id="category"><option value="">분류 없음</option></select>
+        </div>
+
+        <label for="content">본문 <span class="hint-inline">(마크다운, <span id="content-count">0</span>/5,000자)</span></label>
+        <div id="editor" class="editor"></div>
+        <textarea id="content" name="content" rows="18" class="editor-fallback"></textarea>
+        <p class="message error" data-error-for="content" role="alert"></p>
+        <p class="message error" data-error-for="imageFileIds" role="alert"></p>
+
+        <label for="tag-input">태그 <span class="hint-inline">(최대 10개)</span></label>
+        <ul id="tag-chips" class="tag-list editable" aria-label="입력한 태그"></ul>
+        <input id="tag-input" type="text" maxlength="40" placeholder="입력 후 Enter 또는 쉼표">
+        <p class="message error" data-error-for="tags" role="alert"></p>
+
+        <label id="notice-field" class="checkbox hidden"><input id="notice" type="checkbox"> 블로그 공지로 올리기</label>
+
+        <p id="draft-message" class="hint"></p>
+        <p id="form-message" class="message error" role="alert"></p>
+        <button class="primary" type="submit">저장</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/session-keeper.js"></script>
+  <script src="/js/post-edit.js"></script>
+</body>
+</html>

@@ -15,4 +15,16 @@ public class BlogPageController {
     public String blogPage(@PathVariable("slug") String slug) {
         return "forward:/blog.html";
     }
+
+    /** 글 상세 (004). og 태그는 014에서 서버가 채운다 (BRD-07). */
+    @GetMapping("/blog/{slug}/posts/{id}")
+    public String postPage(@PathVariable("slug") String slug, @PathVariable("id") String id) {
+        return "forward:/post.html";
+    }
+
+    /** 글쓰기·고치기 화면 (004). */
+    @GetMapping({"/blog/{slug}/write", "/blog/{slug}/posts/{id}/edit"})
+    public String editorPage(@PathVariable("slug") String slug) {
+        return "forward:/post-edit.html";
+    }
 }

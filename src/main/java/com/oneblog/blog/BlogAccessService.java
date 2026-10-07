@@ -34,6 +34,12 @@ public class BlogAccessService {
         String slug = policy.normalizeSlug(rawSlug);
         Blog blog = (slug == null || !policy.isValidSlugFormat(slug)) ? null
                 : blogRepository.findBySlug(slug).orElse(null);
+        return check(blog, key, viewerId);
+    }
+
+    /** 이미 찾은 블로그로 판단한다 (글 상세처럼 블로그 주소 대신 글 번호로 들어올 때). */
+    @Transactional(readOnly = true)
+    public Access check(Blog blog, String key, Long viewerId) {
         if (blog == null || !blog.isOpen()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "BLOG_NOT_FOUND", "블로그를 찾을 수 없습니다.");
         }
@@ -64,6 +70,15 @@ public class BlogAccessService {
             return false;
         }
         return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), given.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** 지금 활성 멤버십 (없으면 null). 글쓰기·관리 권한 확인에 쓴다. */
+    @Transactional(readOnly = true)
+    public BlogMember activeMembership(Long blogId, Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        return memberRepository.findActive(blogId, userId).orElse(null);
     }
 
     public record Access(Blog blog, BlogRole myRole) {
