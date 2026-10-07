@@ -26,6 +26,8 @@ public class FileUploadService {
 
     /** 프로필·블로그 대표 이미지 한 장의 상한 (6.3). */
     public static final long COVER_MAX_BYTES = 3L * 1024 * 1024;
+    /** 글 이미지 한 장의 상한 (6.3). */
+    public static final long POST_IMAGE_MAX_BYTES = 3L * 1024 * 1024;
 
     private static final Logger log = LoggerFactory.getLogger(FileUploadService.class);
 
@@ -43,6 +45,21 @@ public class FileUploadService {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 블로그 활동을 할 수 없습니다.");
         }
         return upload(userId, FilePurpose.BLOG_COVER, file, COVER_MAX_BYTES);
+    }
+
+    /** 글 이미지 한 장 (6.3: 장당 3MB, 글 하나에 10장). 글에 연결하는 것은 글을 저장할 때 (PostImageExtension). */
+    @Transactional
+    public StoredFile uploadPostImage(Long userId, MultipartFile file) {
+        return upload(userId, FilePurpose.POST, file, POST_IMAGE_MAX_BYTES);
+    }
+
+    /** 프로필 사진 (6.3: 3MB, 1장, 009). */
+    @Transactional
+    public StoredFile uploadProfileImage(Long userId, UserRole role, MultipartFile file) {
+        if (role == UserRole.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 프로필을 쓰지 않습니다.");
+        }
+        return upload(userId, FilePurpose.PROFILE, file, COVER_MAX_BYTES);
     }
 
     private StoredFile upload(Long userId, FilePurpose purpose, MultipartFile file, long maxBytes) {

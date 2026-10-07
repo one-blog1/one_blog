@@ -52,6 +52,14 @@ public class MarkdownRenderer {
         document.outputSettings().prettyPrint(false);
         // 다른 사이트로 가는 링크가 이 페이지를 조작하거나 주소(공유 링크 key 등)를 넘겨받지 못하게
         document.select("a[href]").attr("rel", "nofollow noopener noreferrer").attr("target", "_blank");
+        // 이미지는 이 사이트에 올린 것(/files/...)만 보여준다. 다른 사이트 이미지는 읽는 사람의 IP를 넘기고 추적에 쓰일 수 있다
+        document.select("img").forEach(img -> {
+            if (!img.attr("src").startsWith("/files/")) {
+                img.remove();
+            } else {
+                img.attr("loading", "lazy");
+            }
+        });
         return document.body().html();
     }
 

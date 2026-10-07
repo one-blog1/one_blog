@@ -77,6 +77,23 @@ public class StoredFile {
         this.createdAt = LocalDateTime.now();
     }
 
+    /** 글에 연결한다. sortOrder는 본문에서 나온 순서 (첫 이미지가 목록 썸네일, 6.3). */
+    public void attachTo(Long postId, int sortOrder) {
+        this.postId = postId;
+        this.sortOrder = (short) sortOrder;
+    }
+
+    /** 소프트 삭제 (4.5: 30일 보관 후 04:00 배치가 지움). */
+    public void markDeleted() {
+        if (this.deletedAt == null) {
+            this.deletedAt = LocalDateTime.now();
+        }
+    }
+
+    public Long getPostId() {
+        return postId;
+    }
+
     public boolean isDeleted() {
         return deletedAt != null;
     }

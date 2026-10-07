@@ -43,6 +43,20 @@ public class FileController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("fileId", stored.getId(), "url", stored.url()));
     }
 
+    @PostMapping("/api/files/post-image")
+    public ResponseEntity<Map<String, Object>> uploadPostImage(@AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestParam("file") MultipartFile file) {
+        StoredFile stored = uploadService.uploadPostImage(principal.id(), file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("fileId", stored.getId(), "url", stored.url()));
+    }
+
+    @PostMapping("/api/files/profile-image")
+    public ResponseEntity<Map<String, Object>> uploadProfileImage(@AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestParam("file") MultipartFile file) {
+        StoredFile stored = uploadService.uploadProfileImage(principal.id(), principal.role(), file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("fileId", stored.getId(), "url", stored.url()));
+    }
+
     /** 이름 형식이 틀리거나 없거나 삭제된 파일은 404. 디스크 경로는 저장 이름 형식이 맞을 때만 만든다. */
     @GetMapping("/files/{storedName}")
     public ResponseEntity<InputStreamResource> download(@PathVariable("storedName") String storedName)
