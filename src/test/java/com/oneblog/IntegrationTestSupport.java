@@ -55,15 +55,30 @@ public abstract class IntegrationTestSupport {
         if (current == null || current.equalsIgnoreCase(devDatabaseName)) {
             throw new IllegalStateException("테스트가 개발 DB(" + current + ")에 연결됐습니다. .env의 TEST_DB_NAME을 다른 DB로 지정하세요.");
         }
-        // 외래 키 순서대로 지운다 (002 블로그 테이블 → 001 회원 테이블)
-        jdbc.update("DELETE FROM blog_tags");
-        jdbc.update("DELETE FROM blog_members");
-        jdbc.update("DELETE FROM blogs");
-        jdbc.update("DELETE FROM tags");
-        jdbc.update("DELETE FROM files");
-        jdbc.update("DELETE FROM refresh_tokens");
-        jdbc.update("DELETE FROM verification_codes");
-        jdbc.update("DELETE FROM users");
+        // 기능이 늘 때마다 테이블을 적지 않도록, flyway 기록을 뺀 모든 테이블을 한 연결에서 비운다.
+        // 테이블 이름은 information_schema에서 읽은 값이라 사용자 입력이 섞이지 않는다.
+        jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Void>) connection -> {
+            try (var statement = connection.createStatement()) {
+                java.util.List<String> tables = new java.util.ArrayList<>();
+                try (var rs = statement.executeQuery("""
+                        SELECT table_name FROM information_schema.tables
+                        WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'
+                          AND table_name <> 'flyway_schema_history'""")) {
+                    while (rs.next()) {
+                        tables.add(rs.getString(1));
+                    }
+                }
+                statement.execute("SET FOREIGN_KEY_CHECKS = 0");
+                try {
+                    for (String table : tables) {
+                        statement.executeUpdate("DELETE FROM `" + table + "`");
+                    }
+                } finally {
+                    statement.execute("SET FOREIGN_KEY_CHECKS = 1");
+                }
+            }
+            return null;
+        });
     }
 
     /** 인증번호를 요청하고, 가짜 메일로 보낸 번호를 돌려준다. */

@@ -76,6 +76,10 @@
   window.api = {
     get: (url, options) => request('GET', url, options),
     post: (url, body, options) => request('POST', url, Object.assign({}, options, { body: body })),
+    put: (url, body, options) => request('PUT', url, Object.assign({}, options, { body: body })),
+    delete: (url, options) => request('DELETE', url, options),
+    /** 메서드를 직접 고를 때 */
+    request: (method, url, options) => request(method, url, options),
     /** 파일 하나를 multipart로 올린다 (필드 이름 file). */
     upload: (url, file, options) => {
       const form = new FormData();

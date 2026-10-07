@@ -18,7 +18,7 @@ import jakarta.persistence.Table;
 
 /**
  * 블로그 멤버십 (Crowfoot ERD blog_members). 회원과 블로그를 잇고 블로그별 역할을 둔다 (2장, constitution IV).
- * 부블로그장 권한·정지 컬럼은 그 기능에서 매핑한다.
+ * 역할과 부블로그장 권한(D-71)은 요청마다 이 행으로 확인한다 (SEC-07).
  */
 @Entity
 @Table(name = "blog_members")
@@ -39,13 +39,31 @@ public class BlogMember {
     @Column(name = "role", length = 20, nullable = false)
     private BlogRole role;
 
+    @Column(name = "can_edit_info", nullable = false)
+    private boolean canEditInfo;
+
+    @Column(name = "can_manage_members", nullable = false)
+    private boolean canManageMembers;
+
+    @Column(name = "can_manage_posts", nullable = false)
+    private boolean canManagePosts;
+
+    @Column(name = "sub_owner_since")
+    private LocalDateTime subOwnerSince;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "status", length = 20, nullable = false)
     private BlogMemberStatus status;
 
-    @Column(name = "joined_at", nullable = false, updatable = false)
+    @Column(name = "suspended_until")
+    private LocalDateTime suspendedUntil;
+
+    @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt;
+
+    @Column(name = "left_at")
+    private LocalDateTime leftAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
@@ -63,10 +81,37 @@ public class BlogMember {
         return member;
     }
 
+    /** 참여 신청이 받아들여진 회원을 일반 멤버로 등록한다 (BLG-04, BLG-05). */
+    public static BlogMember member(Long blogId, Long userId) {
+        BlogMember member = new BlogMember();
+        member.blogId = blogId;
+        member.userId = userId;
+        member.role = BlogRole.MEMBER;
+        member.status = BlogMemberStatus.ACTIVE;
+        return member;
+    }
+
+    /**
+     * 블로그를 떠났던 회원이 다시 참여한다. 같은 블로그·회원의 행은 하나뿐이라(uk_blog_members_blog_id_user_id)
+     * 새 행 대신 이 행을 일반 멤버로 되살린다. 예전 역할·권한은 이어받지 않는다.
+     */
+    public void rejoin() {
+        this.role = BlogRole.MEMBER;
+        this.status = BlogMemberStatus.ACTIVE;
+        this.canEditInfo = false;
+        this.canManageMembers = false;
+        this.canManagePosts = false;
+        this.subOwnerSince = null;
+        this.leftAt = null;
+        this.joinedAt = LocalDateTime.now();
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
-        this.joinedAt = now;
+        if (this.joinedAt == null) {
+            this.joinedAt = now;
+        }
         this.updatedAt = now;
     }
 
@@ -97,5 +142,40 @@ public class BlogMember {
 
     public LocalDateTime getJoinedAt() {
         return joinedAt;
+    }
+
+    public boolean isActive() {
+        return status == BlogMemberStatus.ACTIVE;
+    }
+
+    public boolean isOwner() {
+        return isActive() && role == BlogRole.OWNER;
+    }
+
+    /** 멤버 관리(참여 승인·거절, 제재)를 할 수 있는지: 블로그장, 또는 멤버 관리 권한을 받은 부블로그장 (2장, D-71). */
+    public boolean canManageMembers() {
+        return isActive() && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canManageMembers));
+    }
+
+    /** 글 관리(남의 글 삭제·숨김, 공지)를 할 수 있는지: 블로그장, 또는 글 관리 권한을 받은 부블로그장. */
+    public boolean canManagePosts() {
+        return isActive() && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canManagePosts));
+    }
+
+    /** 블로그 정보를 고칠 수 있는지: 블로그장, 또는 정보 수정 권한을 받은 부블로그장. */
+    public boolean canEditInfo() {
+        return isActive() && (role == BlogRole.OWNER || (role == BlogRole.SUB_OWNER && canEditInfo));
+    }
+
+    public LocalDateTime getSuspendedUntil() {
+        return suspendedUntil;
+    }
+
+    public LocalDateTime getSubOwnerSince() {
+        return subOwnerSince;
+    }
+
+    public LocalDateTime getLeftAt() {
+        return leftAt;
     }
 }

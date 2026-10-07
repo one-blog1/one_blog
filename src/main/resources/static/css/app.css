@@ -476,3 +476,42 @@ label.inline {
   justify-content: flex-end;
   row-gap: 4px;
 }
+
+/* ── 참여 신청 (003) ───────────────────────────────── */
+
+.join-area,
+.manage-area {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+button.primary.inline-button {
+  width: auto;
+  margin-top: 4px;
+}
+
+.count {
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.request-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.request-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.request-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}

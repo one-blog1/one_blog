@@ -12,6 +12,9 @@ public interface BlogMemberRepository extends JpaRepository<BlogMember, Long> {
 
     Optional<BlogMember> findByBlogIdAndUserIdAndStatus(Long blogId, Long userId, BlogMemberStatus status);
 
+    /** 상태와 관계없이 이 블로그·회원의 멤버십 행 (블로그를 떠났다가 다시 참여할 때 되살린다). */
+    Optional<BlogMember> findByBlogIdAndUserId(Long blogId, Long userId);
+
     /** 지금 멤버인지 (요청마다 DB로 확인, SEC-07). */
     default Optional<BlogMember> findActive(Long blogId, Long userId) {
         return findByBlogIdAndUserIdAndStatus(blogId, userId, BlogMemberStatus.ACTIVE);

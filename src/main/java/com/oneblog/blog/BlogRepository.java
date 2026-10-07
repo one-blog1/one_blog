@@ -6,12 +6,18 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface BlogRepository extends JpaRepository<Blog, Long> {
 
     Optional<Blog> findBySlug(String slug);
+
+    /** 멤버 수를 DB에서 바로 더하거나 뺀다 (동시에 참여해도 수가 어긋나지 않게, D-89 인기순 기준). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Blog b set b.memberCount = b.memberCount + :delta where b.id = :id")
+    int addMemberCount(@Param("id") Long id, @Param("delta") int delta);
 
     boolean existsBySlug(String slug);
 

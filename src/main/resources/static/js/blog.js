@@ -54,6 +54,8 @@
       $('share-area').classList.remove('hidden');
     }
     $('blog-home').classList.remove('hidden');
+    // 참여·신청 관리 화면(blog-join.js)이 이 정보를 이어서 쓴다
+    document.dispatchEvent(new CustomEvent('blog:loaded', { detail: blog }));
   }
 
   async function copyShare() {

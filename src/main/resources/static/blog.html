@@ -37,6 +37,19 @@
         <p id="share-message" class="message ok" role="status"></p>
       </div>
 
+      <div id="join-area" class="join-area hidden">
+        <p id="join-text" class="hint"></p>
+        <button id="join-button" class="primary inline-button hidden" type="button"></button>
+        <button id="join-cancel" class="secondary hidden" type="button">신청 취소</button>
+        <p id="join-message" class="message" role="status"></p>
+      </div>
+
+      <section id="manage-area" class="manage-area hidden" aria-labelledby="manage-title">
+        <h2 id="manage-title">참여 신청 <span id="request-count" class="count"></span></h2>
+        <ul id="request-list" class="request-list"></ul>
+        <p id="request-empty" class="hint hidden">대기 중인 신청이 없어요.</p>
+      </section>
+
       <p class="hint">글 목록은 다음 기능에서 이곳에 들어옵니다.</p>
     </section>
   </main>
@@ -45,5 +58,6 @@
   <script src="/js/header.js"></script>
   <script src="/js/blog-card.js"></script>
   <script src="/js/blog.js"></script>
+  <script src="/js/blog-join.js"></script>
 </body>
 </html>
