@@ -51,7 +51,7 @@ public class SecurityConfig {
                         // 볼 수 있는지는 BlogAccessService가 판단한다 (research R7, R10)
                         .requestMatchers(HttpMethod.GET, "/blog/*", "/blog/*/posts/*", "/blog/*/write",
                                 "/blog/*/posts/*/edit", "/files/*", "/api/blogs", "/api/blogs/*",
-                                "/api/blogs/*/posts", "/api/posts/*")
+                                "/api/blogs/*/posts", "/api/posts/*", "/api/posts/*/comments")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/signup/nickname-availability").permitAll()

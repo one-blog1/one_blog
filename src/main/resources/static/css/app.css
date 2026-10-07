@@ -658,3 +658,58 @@ button.primary.inline-button {
   background: #fff7ed;
   color: #9a3412;
 }
+
+/* ── 댓글 (006) ────────────────────────────────────── */
+
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.comment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.comment-list.replies {
+  margin-left: 20px;
+  border-left: 2px solid var(--line);
+  padding-left: 12px;
+}
+
+.comment-head,
+.comment-body {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.comment-date,
+.comment-edited {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.comment-deleted {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.mention {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+}
