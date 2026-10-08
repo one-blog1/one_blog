@@ -4,10 +4,13 @@
 
 ## 문서
 
-- 요구사항 분석서: [docs/requirements](docs/requirements/README.md)
+이 저장소는 소스 코드만 둡니다(배포용). 요구사항과 기능 명세는 문서 저장소 [one-blog1/one-blog_docs](https://github.com/one-blog1/one-blog_docs)에 있습니다. 코드 주석의 `specs/...`, `docs/...`는 그 저장소의 경로입니다.
+
+- 요구사항 분석서: [docs/requirements](https://github.com/one-blog1/one-blog_docs/tree/main/docs/requirements)
+- 기능 로드맵(개발 순서): [docs/roadmap.md](https://github.com/one-blog1/one-blog_docs/blob/main/docs/roadmap.md)
+- 기능별 명세: [specs](https://github.com/one-blog1/one-blog_docs/tree/main/specs)
 - 프로젝트 원칙(Spec Kit constitution): [.specify/memory/constitution.md](.specify/memory/constitution.md)
-- 기능 로드맵(개발 순서): [docs/roadmap.md](docs/roadmap.md)
-- 배포 안내(버전, 환경변수, 확인 방법): [docs/deploy.md](docs/deploy.md)
+- 배포 안내(버전, 환경변수, 확인 방법): [DEPLOY.md](DEPLOY.md)
 
 ## 개발 방식
 
@@ -22,7 +25,7 @@
 | (선택) | `/speckit-analyze` | 명세·계획·작업 사이 일관성 점검 |
 | 4 | `/speckit-implement` | 작업 목록대로 구현 |
 
-결과물은 기능별로 `specs/<번호>-<기능명>/` 아래에 쌓입니다.
+결과물은 기능별로 `specs/<번호>-<기능명>/` 아래에 생깁니다. 기능을 마치면 그 폴더를 문서 저장소의 `specs/`로 옮기고 이 저장소에서는 지웁니다.
 
 ## 기술 스택
 
@@ -55,4 +58,4 @@ Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 H
 
 블로그 대표 이미지 같은 업로드 파일은 `FILE_STORAGE_DIR`(기본 `./uploads`)에 저장되고 저장소에는 올라가지 않습니다. 블로그 생성 개수는 `BLOG_LIMIT_PUBLIC`(기본 3), `BLOG_LIMIT_PRIVATE`(기본 5)로 바꿀 수 있습니다.
 
-검증 시나리오는 기능별 quickstart를 봅니다: [001 회원가입·로그인](specs/001-signup-login/quickstart.md), [002 블로그 생성·목록](specs/002-blog-create-list/quickstart.md).
+검증 시나리오는 문서 저장소의 기능별 quickstart를 봅니다: [001 회원가입·로그인](https://github.com/one-blog1/one-blog_docs/blob/main/specs/001-signup-login/quickstart.md), [002 블로그 생성·목록](https://github.com/one-blog1/one-blog_docs/blob/main/specs/002-blog-create-list/quickstart.md).

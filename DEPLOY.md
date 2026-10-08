@@ -1,5 +1,7 @@
 # 배포 안내
 
+요구사항(4장 무중단 배포, 8장 D-117 등)은 문서 저장소 [one-blog1/one-blog_docs](https://github.com/one-blog1/one-blog_docs)에 있습니다.
+
 배포 방식(Elastic Beanstalk, EC2, Docker 등)은 아직 정하지 않았습니다. 이 문서는 어느 방식이든 똑같이 필요한 것만 적습니다. 배포 방식이 정해지면 그 방식의 절차를 아래에 더합니다.
 
 ## 1. 버전
