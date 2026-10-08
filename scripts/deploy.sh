@@ -20,6 +20,8 @@ IMAGE="$APP:$TAG"
 WAIT_SECONDS="${WAIT_SECONDS:-180}"
 
 log() { echo "[deploy $(date '+%H:%M:%S')] $*"; }
+# 실패 이유는 GitHub Actions 화면의 오류 요약(annotation)에도 보이게 한다
+fail() { echo "::error title=배포 실패::$*"; log "$*"; exit 1; }
 
 # docker 권한: 배포 계정이 docker 그룹이면 그대로, 아니면 비밀번호 없는 sudo
 if docker info > /dev/null 2>&1; then
@@ -27,19 +29,18 @@ if docker info > /dev/null 2>&1; then
 elif sudo -n docker info > /dev/null 2>&1; then
   DOCKER=(sudo -n docker)
 else
-  log "docker를 실행할 수 없습니다. 서버에 Docker를 설치하고 배포 계정을 docker 그룹에 넣어 주세요: sudo usermod -aG docker \$USER"
-  exit 1
+  fail "docker를 실행할 수 없습니다. 서버에 Docker를 설치하고 배포 계정을 docker 그룹에 넣어 주세요: sudo usermod -aG docker \$USER"
 fi
 
-command -v curl > /dev/null || { log "curl이 없습니다. 서버에 설치해 주세요 (예: sudo apt-get install -y curl)"; exit 1; }
+command -v curl > /dev/null || fail "curl이 없습니다. 서버에 설치해 주세요 (예: sudo apt-get install -y curl)"
 
 # 이미지는 GitHub Actions(x86_64)에서 만든다. ARM 서버에서는 실행되지 않는다
 case "$(uname -m)" in
   x86_64 | amd64) ;;
-  *) log "서버 CPU가 $(uname -m)입니다. 이미지는 x86_64용이라 실행할 수 없습니다. deploy.yml의 docker build에 --platform을 맞춰 주세요."; exit 1 ;;
+  *) fail "서버 CPU가 $(uname -m)입니다. 이미지는 x86_64용이라 실행할 수 없습니다. deploy.yml의 docker build에 --platform을 맞춰 주세요." ;;
 esac
 
-[ -f "$DIR/deploy.env" ] || { log "$DIR/deploy.env가 없습니다."; exit 1; }
+[ -f "$DIR/deploy.env" ] || fail "$DIR/deploy.env가 없습니다."
 chmod 600 "$DIR/deploy.env"
 
 # 1) 이미지 불러오기
@@ -116,14 +117,18 @@ run_container "$IMAGE"
 if ! wait_healthy; then
   log "새 버전 로그 (마지막 80줄):"
   "${DOCKER[@]}" logs --tail 80 "$APP" 2>&1 || true
-  "${DOCKER[@]}" rm -f "$APP" > /dev/null || true
+  # 실패한 컨테이너는 이름만 바꿔 남긴다 (원인 확인용, 다음 배포 때 지움)
+  "${DOCKER[@]}" rm -f "$APP-failed" > /dev/null 2>&1 || true
+  "${DOCKER[@]}" stop -t 5 "$APP" > /dev/null 2>&1 || true
+  "${DOCKER[@]}" rename "$APP" "$APP-failed" || "${DOCKER[@]}" rm -f "$APP" > /dev/null || true
   if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$IMAGE" ]; then
     log "바로 전 버전으로 되돌립니다: $PREVIOUS"
     run_container "$PREVIOUS"
     wait_healthy || log "바로 전 버전도 상태 확인을 통과하지 못했습니다. 서버에서 docker logs $APP 로 확인해 주세요."
   fi
-  log "배포 실패"
-  exit 1
+  # 시작 실패의 핵심 줄(예외 이름·원인)만 오류 요약에 올린다
+  CAUSE="$("${DOCKER[@]}" logs "$APP-failed" 2>&1 | grep -E "APPLICATION FAILED|Caused by|Exception:|Description:|ERROR" | grep -viE "password|secret" | tail -3 | tr '\n' ' ' | cut -c1-600 || true)"
+  fail "새 버전이 상태 확인을 통과하지 못해 되돌렸습니다. ${CAUSE:-서버에서 docker logs로 확인해 주세요.}"
 fi
 
 # 5) 옛 이미지 정리: 지금 것과 바로 전 것만 남긴다

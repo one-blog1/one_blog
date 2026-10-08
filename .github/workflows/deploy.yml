@@ -100,9 +100,18 @@ jobs:
           sudo apt-get install -y -qq sshpass > /dev/null
           OPTS=(-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ConnectTimeout=20)
           TARGET="$SSH_ID@$SSH_ADDRESS"
-          sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "mkdir -p $REMOTE_DIR && chmod 700 $REMOTE_DIR"
-          sshpass -e scp "${OPTS[@]}" -P "${SSH_PORT:-22}" one-blog-image.tar.gz deploy.env scripts/deploy.sh "$TARGET:$REMOTE_DIR/"
-          sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "bash $REMOTE_DIR/deploy.sh $TAG"
+          # 접속 단계의 실패 이유를 오류 요약에 남긴다 (sshpass 종료 코드: 5 비밀번호, 6 호스트 키, 255 접속)
+          explain() {
+            case "$1" in
+              5) echo "::error title=SSH 접속 실패::비밀번호가 틀렸습니다 (SSH_ID, SSH_PASSWORD 확인)" ;;
+              6) echo "::error title=SSH 접속 실패::서버 호스트 키 확인 실패" ;;
+              255) echo "::error title=SSH 접속 실패::서버에 접속하지 못했습니다 (SSH_ADDRESS, SSH_PORT, 방화벽 확인)" ;;
+            esac
+            exit "$1"
+          }
+          sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "mkdir -p $REMOTE_DIR && chmod 700 $REMOTE_DIR" || explain $?
+          sshpass -e scp "${OPTS[@]}" -P "${SSH_PORT:-22}" one-blog-image.tar.gz deploy.env scripts/deploy.sh "$TARGET:$REMOTE_DIR/" || explain $?
+          sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "bash $REMOTE_DIR/deploy.sh $TAG" || explain $?
 
       - name: 환경변수 파일 지우기
         if: always()
