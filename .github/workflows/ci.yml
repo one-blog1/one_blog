@@ -8,6 +8,8 @@ name: CI
 on:
   push:
     branches: [main]
+    # 문서·Claude 설정만 바뀐 push는 CI(와 그 뒤의 배포 확인)를 돌리지 않는다. 진행 중인 배포 CI가 취소되지 않게
+    paths-ignore: ['**.md', '.claude/**', '.specify/**']
   pull_request:
   workflow_dispatch:
 
