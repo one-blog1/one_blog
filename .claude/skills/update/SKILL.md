@@ -34,6 +34,7 @@ disable-model-invocation: false
 4. 결과 확인: `gh run list -L 3` (CI, Deploy). 오래 걸리면 터미널을 붙잡고 기다리지 말고 `send_later`로 10분쯤 뒤에 다시 확인한다.
    - Deploy 성공 → 태그 `v<버전>`이 붙었는지 확인하고 다음 단계로
    - 실패 → 오류 요약(annotation)을 읽어 원인을 알리고 멈춘다. 릴리즈 노트는 쓰지 않는다. 서버는 바로 전 버전으로 되돌아가 있다
+   - 배포는 됐는데 "버전 태그 붙이기"만 실패(`refusing to allow a GitHub App to create or update workflow`) → 배포 중에 main에 워크플로 파일 변경이 올라간 경우다. 다음 main push의 CI 뒤 Deploy가 다시 배포하고 태그를 붙이므로 그 결과를 확인한다. 배포가 도는 동안에는 `.github/workflows/`를 바꾼 커밋을 올리지 않는다
 
 ## 3. 릴리즈 노트 (문서 저장소)
 
