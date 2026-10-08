@@ -2,7 +2,47 @@
 
 요구사항(4장 무중단 배포, 8장 D-117 등)은 문서 저장소 [one-blog1/one-blog_docs](https://github.com/one-blog1/one-blog_docs)에 있습니다.
 
-배포 방식(Elastic Beanstalk, EC2, Docker 등)은 아직 정하지 않았습니다. 이 문서는 어느 방식이든 똑같이 필요한 것만 적습니다. 배포 방식이 정해지면 그 방식의 절차를 아래에 더합니다.
+배포 방식은 **GitHub Actions → Docker 이미지 → SSH로 서버에 실행**입니다 (D-118). main에 push하거나 PR을 merge하면 자동으로 배포됩니다.
+
+## 0. 자동 배포
+
+```
+main에 push / PR merge
+  → CI (.github/workflows/ci.yml): 테스트, jar 실행 확인, Docker 실행 확인
+  → CI가 성공하면 Deploy (.github/workflows/deploy.yml)
+      1) Docker 이미지 만들기 (태그 = 커밋 앞 7자리)
+      2) 이미지 + scripts/deploy.sh + deploy.env(Secrets로 만듦)를 SSH로 서버 ~/one-blog/ 에 올림
+      3) 서버에서 scripts/deploy.sh 실행
+           기존 컨테이너 정상 종료 → 새 컨테이너를 8430 포트로 실행 → /api/health 확인
+           실패하면 바로 전 버전으로 되돌리고 Actions를 실패로 표시
+```
+
+CI가 실패하면 배포하지 않습니다. 수동 배포는 Actions 탭의 Deploy에서 "Run workflow"를 누릅니다.
+
+**GitHub Secrets** (Settings → Secrets and variables → Actions)
+
+| 이름 | 필수 | 내용 |
+|---|---|---|
+| `SSH_ADDRESS`, `SSH_PORT`, `SSH_ID`, `SSH_PASSWORD` | 필수 | 서버 접속 정보 |
+| `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | 필수 | 운영 DB. `DB_ADDRESS`는 호스트만 적습니다(포트는 `DB_PORT`) |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | 선택 | Gmail과 앱 비밀번호. 없으면 인증번호가 메일 대신 서버 로그에 찍힘 (`docker logs one-blog`) |
+| `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD` | 선택 | 처음 시작할 때 관리자 계정을 만듦 |
+| `COOKIE_SECURE` | 선택 | HTTPS를 붙인 뒤 `true`. 없으면 `false`(http에서도 로그인되도록) |
+| `PUBLIC_BASE_URL` | 선택 | SNS 미리보기에 쓸 사이트 주소 |
+
+`JWT_SECRET`, `CODE_PEPPER`는 Secrets에 넣지 않아도 됩니다. 처음 배포할 때 서버가 만들어 `~/one-blog/secrets.env`에 두고 이후 계속 같은 값을 씁니다. 이 파일을 지우면 모든 로그인이 풀리고, 이메일 인증 중이던 코드와 블랙리스트 확인이 맞지 않게 됩니다.
+
+**서버에 필요한 것**: Docker, curl, x86_64 CPU. SSH 계정이 `docker` 명령을 쓸 수 있어야 합니다 (`sudo usermod -aG docker <계정>` 후 다시 접속). 방화벽에서 8430 포트를 엽니다.
+
+**서버에서 볼 때**
+
+```bash
+docker ps                      # one-blog 컨테이너 상태
+docker logs -f one-blog        # 서버 로그
+ls ~/one-blog                  # deploy.sh, deploy.env, secrets.env
+```
+
+업로드 파일은 Docker 볼륨 `one-blog-uploads`에 있어 새 버전을 배포해도 남습니다. DB가 같은 서버(localhost)에 있으면 deploy.sh가 컨테이너를 호스트 네트워크로 띄웁니다.
 
 ## 1. 버전
 

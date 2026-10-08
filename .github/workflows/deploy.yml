@@ -1,0 +1,109 @@
+# 자동 배포 (D-118): main에 push(또는 PR merge)되면 CI가 돌고, CI가 성공하면 이 작업이 서버에 배포한다.
+# 1) Docker 이미지를 만든다 (태그 = 커밋 앞 7자리)
+# 2) 이미지, 배포 스크립트(scripts/deploy.sh), 환경변수 파일(deploy.env)을 SSH로 서버의 ~/one-blog/ 에 올린다
+# 3) 서버에서 deploy.sh를 실행한다: 8430 포트로 새 컨테이너 실행 → /api/health 확인 → 실패하면 바로 전 버전으로 되돌림
+# 필요한 GitHub Secrets
+#   SSH_ADDRESS, SSH_PORT, SSH_ID, SSH_PASSWORD        서버 접속
+#   DB_ADDRESS, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD  운영 DB
+#   (선택) MAIL_USERNAME, MAIL_PASSWORD   넣으면 인증 메일을 실제로 보냄. 없으면 인증번호가 서버 로그에 찍힘
+#   (선택) ADMIN_LOGIN_ID, ADMIN_PASSWORD 넣으면 처음 시작할 때 관리자 계정을 만듦
+#   (선택) COOKIE_SECURE                  HTTPS를 붙인 뒤 true. 없으면 false(http에서 로그인되도록)
+#   (선택) PUBLIC_BASE_URL                SNS 미리보기에 쓸 사이트 주소
+# JWT_SECRET, CODE_PEPPER는 서버에서 처음 배포할 때 만들어 ~/one-blog/secrets.env에 두고 계속 쓴다.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# 배포는 한 번에 하나씩. 진행 중인 배포를 끊지 않고 다음 배포가 기다린다
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # main push로 돈 CI가 성공했을 때만 (PR의 CI는 제외). 수동 실행(workflow_dispatch)은 언제나
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      REMOTE_DIR: one-blog
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: 이미지 태그
+        run: echo "TAG=${SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Docker 이미지 만들기
+        run: |
+          docker build -t "one-blog:$TAG" .
+          docker save "one-blog:$TAG" | gzip > one-blog-image.tar.gz
+          ls -lh one-blog-image.tar.gz
+
+      - name: 환경변수 파일 만들기 (Secrets → deploy.env)
+        env:
+          DB_ADDRESS: ${{ secrets.DB_ADDRESS }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          ADMIN_LOGIN_ID: ${{ secrets.ADMIN_LOGIN_ID }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          COOKIE_SECURE: ${{ secrets.COOKIE_SECURE }}
+          PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
+        run: |
+          for name in DB_ADDRESS DB_PORT DB_NAME DB_USERNAME DB_PASSWORD; do
+            [ -n "${!name}" ] || { echo "GitHub Secret $name 가 비어 있습니다."; exit 1; }
+          done
+          umask 077
+          {
+            echo "DB_HOST=$DB_ADDRESS"
+            echo "DB_PORT=$DB_PORT"
+            echo "DB_NAME=$DB_NAME"
+            echo "DB_USERNAME=$DB_USERNAME"
+            echo "DB_PASSWORD=$DB_PASSWORD"
+            echo "COOKIE_SECURE=${COOKIE_SECURE:-false}"
+            if [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ]; then
+              echo "MAIL_MODE=smtp"
+              echo "MAIL_USERNAME=$MAIL_USERNAME"
+              echo "MAIL_PASSWORD=$MAIL_PASSWORD"
+            else
+              echo "MAIL_MODE=log"
+            fi
+            if [ -n "$ADMIN_LOGIN_ID" ] && [ -n "$ADMIN_PASSWORD" ]; then
+              echo "ADMIN_LOGIN_ID=$ADMIN_LOGIN_ID"
+              echo "ADMIN_PASSWORD=$ADMIN_PASSWORD"
+            fi
+            if [ -n "$PUBLIC_BASE_URL" ]; then
+              echo "PUBLIC_BASE_URL=$PUBLIC_BASE_URL"
+            fi
+          } > deploy.env
+
+      - name: 서버에 올리고 실행
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          SSH_ADDRESS: ${{ secrets.SSH_ADDRESS }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_ID: ${{ secrets.SSH_ID }}
+        run: |
+          sudo apt-get install -y -qq sshpass > /dev/null
+          OPTS=(-o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ConnectTimeout=20)
+          TARGET="$SSH_ID@$SSH_ADDRESS"
+          sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "mkdir -p $REMOTE_DIR && chmod 700 $REMOTE_DIR"
+          sshpass -e scp "${OPTS[@]}" -P "${SSH_PORT:-22}" one-blog-image.tar.gz deploy.env scripts/deploy.sh "$TARGET:$REMOTE_DIR/"
+          sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "bash $REMOTE_DIR/deploy.sh $TAG"
+
+      - name: 환경변수 파일 지우기
+        if: always()
+        run: rm -f deploy.env
