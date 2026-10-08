@@ -1525,9 +1525,10 @@ form.search-row input {
 /* ── 메인 전환과 내 블로그 (D-100) ─────────────────── */
 
 .view-switch {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
   gap: 4px;
-  margin: 0 0 24px;
+  margin: 0 auto 24px;
   padding: 4px;
   border-radius: 999px;
   background: var(--surface);
