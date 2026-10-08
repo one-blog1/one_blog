@@ -60,12 +60,13 @@ if [ ! -f "$SECRETS" ]; then
 fi
 chmod 600 "$SECRETS"
 
-# DB가 이 서버에 있으면(localhost) 컨테이너 안의 localhost는 컨테이너 자신이라 닿지 않는다.
-# 그때는 호스트 네트워크로 띄워 서버의 localhost를 그대로 쓴다
-DB_HOST_VALUE="$(grep -E '^DB_HOST=' "$DIR/deploy.env" | head -1 | cut -d= -f2- || true)"
-NETWORK_ARGS=(-p "$PORT:$PORT")
-if [ "$DB_HOST_VALUE" = "localhost" ] || [ "$DB_HOST_VALUE" = "127.0.0.1" ]; then
-  log "DB가 이 서버(localhost)에 있어 호스트 네트워크로 실행합니다"
+# 호스트 네트워크로 띄운다: 컨테이너가 서버와 같은 네트워크·DNS를 쓴다.
+# Docker 기본(bridge) 네트워크에서는 서버에서 닿는 내부망 DB(예: s4.java21.net → 10.x)에
+# "No route to host"로 닿지 않았다 (서버 DNS·라우팅·방화벽을 컨테이너가 그대로 못 씀, D-118).
+# 앱은 PORT(8430)로 직접 받는다. bridge로 바꾸려면 DOCKER_NETWORK=bridge
+if [ "${DOCKER_NETWORK:-host}" = "bridge" ]; then
+  NETWORK_ARGS=(-p "$PORT:$PORT")
+else
   NETWORK_ARGS=(--network host)
 fi
 

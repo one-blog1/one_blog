@@ -42,7 +42,7 @@ docker logs -f one-blog        # 서버 로그
 ls ~/one-blog                  # deploy.sh, deploy.env, secrets.env
 ```
 
-업로드 파일은 Docker 볼륨 `one-blog-uploads`에 있어 새 버전을 배포해도 남습니다. DB가 같은 서버(localhost)에 있으면 deploy.sh가 컨테이너를 호스트 네트워크로 띄웁니다.
+업로드 파일은 Docker 볼륨 `one-blog-uploads`에 있어 새 버전을 배포해도 남습니다. 컨테이너는 호스트 네트워크로 띄워 서버와 같은 네트워크·DNS를 씁니다(서버에서 `nc -vz <DB 주소> <포트>`가 되면 앱도 DB에 닿음). 앱은 8430 포트로 직접 받습니다.
 
 ## 1. 버전
 
