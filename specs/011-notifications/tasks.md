@@ -7,4 +7,4 @@
 - [X] T005 `NotificationQueryService`, `NotificationController`(목록·안 읽은 수·읽음·전체 삭제·설정)
 - [X] T006 [P] 화면 `notifications.js`(종·사이드바·30초 폴링), 알림 설정, 댓글 앵커
 - [X] T007 테스트 `NotificationIntegrationTest`
-- [ ] T008 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T008 `./gradlew test` 통과 (182개, 2026-10-08)

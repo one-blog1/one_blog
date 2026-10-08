@@ -10,4 +10,4 @@
 - [X] T008 04:00 배치 `SanctionCleanupTask`(폐쇄 블로그 블랙리스트, 1년 지난 신고·제재)
 - [X] T009 [P] 화면: 신고 창(`report.js`), 프로필 차단·신고, 블로그 신고·해제 문의·정지 안내, 관리 화면 신고·제재·블랙리스트, 관리자 신고 탭·블로그장 제재
 - [X] T010 테스트 `ModerationIntegrationTest`
-- [ ] T011 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T011 `./gradlew test` 통과 (182개, 2026-10-08)

@@ -6,4 +6,4 @@
 - [X] T004 `MarkdownRenderer`에서 외부 이미지 제거
 - [X] T005 [P] Toast UI Editor 연결 `js/editor.js`, `post-edit.html`
 - [X] T006 테스트 `PostImageIntegrationTest`
-- [ ] T007 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T007 `./gradlew test` 통과 (182개, 2026-10-08)

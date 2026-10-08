@@ -8,4 +8,4 @@
 - [X] T006 `account`: 내 정보, 프로필 수정, 비밀번호 변경
 - [X] T007 [P] 화면 `profile.html`, `account.html`, `blog-subscribe.js`, 내 블로그의 구독 목록, 상단 메뉴
 - [X] T008 테스트 `SocialIntegrationTest`, `AccountIntegrationTest`
-- [ ] T009 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T009 `./gradlew test` 통과 (182개, 2026-10-08)

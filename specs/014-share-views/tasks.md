@@ -5,4 +5,4 @@
 - [X] T003 `PostPageRenderer`: og:url·title·description·image, twitter:card, `PUBLIC_BASE_URL`
 - [X] T004 테스트 `ShareViewIntegrationTest`, `PostIntegrationTest` 화면 응답
 - [ ] T005 카카오톡 공유 버튼 (카카오 앱 키 등록 후)
-- [ ] T006 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T006 `./gradlew test` 통과 (182개, 2026-10-08)

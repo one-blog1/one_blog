@@ -9,4 +9,4 @@
 - [X] T007 04:00 배치에서 임시 토큰 정리
 - [X] T008 테스트 `AccountSecurityIntegrationTest`, `RateLimiterTest`
 - [ ] T009 Turnstile 키 등록 후 실제 화면에서 확인 (사용자)
-- [ ] T010 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T010 `./gradlew test` 통과 (182개, 2026-10-08)

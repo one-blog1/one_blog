@@ -8,4 +8,4 @@
 - [X] T006 블로그 정보에 `permissions`, SecurityConfig 공개 주소
 - [X] T007 [P] 화면 `blog-categories.js`(카테고리 줄·관리), `post-edit-category.js`, `tag.html`, `tag-posts.js`
 - [X] T008 테스트 `CategoryTagIntegrationTest`
-- [ ] T009 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T009 `./gradlew test` 통과 (182개, 2026-10-08)

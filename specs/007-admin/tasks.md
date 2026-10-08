@@ -8,4 +8,4 @@
 - [X] T006 SecurityConfig `/api/admin/**` ADMIN
 - [X] T007 [P] 화면 `admin-login.html`, `admin.html`, 메인 공지 띠, `notice.html`
 - [X] T008 테스트 `AdminIntegrationTest`, `MaskingTest`
-- [ ] T009 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T009 `./gradlew test` 통과 (182개, 2026-10-08)

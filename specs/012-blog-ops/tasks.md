@@ -8,4 +8,4 @@
 - [X] T006 `batch`: `SchedulerLock`, `DailyBatch`, `DailyTask`, `PurgeTask`, `CleanupTask`, `BlogLifecycleTasks`
 - [X] T007 [P] 화면 `blog-manage.html`, `blog-ops.js`(관리 링크·나가기·폐쇄 안내), 내 블로그의 위임 요청, 회원탈퇴
 - [X] T008 테스트 `BlogOpsIntegrationTest`, `BlogClockTest`
-- [ ] T009 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T009 `./gradlew test` 통과 (182개, 2026-10-08)

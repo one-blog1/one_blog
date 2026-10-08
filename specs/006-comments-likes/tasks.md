@@ -5,4 +5,4 @@
 - [X] T003 `PostLike`, `LikeService`(누르기·취소, 회원 행 잠금), `LikeController`, `PostLikeExtension`
 - [X] T004 [P] 화면 `js/comments.js` (댓글·답글·수정·삭제·좋아요)
 - [X] T005 테스트 `CommentLikeIntegrationTest`
-- [ ] T006 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T006 `./gradlew test` 통과 (182개, 2026-10-08)

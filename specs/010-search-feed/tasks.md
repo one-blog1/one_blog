@@ -7,4 +7,4 @@
 - [X] T005 `RecentSearchService`, 최근 검색어 API
 - [X] T006 [P] 화면 `search.html`, `search.js`, 메인 검색창·피드(`feed.js`)
 - [X] T007 테스트 `SearchFeedIntegrationTest`
-- [ ] T008 `./gradlew test` 통과 (Mac 연결 후)
+- [X] T008 `./gradlew test` 통과 (182개, 2026-10-08)
