@@ -45,9 +45,20 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+// 배포용 jar는 bootJar 하나만 만든다 (build/libs에 실행 가능한 jar 하나: one-blog.jar)
+tasks.named<Jar>("jar") {
+    enabled = false
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    archiveFileName = "one-blog.jar"
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
     systemProperty("spring.profiles.active", "test")
+    // 운영 서버(main)와 같은 한국 시간으로 테스트한다 (D-117). CI 서버의 기본 시간대는 UTC
+    systemProperty("user.timezone", "Asia/Seoul")
     // 실패한 테스트의 원인(예외)을 터미널에 바로 보여 준다
     testLogging {
         events("failed")

@@ -25,6 +25,7 @@
 | 목록 넘기기 | 번호 페이지 | BRD-02 | D-76 |
 | 조회수 | DB 조회 기록 테이블 | BRD-11 | D-77 |
 | 대댓글 | 1단계 + 답글 앞에 @닉네임 표시 | BRD-06 | D-78 |
+| 배포 준비 | 실행 jar 하나(`one-blog.jar`), 서버·DB 시간대 Asia/Seoul 고정, 상태 확인 `/api/health`, GitHub Actions CI(테스트·jar 실행·Docker 실행), Dockerfile. 절차는 [배포 안내](../deploy.md) | SEC-10, 4장 무중단 배포 | D-117 |
 
 > **팀 결정: 정적 HTML + JS** (D-66, 잠시 정했던 전부 Thymeleaf(D-63)에서 변경)
 >

@@ -1,0 +1,95 @@
+# CI (D-117): main에 올리거나 PR을 열 때마다 "배포해도 되는 상태인지" 확인한다.
+# 1) 전체 테스트 (MySQL 8.4, 빈 DB에서 Flyway 마이그레이션 V1부터)
+# 2) 배포용 jar를 만들어 실제로 띄우고, 상태 확인 주소와 화면·API가 응답하는지 본다
+# 3) Dockerfile로 이미지를 만들어 같은 확인을 한 번 더 한다
+# 비밀값은 쓰지 않는다. 여기의 DB 계정·키는 이 작업에서만 쓰고 버리는 값이다.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: one_blog_test
+          MYSQL_USER: one_blog
+          MYSQL_PASSWORD: one_blog
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      SMOKE_ENV: >-
+        DB_HOST=127.0.0.1 DB_PORT=3306 DB_USERNAME=root DB_PASSWORD=root
+        JWT_SECRET=ci-only-jwt-secret-0123456789abcdef0123456789abcdef
+        CODE_PEPPER=ci-only-code-pepper MAIL_MODE=log COOKIE_SECURE=false
+        ADMIN_LOGIN_ID=ciadmin ADMIN_PASSWORD=ci-only-admin-password
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: 테스트
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_USERNAME: one_blog
+          TEST_DB_PASSWORD: one_blog
+        run: ./gradlew test --no-daemon
+
+      - name: 테스트 보고서 올리기 (실패했을 때)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test
+          retention-days: 7
+
+      - name: 배포용 jar 만들기
+        run: ./gradlew bootJar --no-daemon && ls -l build/libs
+
+      - name: jar 실행 확인 (빈 DB에서 시작)
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e "CREATE DATABASE one_blog_smoke CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+          env $SMOKE_ENV DB_NAME=one_blog_smoke java -jar build/libs/one-blog.jar > smoke-jar.log 2>&1 &
+          APP=$!
+          ./scripts/smoke-check.sh http://127.0.0.1:8080 || { cat smoke-jar.log; exit 1; }
+          kill $APP; wait $APP || true
+          grep -q "Graceful shutdown" smoke-jar.log && echo "정상 종료 확인" || { tail -50 smoke-jar.log; echo "정상 종료 로그가 없습니다"; exit 1; }
+
+      - name: Docker 이미지 만들기
+        run: docker build -t one-blog:ci .
+
+      - name: Docker 실행 확인
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e "CREATE DATABASE one_blog_docker CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+          docker run -d --name one-blog --network host $(for v in $SMOKE_ENV; do printf -- '-e %s ' "$v"; done) -e DB_NAME=one_blog_docker -e PORT=8081 one-blog:ci
+          ./scripts/smoke-check.sh http://127.0.0.1:8081 || { docker logs one-blog; exit 1; }
+          docker stop -t 30 one-blog
+
+      - name: jar 올리기
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-blog-jar
+          path: build/libs/one-blog.jar
+          retention-days: 14

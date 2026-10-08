@@ -80,7 +80,7 @@ public class SecurityConfig {
                                 "/api/blogs/*/posts", "/api/posts/*", "/api/posts/*/comments", "/api/notices",
                                 "/api/notices/*", "/api/blogs/*/categories", "/tags/*", "/api/tags/*/posts",
                                 "/users/*", "/api/users/*", "/api/users/*/followers", "/api/users/*/following",
-                                "/search", "/api/search/blogs", "/api/search/posts", "/api/feed")
+                                "/search", "/api/search/blogs", "/api/search/posts", "/api/feed", "/api/health")
                         .permitAll()
                         // 관리자 API는 관리자만 (SEC-09, SEC-11). 역할은 인증 필터가 매 요청 DB에서 읽는다
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
