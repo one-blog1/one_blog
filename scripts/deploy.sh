@@ -70,14 +70,23 @@ else
   NETWORK_ARGS=(--network host)
 fi
 
+# 컨테이너에 넘길 환경변수 = secrets.env + deploy.env. 같은 이름이 둘 다 있으면 deploy.env(GitHub Secrets) 값을 쓴다
+RUN_ENV="$DIR/run.env"
+umask 077
+awk -F= 'NR == FNR { if ($1 != "") keep[$1] = 1; next } !($1 in keep)' "$DIR/deploy.env" "$SECRETS" > "$RUN_ENV"
+cat "$DIR/deploy.env" >> "$RUN_ENV"
+chmod 600 "$RUN_ENV"
+for name in $(grep -oE '^(CODE_PEPPER|PRIVACY_HASH_PEPPER|JWT_SECRET)=' "$DIR/deploy.env" | tr -d '='); do
+  log "$name: GitHub Secrets 값을 씁니다 (secrets.env 값 대신)"
+done
+
 run_container() {
   local image="$1"
   "${DOCKER[@]}" run -d \
     --name "$APP" \
     --restart unless-stopped \
     "${NETWORK_ARGS[@]}" \
-    --env-file "$SECRETS" \
-    --env-file "$DIR/deploy.env" \
+    --env-file "$RUN_ENV" \
     -e PORT="$PORT" \
     -v one-blog-uploads:/app/uploads \
     --log-opt max-size=20m --log-opt max-file=5 \
