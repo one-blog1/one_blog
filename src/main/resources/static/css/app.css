@@ -1,13 +1,37 @@
+/*
+ * One Blog 화면 규칙. 분위기: 밝고 친근한 동네 블로그 모임.
+ * - 바탕은 옅은 세이지, 글은 짙은 잉크색, 누르는 버튼은 햇살 노랑(글씨는 잉크)
+ * - 블로그마다 정해진 파스텔 색(tile-0~5)이 이름표처럼 따라다닌다. 화면에서 가장 눈에 띄는 것은 이것 하나
+ * - 제목은 둥근 손글씨 느낌의 Jua, 본문은 IBM Plex Sans KR
+ * - 모양: 버튼·탭·태그는 알약, 블로그 표지는 크게 둥근 사각, 입력칸은 살짝 둥근 사각. 그림자는 쓰지 않는다
+ */
+@import url("/css/fonts.css");
+
 :root {
-  --bg: #f7f7f5;
+  --bg: #f2f5f3;
   --surface: #ffffff;
-  --text: #1f2328;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --accent: #2563eb;
+  --text: #1f2430;
+  --muted: #5f6878;
+  --line: #dfe5e1;
+  --sun: #ffcf3f;
+  --sun-strong: #f2b705;
+  --sun-soft: #fff4cc;
+  --accent: #1f2430;
   --accent-text: #ffffff;
-  --error: #b42318;
-  --ok: #067647;
+  --link: #2c55d6;
+  --error: #c43d3d;
+  --ok: #1d7f55;
+  --tile-0: #ffe7a3;
+  --tile-1: #c9ebda;
+  --tile-2: #d5e3ff;
+  --tile-3: #ffd8cc;
+  --tile-4: #e6dafa;
+  --tile-5: #cfeff5;
+  --radius-tile: 22px;
+  --radius-panel: 18px;
+  --radius-field: 12px;
+  --font-display: "Jua", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-body: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 }
 
 * {
@@ -18,37 +42,97 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
+a {
+  color: var(--link);
+}
+
+:focus-visible {
+  outline: 3px solid var(--sun-strong);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.tile-0 { --tile: var(--tile-0); }
+.tile-1 { --tile: var(--tile-1); }
+.tile-2 { --tile: var(--tile-2); }
+.tile-3 { --tile: var(--tile-3); }
+.tile-4 { --tile: var(--tile-4); }
+.tile-5 { --tile: var(--tile-5); }
+
+/* ── 상단 ─────────────────────────────────────────── */
+
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 16px;
+  padding: 10px max(16px, calc((100% - 1040px) / 2));
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
 
 .site-header .logo {
-  font-weight: 700;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 24px;
   color: var(--text);
   text-decoration: none;
+}
+
+/* 로고 앞의 햇살 동그라미 */
+.site-header .logo::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--sun);
+  box-shadow: 0 0 0 4px var(--sun-soft);
 }
 
 #header-user {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   font-size: 14px;
 }
 
 #header-user a,
+#header-user .link-button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--text);
+}
+
+#header-user a:hover,
+#header-user .link-button:hover {
+  background: var(--bg);
+}
+
+/* 비회원의 "회원가입"은 눌러야 할 버튼으로 */
+#header-user a[href="/signup.html"] {
+  background: var(--sun);
+  font-weight: 600;
+}
+
 .link-button {
-  color: var(--accent);
+  color: var(--link);
   text-decoration: none;
   background: none;
   border: none;
@@ -58,29 +142,58 @@ body {
 }
 
 .nickname {
+  padding: 6px 12px;
   font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
 }
 
+/* ── 틀 ───────────────────────────────────────────── */
+
 main {
-  max-width: 440px;
-  margin: 32px auto;
+  max-width: 460px;
+  margin: 40px auto;
   padding: 0 16px;
 }
 
 main.wide {
-  max-width: 960px;
+  max-width: 1040px;
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: var(--radius-panel);
+  padding: 28px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 h1 {
+  font-size: 30px;
+  margin: 0 0 10px;
+}
+
+h2 {
   font-size: 22px;
-  margin: 0 0 8px;
+  margin: 28px 0 12px;
+}
+
+h3 {
+  font-size: 18px;
+  margin: 20px 0 8px;
+}
+
+.card > h1:first-child,
+.card > h2:first-child {
+  margin-top: 0;
 }
 
 .steps {
@@ -93,14 +206,23 @@ h1 {
   color: var(--muted);
 }
 
-.steps li.active {
-  color: var(--accent);
-  font-weight: 700;
+.steps li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg);
 }
+
+.steps li.active {
+  background: var(--sun);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── 입력 ─────────────────────────────────────────── */
 
 label {
   display: block;
-  margin: 14px 0 6px;
+  margin: 16px 0 6px;
   font-size: 14px;
   font-weight: 600;
 }
@@ -108,12 +230,26 @@ label {
 input[type="email"],
 input[type="text"],
 input[type="password"],
-input[type="tel"] {
+input[type="tel"],
+input[type="search"],
+textarea,
+select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-field);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
   font-size: 15px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--text);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sun-soft);
 }
 
 .row {
@@ -133,33 +269,64 @@ input[type="tel"] {
   font-weight: 400;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--text);
+}
+
+/* ── 버튼: 누르는 일은 노란 알약, 그다음 일은 테두리 알약 ── */
+
 button.primary,
-button.secondary {
-  padding: 10px 14px;
-  border-radius: 8px;
+button.secondary,
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font: inherit;
   font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+button.primary,
+.button-link {
+  background: var(--sun);
+  color: var(--text);
+  border: 1.5px solid var(--sun);
+}
+
+button.primary:hover,
+.button-link:hover {
+  background: var(--sun-strong);
+  border-color: var(--sun-strong);
 }
 
 button.primary {
   width: 100%;
-  margin-top: 20px;
-  background: var(--accent);
-  color: var(--accent-text);
-  border: none;
+  margin-top: 22px;
 }
 
 button.secondary {
   background: var(--surface);
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  color: var(--text);
+  border: 1.5px solid var(--text);
+}
+
+button.secondary:hover {
+  background: var(--bg);
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ── 안내 글 ──────────────────────────────────────── */
 
 .hint {
   margin: 6px 0 0;
@@ -186,43 +353,32 @@ button:disabled {
 }
 
 .footer-links {
-  margin-top: 16px;
+  margin-top: 18px;
   font-size: 14px;
   text-align: center;
 }
 
 @media (max-width: 480px) {
   main {
-    margin: 16px auto;
+    margin: 20px auto;
   }
 
   .card {
-    padding: 18px;
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 26px;
   }
 }
 
 /* ── 블로그 (002) ───────────────────────────────────── */
 
-h2 {
-  font-size: 17px;
-  margin: 24px 0 12px;
-}
-
-textarea,
-select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font: inherit;
-  font-size: 15px;
-  background: var(--surface);
-}
-
 select {
   width: auto;
   margin-left: 6px;
-  padding: 6px 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
 }
 
 fieldset {
@@ -268,16 +424,6 @@ label.inline {
   gap: 12px;
 }
 
-.button-link {
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-text);
-  text-decoration: none;
-  font-size: 14px;
-  white-space: nowrap;
-}
-
 .list-controls {
   display: flex;
   flex-wrap: wrap;
@@ -288,78 +434,115 @@ label.inline {
   font-size: 14px;
 }
 
+/* 고르기 단추(정렬·범위)와 탭은 같은 알약 모양: 고른 것만 잉크색으로 채운다 */
 .segmented {
   display: inline-flex;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--bg);
 }
 
 .segmented button {
   padding: 6px 14px;
   border: none;
-  background: var(--surface);
+  border-radius: 999px;
+  background: transparent;
   color: var(--muted);
   font: inherit;
+  font-size: 14px;
   cursor: pointer;
 }
 
 .segmented button[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--accent-text);
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 600;
 }
 
 .blog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px;
 }
 
+/* 블로그 이름표: 블로그마다 정해진 색 위에 표지와 이름 */
 .blog-card {
+  --tile: var(--tile-0);
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--surface);
+  gap: 12px;
+  padding: 10px 10px 16px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-tile);
+  background: var(--tile);
   color: var(--text);
   text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .blog-card:hover,
 .blog-card:focus-visible {
-  border-color: var(--accent);
+  border-color: var(--text);
+  transform: rotate(-0.6deg);
 }
 
 .blog-cover {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
-  background: #e8eefc;
+  border-radius: calc(var(--radius-tile) - 8px);
+  background: var(--surface);
+}
+
+/* 대표 이미지가 없는 블로그: 흰 바탕에 블로그 색 첫 글자 */
+.cover-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--tile) 35%, var(--surface));
+}
+
+.cover-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--tile);
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 56px);
+  line-height: 1;
+  color: var(--text);
 }
 
 .blog-card-body {
-  padding: 12px 14px 14px;
+  padding: 0 6px;
 }
 
 .blog-name {
   display: block;
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .blog-description {
   margin: 4px 0 0;
   font-size: 14px;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--text) 75%, transparent);
   overflow-wrap: anywhere;
 }
 
 .blog-meta {
   margin: 6px 0 0;
   font-size: 13px;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--text) 68%, transparent);
 }
 
 .tag-list {
@@ -372,12 +555,21 @@ label.inline {
 }
 
 .tag {
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 999px;
-  background: #eef2ff;
-  color: var(--accent);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  color: var(--text);
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+.tag a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.post-item .tag {
+  background: var(--bg);
 }
 
 .tag-list.editable {
@@ -387,7 +579,7 @@ label.inline {
 .tag-remove {
   border: none;
   background: none;
-  color: var(--accent);
+  color: var(--muted);
   cursor: pointer;
   padding: 0;
   font-size: 13px;
@@ -402,7 +594,7 @@ label.inline {
 .cover-picker .blog-cover {
   width: 160px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-field);
 }
 
 .pagination {
@@ -414,20 +606,25 @@ label.inline {
 }
 
 .pagination button {
-  min-width: 36px;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
+  min-width: 38px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 
+.pagination button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
 .pagination button[aria-current="page"] {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-text);
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 600;
 }
 
 .blog-hero {
@@ -436,9 +633,9 @@ label.inline {
   max-height: 280px;
   aspect-ratio: 16 / 6;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-tile);
   margin-bottom: 16px;
-  background: #e8eefc;
+  background: var(--bg);
 }
 
 .blog-description-full {
@@ -449,8 +646,8 @@ label.inline {
 .share-area {
   margin: 16px 0;
   padding: 12px;
-  border: 1px dashed var(--line);
-  border-radius: 8px;
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-field);
 }
 
 @media (max-width: 480px) {
@@ -482,9 +679,9 @@ label.inline {
 .join-area,
 .manage-area {
   margin: 16px 0;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-field);
 }
 
 button.primary.inline-button {
@@ -494,7 +691,7 @@ button.primary.inline-button {
 
 .count {
   font-size: 14px;
-  color: var(--accent);
+  color: var(--muted);
 }
 
 .request-list {
@@ -534,8 +731,11 @@ button.primary.inline-button {
 }
 
 .post-list.notices .post-item {
-  background: #f8fafc;
-  padding-left: 8px;
+  padding: 10px 14px;
+  border-bottom: none;
+  border-radius: var(--radius-field);
+  background: var(--sun-soft);
+  margin-bottom: 6px;
 }
 
 .post-link {
@@ -560,8 +760,8 @@ button.primary.inline-button {
   top: 100%;
   z-index: 10;
   width: 160px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 1.5px solid var(--text);
+  border-radius: var(--radius-field);
   background: var(--surface);
 }
 
@@ -571,10 +771,10 @@ button.primary.inline-button {
 }
 
 .badge {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--accent-text);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--sun);
+  color: var(--text);
   font-size: 12px;
   font-weight: 600;
 }
@@ -592,7 +792,7 @@ button.primary.inline-button {
 }
 
 .breadcrumb a {
-  color: var(--accent);
+  color: var(--muted);
   text-decoration: none;
 }
 
@@ -608,10 +808,10 @@ button.primary.inline-button {
 }
 
 .post-body pre {
-  padding: 12px;
+  padding: 14px 16px;
   overflow-x: auto;
-  background: #f3f4f6;
-  border-radius: 6px;
+  background: var(--bg);
+  border-radius: var(--radius-field);
 }
 
 .post-body table {
@@ -626,8 +826,8 @@ button.primary.inline-button {
 
 .post-body blockquote {
   margin: 0;
-  padding-left: 12px;
-  border-left: 3px solid var(--line);
+  padding-left: 14px;
+  border-left: 4px solid var(--sun);
   color: var(--muted);
 }
 
@@ -653,10 +853,10 @@ button.primary.inline-button {
 
 .session-warning {
   margin: 8px 0;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #fff7ed;
-  color: #9a3412;
+  padding: 10px 16px;
+  border-radius: var(--radius-field);
+  background: var(--sun-soft);
+  color: var(--text);
 }
 
 /* ── 댓글 (006) ────────────────────────────────────── */
@@ -704,7 +904,7 @@ button.primary.inline-button {
 }
 
 .mention {
-  color: var(--accent);
+  color: var(--link);
   font-weight: 600;
 }
 
@@ -719,24 +919,29 @@ button.primary.inline-button {
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin: 12px 0;
-  border-bottom: 1px solid var(--line);
+  gap: 6px;
+  margin: 12px 0 16px;
 }
 
 .tabs button {
-  padding: 8px 12px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: none;
+  padding: 7px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
   font: inherit;
+  font-size: 14px;
   color: var(--muted);
   cursor: pointer;
 }
 
+.tabs button:hover {
+  border-color: var(--text);
+}
+
 .tabs button[aria-selected="true"] {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--surface);
   font-weight: 600;
 }
 
@@ -777,10 +982,9 @@ button.primary.inline-button {
   align-items: baseline;
   gap: 12px;
   margin-bottom: 16px;
-  padding: 10px 16px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  padding: 10px 18px;
+  background: var(--sun-soft);
+  border-radius: 999px;
   font-size: 14px;
 }
 
@@ -905,7 +1109,7 @@ form.search-row input {
   min-width: 18px;
   padding: 0 4px;
   border-radius: 9px;
-  background: #dc2626;
+  background: var(--error);
   color: #fff;
   font-size: 11px;
   line-height: 18px;
@@ -921,8 +1125,7 @@ form.search-row input {
   overflow-y: auto;
   padding: 16px;
   background: var(--surface);
-  border-left: 1px solid var(--line);
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
+  border-left: 1.5px solid var(--text);
   z-index: 50;
 }
 
@@ -963,7 +1166,7 @@ form.search-row input {
 
 .notification.unread .notification-body {
   color: inherit;
-  background: rgba(37, 99, 235, 0.06);
+  background: var(--sun-soft);
   font-weight: 600;
 }
 
@@ -1004,7 +1207,7 @@ form.search-row input {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, var(--text) 40%, transparent);
   z-index: 60;
 }
 
@@ -1016,4 +1219,85 @@ form.search-row input {
 
 .modal textarea {
   width: 100%;
+}
+
+/* ── 메인 (UI 1단계) ───────────────────────────────── */
+
+/* 첫 화면: 카드 없이 바탕 위에 인사와 검색창만 */
+.home-hero {
+  padding: 28px 4px 32px;
+}
+
+.hero-hello {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hero-title {
+  max-width: 16em;
+  margin: 0 0 22px;
+  font-size: clamp(32px, 5.2vw, 52px);
+  line-height: 1.18;
+  word-break: keep-all;
+}
+
+/* 검색창: 알약 하나 안에 입력과 단추 */
+.hero-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 620px;
+  padding: 6px 6px 6px 20px;
+  border: 1.5px solid var(--text);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.hero-search:focus-within {
+  box-shadow: 0 0 0 4px var(--sun-soft);
+}
+
+.hero-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  font-size: 17px;
+}
+
+.hero-search input:focus {
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.hero-search button {
+  width: auto;
+  margin: 0;
+  padding: 11px 24px;
+}
+
+.home-blogs {
+  margin-top: 36px;
+}
+
+.home-blogs .list-header h2 {
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .home-hero {
+    padding: 12px 0 24px;
+  }
+
+  .hero-search {
+    padding-left: 16px;
+  }
+
+  .hero-search button {
+    padding: 10px 18px;
+  }
 }

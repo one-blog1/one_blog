@@ -28,6 +28,37 @@
     return typeof url === 'string' && url.startsWith('/files/') ? url : DEFAULT_COVER;
   }
 
+  /** 블로그마다 정해진 색 (주소로 정하므로 늘 같은 색). 대표 이미지가 없을 때의 표지와 블로그 첫 화면에 쓴다. */
+  const TILE_COUNT = 6;
+  function tileClass(slug) {
+    let hash = 0;
+    for (const ch of String(slug || '')) {
+      hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+    }
+    return 'tile-' + (hash % TILE_COUNT);
+  }
+
+  /** 이름의 첫 글자 (표지에 크게 쓴다). */
+  function initial(name) {
+    const first = Array.from(String(name || '').trim())[0];
+    return first ? first.toUpperCase() : '?';
+  }
+
+  /** 대표 이미지가 있으면 사진, 없으면 블로그 색 표지에 첫 글자. */
+  function cover(blog, className) {
+    if (typeof blog.coverImageUrl === 'string' && blog.coverImageUrl.startsWith('/files/')) {
+      const img = el('img', className);
+      img.src = blog.coverImageUrl;
+      img.alt = '';
+      img.loading = 'lazy';
+      return img;
+    }
+    const tile = el('div', className + ' cover-tile ' + tileClass(blog.slug));
+    tile.setAttribute('aria-hidden', 'true');
+    tile.append(el('span', 'cover-initial', initial(blog.name)));
+    return tile;
+  }
+
   function shorten(text, max) {
     if (!text) {
       return '';
@@ -44,11 +75,8 @@
     const card = el('a', 'blog-card');
     card.href = blogUrl(blog.slug);
 
-    const img = el('img', 'blog-cover');
-    img.src = coverSrc(blog.coverImageUrl);
-    img.alt = '';
-    img.loading = 'lazy';
-    card.append(img);
+    card.classList.add(tileClass(blog.slug));
+    card.append(cover(blog, 'blog-cover'));
 
     const body = el('div', 'blog-card-body');
     body.append(el('strong', 'blog-name', blog.name));
@@ -84,6 +112,9 @@
     create: create,
     blogUrl: blogUrl,
     coverSrc: coverSrc,
+    cover: cover,
+    tileClass: tileClass,
+    initial: initial,
     el: el,
     VISIBILITY_LABEL: VISIBILITY_LABEL,
     ROLE_LABEL: ROLE_LABEL

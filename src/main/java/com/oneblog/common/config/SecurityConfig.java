@@ -70,7 +70,7 @@ public class SecurityConfig {
                                 "/blog-new.html", "/my-blogs.html", "/blog.html", "/post.html", "/post-edit.html",
                                 "/admin.html", "/admin-login.html", "/notice.html", "/tag.html",
                                 "/profile.html", "/account.html", "/search.html", "/blog-manage.html", "/find-account.html",
-                                "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                                "/css/**", "/js/**", "/images/**", "/fonts/**", "/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
                         // 블로그 첫 화면과 업로드 이미지, 블로그 목록·첫 화면 정보는 비회원도 본다.
                         // 볼 수 있는지는 BlogAccessService가 판단한다 (research R7, R10)

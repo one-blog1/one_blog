@@ -41,6 +41,10 @@
   document.addEventListener('header:user', (event) => {
     if (event.detail.role !== 'ADMIN') {
       tabs().forEach(t => t.classList.remove('hidden'));
+      const hello = $('hero-hello');
+      if (hello) {
+        hello.textContent = event.detail.nickname + '님, 반가워요'; // textContent만 (SEC-06)
+      }
     }
   });
 

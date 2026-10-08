@@ -18,13 +18,17 @@
       <ul id="notice-links"></ul>
     </section>
 
-    <form class="row search-row" action="/search" method="get" role="search">
-      <input name="q" type="search" maxlength="20" placeholder="블로그, 글 제목, 태그, 닉네임 검색" aria-label="검색어">
-      <button class="primary inline-button" type="submit">검색</button>
-    </form>
+    <section class="home-hero" aria-labelledby="hero-title">
+      <p id="hero-hello" class="hero-hello">어서 오세요</p>
+      <h1 id="hero-title" class="hero-title">오늘은 어떤 이야기를 읽어 볼까요?</h1>
+      <form class="hero-search" action="/search" method="get" role="search">
+        <input name="q" type="search" maxlength="20" placeholder="블로그, 글 제목, 태그, 닉네임" aria-label="검색어">
+        <button class="primary" type="submit">검색</button>
+      </form>
+    </section>
 
     <section class="card" aria-labelledby="feed-title">
-      <h1 id="feed-title">글 피드</h1>
+      <h2 id="feed-title">읽을 글</h2>
       <div class="tabs" role="tablist" aria-label="피드">
         <button type="button" role="tab" data-tab="latest" aria-selected="true">최신 글</button>
         <button type="button" role="tab" data-tab="popular" aria-selected="false">인기 글</button>
@@ -36,9 +40,9 @@
       <nav id="feed-pagination" class="pagination" aria-label="피드 페이지"></nav>
     </section>
 
-    <section class="card">
+    <section class="home-blogs" aria-labelledby="blogs-title">
       <div class="list-header">
-        <h1>블로그 둘러보기</h1>
+        <h2 id="blogs-title">블로그 둘러보기</h2>
         <a class="button-link" href="/blog-new.html">블로그 만들기</a>
       </div>
 
