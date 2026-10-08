@@ -7,14 +7,9 @@
   const state = { slug: '', postId: null, tags: [], images: [] };
   let editor = null;
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
-  function keyQuery() {
-    const key = new URLSearchParams(window.location.search).get('key');
-    return key ? '?key=' + encodeURIComponent(key) : '';
-  }
+  const keyQuery = window.ui.keyQuery;
 
   function draftKey() {
     return 'oneblog.draft.' + state.slug + '.' + (state.postId || 'new');

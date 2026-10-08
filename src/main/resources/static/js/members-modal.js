@@ -7,16 +7,7 @@
   const ROLE = { OWNER: '블로그장', SUB_OWNER: '부블로그장', MEMBER: '멤버' };
   let slug = '';
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = String(text);
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
   function api(path) {
     return '/api/blogs/' + encodeURIComponent(slug) + path;

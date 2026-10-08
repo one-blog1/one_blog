@@ -2,6 +2,7 @@ package com.oneblog.blog.ops;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -24,13 +25,13 @@ class BlogClockTest {
     @Test
     void 오후에_누르면_7일_뒤_새벽_4시() {
         ZonedDateTime at = inSeoul(BlogClock.closeAt(serverTime(10, 2, 15)));
-        assertThat(at.toLocalDate()).isEqualTo(java.time.LocalDate.of(2026, 10, 9));
+        assertThat(at.toLocalDate()).isEqualTo(LocalDate.of(2026, 10, 9));
         assertThat(at.toLocalTime()).isEqualTo(LocalTime.of(4, 0));
     }
 
     @Test
     void 새벽_1시에_눌러도_날짜_기준() {
         ZonedDateTime at = inSeoul(BlogClock.closeAt(serverTime(10, 2, 1)));
-        assertThat(at.toLocalDate()).isEqualTo(java.time.LocalDate.of(2026, 10, 9));
+        assertThat(at.toLocalDate()).isEqualTo(LocalDate.of(2026, 10, 9));
     }
 }

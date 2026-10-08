@@ -1,13 +1,17 @@
 package com.oneblog.auth;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.oneblog.common.security.RateLimiter;
 import com.oneblog.common.security.TokenHasher;
+import com.oneblog.common.security.TurnstileVerifier;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.member.SignupPolicy;
 import com.oneblog.member.User;
@@ -23,11 +27,11 @@ public class AuthService {
     private static final String LOGIN_FAILED_MESSAGE = "이메일 또는 비밀번호가 올바르지 않습니다.";
     /** 6.7: 5번 연속 틀리면 5분 잠금, 3번 틀린 뒤부터 사람 확인. */
     public static final int MAX_LOGIN_FAILURES = 5;
-    public static final java.time.Duration LOCK_DURATION = java.time.Duration.ofMinutes(5);
+    public static final Duration LOCK_DURATION = Duration.ofMinutes(5);
     public static final int CAPTCHA_AFTER_FAILURES = 3;
     /** D-80: 같은 IP는 10분에 로그인 30번까지 (여러 계정을 돌려 가며 시도하는 매크로 방지). */
     static final int LOGIN_PER_IP = 30;
-    static final java.time.Duration LOGIN_WINDOW = java.time.Duration.ofMinutes(10);
+    static final Duration LOGIN_WINDOW = Duration.ofMinutes(10);
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -35,15 +39,15 @@ public class AuthService {
     private final TokenHasher tokenHasher;
     private final AccessTokenService accessTokenService;
     private final SignupPolicy signupPolicy;
-    private final com.oneblog.common.security.RateLimiter rateLimiter;
-    private final com.oneblog.common.security.TurnstileVerifier turnstile;
+    private final RateLimiter rateLimiter;
+    private final TurnstileVerifier turnstile;
     /** 없는 이메일에도 같은 시간만큼 bcrypt 비교를 해서 응답 시간으로 가입 여부를 알 수 없게 한다. */
     private final String dummyHash;
 
     public AuthService(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder, TokenHasher tokenHasher, AccessTokenService accessTokenService,
-            SignupPolicy signupPolicy, com.oneblog.common.security.RateLimiter rateLimiter,
-            com.oneblog.common.security.TurnstileVerifier turnstile) {
+            SignupPolicy signupPolicy, RateLimiter rateLimiter,
+            TurnstileVerifier turnstile) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -75,7 +79,7 @@ public class AuthService {
     public LoginResult adminLogin(String rawLoginId, String password, boolean rememberMe, String ip,
             String captchaToken) {
         rateLimiter.check("login", String.valueOf(ip), LOGIN_PER_IP, LOGIN_WINDOW);
-        String loginId = rawLoginId == null ? "" : rawLoginId.strip().toLowerCase(java.util.Locale.ROOT);
+        String loginId = rawLoginId == null ? "" : rawLoginId.strip().toLowerCase(Locale.ROOT);
         User user = userRepository.findByLoginId(loginId).orElse(null);
         // 관리자는 계정 잠금·사람 확인을 하지 않는다 (D-105). 같은 IP 요청 제한(D-80)만 남는다
         authenticate(user != null && user.getRole() == UserRole.ADMIN ? user : null, password, ip, captchaToken,
@@ -93,7 +97,7 @@ public class AuthService {
             boolean lockable) {
         LocalDateTime now = LocalDateTime.now();
         if (lockable && user != null && user.isLocked(now)) {
-            long seconds = Math.max(1, java.time.Duration.between(now, user.getLockedUntil()).toSeconds());
+            long seconds = Math.max(1, Duration.between(now, user.getLockedUntil()).toSeconds());
             throw ApiException.withRetryAfter(HttpStatus.LOCKED, "LOGIN_LOCKED",
                     "로그인을 5번 틀려 잠시 잠겼습니다. 잠시 후 다시 시도해 주세요.", seconds);
         }

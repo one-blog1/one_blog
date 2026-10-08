@@ -1,5 +1,6 @@
 package com.oneblog.social;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -10,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneblog.common.security.AuthenticatedUser;
+import com.oneblog.common.security.RateLimiter;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.common.web.PageParams;
+import com.oneblog.like.LikeService;
 import com.oneblog.member.User;
 import com.oneblog.member.UserRepository;
 import com.oneblog.member.UserRole;
@@ -28,11 +31,11 @@ public class FollowService {
     private final NamedParameterJdbcTemplate jdbc;
     private final List<FollowListener> listeners;
     private final List<FollowGate> gates;
-    private final com.oneblog.common.security.RateLimiter rateLimiter;
+    private final RateLimiter rateLimiter;
 
     public FollowService(FollowRepository followRepository, UserRepository userRepository,
             NamedParameterJdbcTemplate jdbc, List<FollowListener> listeners, List<FollowGate> gates,
-            com.oneblog.common.security.RateLimiter rateLimiter) {
+            RateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
         this.followRepository = followRepository;
         this.userRepository = userRepository;
@@ -56,8 +59,8 @@ public class FollowService {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 팔로우할 수 없습니다.");
         }
-        rateLimiter.check("toggle", String.valueOf(principal.id()), com.oneblog.like.LikeService.TOGGLES_PER_MINUTE,
-                java.time.Duration.ofMinutes(1));
+        rateLimiter.check("toggle", String.valueOf(principal.id()), LikeService.TOGGLES_PER_MINUTE,
+                Duration.ofMinutes(1));
         User target = findMember(nickname);
         if (target.getId().equals(principal.id())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CANNOT_FOLLOW_SELF", "자기 자신은 팔로우할 수 없습니다.");
@@ -101,7 +104,7 @@ public class FollowService {
         MapSqlParameterSource args = new MapSqlParameterSource("userId", userId);
         Long total = jdbc.queryForObject("SELECT COUNT(*)" + from, args, Long.class);
         long totalItems = total == null ? 0 : total;
-        int totalPages = (int) Math.max(1, (totalItems + params.size() - 1) / params.size());
+        int totalPages = params.totalPages(totalItems);
         if (params.page() > totalPages) {
             params = params.firstPage();
         }

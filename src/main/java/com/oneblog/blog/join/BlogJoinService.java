@@ -2,11 +2,13 @@ package com.oneblog.blog.join;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ import com.oneblog.blog.BlogMemberStatus;
 import com.oneblog.blog.BlogRepository;
 import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.web.ApiException;
+import com.oneblog.common.web.Times;
 import com.oneblog.member.UserRepository;
 import com.oneblog.member.UserRole;
 
@@ -40,12 +43,12 @@ public class BlogJoinService {
     private final UserRepository userRepository;
     private final List<JoinListener> listeners;
     private final List<JoinGate> gates;
-    private final org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc;
+    private final NamedParameterJdbcTemplate jdbc;
 
     public BlogJoinService(BlogAccessService accessService, BlogRepository blogRepository,
             BlogMemberRepository memberRepository, BlogJoinRequestRepository requestRepository,
             UserRepository userRepository, List<JoinListener> listeners, List<JoinGate> gates,
-            org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc) {
+            NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
         this.accessService = accessService;
         this.blogRepository = blogRepository;
@@ -131,7 +134,7 @@ public class BlogJoinService {
 
     /** 내가 신청하고 기다리는 블로그 (메인 "참여 신청" 탭, BLG-04, D-111). */
     public record MyJoinRequest(Long id, String blogSlug, String blogName, String coverImageUrl,
-            java.time.OffsetDateTime requestedAt) {
+            OffsetDateTime requestedAt) {
     }
 
     @Transactional(readOnly = true)
@@ -143,7 +146,7 @@ public class BlogJoinService {
                 ORDER BY r.created_at DESC, r.id DESC
                 """, new org.springframework.jdbc.core.namedparam.MapSqlParameterSource("userId", principal.id()),
                 (rs, i) -> new MyJoinRequest(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
-                        com.oneblog.common.web.Times.toOffset(rs.getTimestamp(5).toLocalDateTime())));
+                        Times.toOffset(rs.getTimestamp(5).toLocalDateTime())));
     }
 
     /** 참여 신청 탭에서 취소. 블로그가 그사이 비공개가 됐어도 내 신청이면 취소할 수 있다. */

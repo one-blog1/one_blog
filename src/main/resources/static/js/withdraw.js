@@ -5,9 +5,7 @@
 
   const state = { blocked: false };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function setError(field, text) {
     const node = document.querySelector('[data-error-for="' + field + '"]');

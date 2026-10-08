@@ -6,6 +6,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
+import com.oneblog.auth.AccessTokenService;
+import com.oneblog.auth.RefreshToken;
 import com.oneblog.common.config.AppProperties;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -53,7 +55,7 @@ public class AuthCookies {
                 .secure(secure)
                 .sameSite("Strict")
                 .path(REAUTH_PATH)
-                .maxAge(com.oneblog.auth.AccessTokenService.REAUTH_TTL)
+                .maxAge(AccessTokenService.REAUTH_TTL)
                 .build());
     }
 
@@ -82,7 +84,7 @@ public class AuthCookies {
                 .sameSite(sameSite)
                 .path(path);
         if (rememberMe) {
-            builder.maxAge(com.oneblog.auth.RefreshToken.REMEMBER_ME_TTL);
+            builder.maxAge(RefreshToken.REMEMBER_ME_TTL);
         }
         return builder.build();
     }

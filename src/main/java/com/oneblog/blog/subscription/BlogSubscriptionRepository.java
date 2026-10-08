@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** 블로그 구독(blog_subscriptions) 저장소. 구독 여부·구독자 수에 쓴다 (SOC-01). */
 public interface BlogSubscriptionRepository extends JpaRepository<BlogSubscription, Long> {
 
     Optional<BlogSubscription> findByBlogIdAndUserId(Long blogId, Long userId);

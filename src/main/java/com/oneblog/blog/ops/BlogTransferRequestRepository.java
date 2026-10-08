@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 
+/** 블로그장 위임 요청(blog_transfer_requests) 저장소 (BLG-08). */
 public interface BlogTransferRequestRepository extends JpaRepository<BlogTransferRequest, Long> {
 
     List<BlogTransferRequest> findByBlogIdAndStatus(Long blogId, TransferStatus status);

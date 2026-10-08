@@ -6,27 +6,19 @@
   let blog = null;
   let loggedIn = false;
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function baseUrl() {
     return '/api/blogs/' + encodeURIComponent(blog.slug);
   }
 
-  function keyQuery() {
-    const key = new URLSearchParams(window.location.search).get('key');
-    return key ? '?key=' + encodeURIComponent(key) : '';
-  }
+  const keyQuery = window.ui.keyQuery;
 
   function show(id, visible) {
     $(id).classList.toggle('hidden', !visible);
   }
 
-  function formatDate(iso) {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ko-KR');
-  }
+  const formatDate = window.ui.formatDate;
 
   // 블로그 머리의 참여 단추. 신청 취소는 메인의 "참여 신청" 탭에서 한다 (D-111)
   function renderJoin(status) {

@@ -4,11 +4,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.oneblog.account.AccountService;
 import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.member.User;
 import com.oneblog.member.UserRepository;
-import com.oneblog.member.UserRole;
 import com.oneblog.social.FollowGate;
 
 /**
@@ -19,9 +19,11 @@ import com.oneblog.social.FollowGate;
 public class PrivacyService implements FollowGate {
 
     private final UserRepository userRepository;
+    private final AccountService accountService;
 
-    public PrivacyService(UserRepository userRepository) {
+    public PrivacyService(UserRepository userRepository, AccountService accountService) {
         this.userRepository = userRepository;
+        this.accountService = accountService;
     }
 
     public record Privacy(Boolean showBlogs, Boolean showFollows, Boolean allowFollow) {
@@ -29,14 +31,14 @@ public class PrivacyService implements FollowGate {
 
     @Transactional(readOnly = true)
     public Privacy get(AuthenticatedUser principal) {
-        User user = member(principal);
+        User user = accountService.member(principal);
         return new Privacy(user.isShowBlogsOnProfile(), user.isShowFollowsOnProfile(), user.isAllowFollow());
     }
 
     /** 보내지 않은 항목은 지금 값 그대로. */
     @Transactional
     public Privacy update(AuthenticatedUser principal, Privacy request) {
-        User user = member(principal);
+        User user = accountService.member(principal);
         Privacy r = request == null ? new Privacy(null, null, null) : request;
         user.changePrivacy(r.showBlogs() == null ? user.isShowBlogsOnProfile() : r.showBlogs(),
                 r.showFollows() == null ? user.isShowFollowsOnProfile() : r.showFollows(),
@@ -61,11 +63,4 @@ public class PrivacyService implements FollowGate {
         }
     }
 
-    private User member(AuthenticatedUser principal) {
-        if (principal.role() == UserRole.ADMIN) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 프로필이 없습니다.");
-        }
-        return userRepository.findById(principal.id()).filter(User::isActive)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "로그인이 필요합니다."));
-    }
 }

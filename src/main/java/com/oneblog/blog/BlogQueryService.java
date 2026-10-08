@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +19,7 @@ import com.oneblog.blog.dto.BlogDetailResponse;
 import com.oneblog.blog.dto.BlogListItem;
 import com.oneblog.blog.dto.BlogPageResponse;
 import com.oneblog.blog.dto.MyBlogsResponse;
+import com.oneblog.blog.subscription.BlogSubscriptionRepository;
 import com.oneblog.tag.TagService;
 
 /**
@@ -34,11 +36,11 @@ public class BlogQueryService {
     private final BlogMemberRepository memberRepository;
     private final TagService tagService;
     private final BlogAccessService accessService;
-    private final com.oneblog.blog.subscription.BlogSubscriptionRepository subscriptionRepository;
+    private final BlogSubscriptionRepository subscriptionRepository;
 
     public BlogQueryService(BlogRepository blogRepository, BlogMemberRepository memberRepository,
             TagService tagService, BlogAccessService accessService,
-            com.oneblog.blog.subscription.BlogSubscriptionRepository subscriptionRepository) {
+            BlogSubscriptionRepository subscriptionRepository) {
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
         this.tagService = tagService;
@@ -75,7 +77,7 @@ public class BlogQueryService {
         }
         Map<Long, Blog> byId = new HashMap<>();
         blogRepository.findAllById(blogIds).forEach(b -> byId.put(b.getId(), b));
-        return buildItems(blogIds.stream().map(byId::get).filter(java.util.Objects::nonNull).toList());
+        return buildItems(blogIds.stream().map(byId::get).filter(Objects::nonNull).toList());
     }
 
     private List<BlogListItem> buildItems(List<Blog> blogs) {

@@ -12,16 +12,7 @@
   let badge;
   let panel;
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = text;
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
   function setBadge(count) {
     badge.textContent = count > 99 ? '99+' : String(count);

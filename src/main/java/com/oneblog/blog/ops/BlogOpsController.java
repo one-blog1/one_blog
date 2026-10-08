@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.oneblog.common.security.AuthenticatedUser;
+import com.oneblog.common.web.PageParams;
 import com.oneblog.common.web.Times;
 
 /** 블로그 운영 API: 정보 수정, 공개 범위, 멤버·부블로그장, 블로그 탈퇴, 위임, 폐쇄 (BLG-01, BLG-07~09, D-71). */
@@ -68,25 +70,25 @@ public class BlogOpsController {
     @GetMapping("/api/blogs/{slug}/member-stats")
     public BlogMemberStatsService.Page<BlogMemberStatsService.MemberStat> memberStats(
             @PathVariable("slug") String slug, @AuthenticationPrincipal AuthenticatedUser principal,
-            @org.springframework.web.bind.annotation.RequestParam(name = "page", required = false) String page,
-            @org.springframework.web.bind.annotation.RequestParam(name = "size", required = false) String size) {
-        return statsService.members(slug, principal, com.oneblog.common.web.PageParams.of(page, size));
+            @RequestParam(name = "page", required = false) String page,
+            @RequestParam(name = "size", required = false) String size) {
+        return statsService.members(slug, principal, PageParams.of(page, size));
     }
 
     @GetMapping("/api/blogs/{slug}/members/{userId}/posts")
     public BlogMemberStatsService.Page<BlogMemberStatsService.MemberPost> memberPosts(
             @PathVariable("slug") String slug, @PathVariable("userId") Long userId,
             @AuthenticationPrincipal AuthenticatedUser principal,
-            @org.springframework.web.bind.annotation.RequestParam(name = "page", required = false) String page) {
-        return statsService.posts(slug, userId, principal, com.oneblog.common.web.PageParams.of(page, "10"));
+            @RequestParam(name = "page", required = false) String page) {
+        return statsService.posts(slug, userId, principal, PageParams.of(page, "10"));
     }
 
     @GetMapping("/api/blogs/{slug}/members/{userId}/comments")
     public BlogMemberStatsService.Page<BlogMemberStatsService.MemberComment> memberComments(
             @PathVariable("slug") String slug, @PathVariable("userId") Long userId,
             @AuthenticationPrincipal AuthenticatedUser principal,
-            @org.springframework.web.bind.annotation.RequestParam(name = "page", required = false) String page) {
-        return statsService.comments(slug, userId, principal, com.oneblog.common.web.PageParams.of(page, "10"));
+            @RequestParam(name = "page", required = false) String page) {
+        return statsService.comments(slug, userId, principal, PageParams.of(page, "10"));
     }
 
     @PutMapping("/api/blogs/{slug}/members/{userId}/sub-owner")

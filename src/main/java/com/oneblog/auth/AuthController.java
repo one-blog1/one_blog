@@ -1,5 +1,8 @@
 package com.oneblog.auth;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -14,9 +17,11 @@ import com.oneblog.auth.dto.MeResponse;
 import com.oneblog.common.security.AuthCookies;
 import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.security.CookieNames;
+import com.oneblog.common.security.TurnstileVerifier;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.member.User;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
@@ -26,10 +31,10 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthCookies authCookies;
-    private final com.oneblog.common.security.TurnstileVerifier turnstile;
+    private final TurnstileVerifier turnstile;
 
     public AuthController(AuthService authService, AuthCookies authCookies,
-            com.oneblog.common.security.TurnstileVerifier turnstile) {
+            TurnstileVerifier turnstile) {
         this.authService = authService;
         this.authCookies = authCookies;
         this.turnstile = turnstile;
@@ -37,7 +42,7 @@ public class AuthController {
 
     @PostMapping("/api/auth/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response,
-            jakarta.servlet.http.HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest) {
         AuthService.LoginResult result = authService.login(request.email(), request.password(),
                 request.rememberMeOrFalse(), httpRequest.getRemoteAddr(), request.captchaToken());
         authCookies.setLoginCookies(response, result.accessToken(), result.refreshToken(), result.rememberMe());
@@ -47,7 +52,7 @@ public class AuthController {
     /** 관리자 로그인 (SEC-09, D-98). 쿠키는 회원 로그인과 같다. */
     @PostMapping("/api/auth/admin/login")
     public LoginResponse adminLogin(@RequestBody AdminLoginRequest request, HttpServletResponse response,
-            jakarta.servlet.http.HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest) {
         AuthService.LoginResult result = authService.adminLogin(request.loginId(), request.password(),
                 Boolean.TRUE.equals(request.rememberMe()), httpRequest.getRemoteAddr(), request.captchaToken());
         authCookies.setLoginCookies(response, result.accessToken(), result.refreshToken(), result.rememberMe());
@@ -87,8 +92,8 @@ public class AuthController {
 
     /** 사람 확인 설정 (SEC-13). 꺼져 있으면 enabled=false. */
     @GetMapping("/api/auth/captcha-config")
-    public java.util.Map<String, Object> captchaConfig() {
-        java.util.Map<String, Object> config = new java.util.HashMap<>();
+    public Map<String, Object> captchaConfig() {
+        Map<String, Object> config = new HashMap<>();
         config.put("enabled", turnstile.enabled());
         config.put("siteKey", turnstile.siteKey());
         return config;

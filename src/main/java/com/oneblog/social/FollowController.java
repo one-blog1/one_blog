@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.web.PageParams;
+import com.oneblog.profile.PrivacyService;
 
 /** 팔로우 API (SOC-01, SOC-02). */
 @RestController
@@ -16,9 +17,9 @@ public class FollowController {
 
     private final FollowService followService;
 
-    private final com.oneblog.profile.PrivacyService privacyService;
+    private final PrivacyService privacyService;
 
-    public FollowController(FollowService followService, com.oneblog.profile.PrivacyService privacyService) {
+    public FollowController(FollowService followService, PrivacyService privacyService) {
         this.followService = followService;
         this.privacyService = privacyService;
     }

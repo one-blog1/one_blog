@@ -15,6 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -59,7 +61,7 @@ class AccountSecurityIntegrationTest extends IntegrationTestSupport {
         loginWith(PASSWORD).andExpect(status().isLocked());
 
         // 잠금 판단은 서버(JVM) 시각으로 하므로 같은 시계로 넣는다
-        jdbc.update("UPDATE users SET locked_until = ? WHERE email = ?", java.time.LocalDateTime.now().minusSeconds(1),
+        jdbc.update("UPDATE users SET locked_until = ? WHERE email = ?", LocalDateTime.now().minusSeconds(1),
                 EMAIL);
         loginWith(PASSWORD).andExpect(status().isOk());
         assertThat(jdbc.queryForObject("SELECT failed_login_count FROM users WHERE email = ?", Integer.class, EMAIL))

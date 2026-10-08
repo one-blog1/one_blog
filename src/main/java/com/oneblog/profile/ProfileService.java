@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.oneblog.block.BlockRepository;
 import com.oneblog.blog.Blog;
 import com.oneblog.blog.BlogMemberRepository;
 import com.oneblog.blog.BlogRole;
@@ -24,10 +25,10 @@ public class ProfileService {
     private final FollowService followService;
     private final FollowRepository followRepository;
     private final BlogMemberRepository memberRepository;
-    private final com.oneblog.block.BlockRepository blockRepository;
+    private final BlockRepository blockRepository;
 
     public ProfileService(FollowService followService, FollowRepository followRepository,
-            BlogMemberRepository memberRepository, com.oneblog.block.BlockRepository blockRepository) {
+            BlogMemberRepository memberRepository, BlockRepository blockRepository) {
         this.followService = followService;
         this.followRepository = followRepository;
         this.memberRepository = memberRepository;

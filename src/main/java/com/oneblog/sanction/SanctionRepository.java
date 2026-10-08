@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** 제재 기록(sanctions) 저장소. 경고·정지·강제 퇴장·블로그장 경고 횟수를 센다 (BLG-13, ADM-07). */
 public interface SanctionRepository extends JpaRepository<Sanction, Long> {
 
     /** 이 블로그에서 이 사람이 받은 제재 수 (1년 안, 해제 안 된 것). 정지 3번(BLG-13), 블로그장 경고 3번(ADM-07). */

@@ -7,16 +7,7 @@
   const VISIBILITY_LABEL = { PUBLIC: '공개', UNLISTED: '일부 공개', PRIVATE: '비공개' };
   const ROLE_LABEL = { OWNER: '블로그장', SUB_OWNER: '부블로그장', MEMBER: '멤버' };
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = text;
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
   /** 서버가 준 slug로 블로그 주소를 만든다. */
   function blogUrl(slug) {

@@ -10,7 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.web.servlet.ResultActions;
 
 import com.jayway.jsonpath.JsonPath;
 import com.oneblog.post.PostTestSupport;
@@ -32,7 +35,7 @@ class AdminIntegrationTest extends PostTestSupport {
         admin = createAdminAndLogin("admin01");
     }
 
-    private org.springframework.test.web.servlet.ResultActions adminPost(String url, String json) throws Exception {
+    private ResultActions adminPost(String url, String json) throws Exception {
         return mvc.perform(post(url).with(csrf()).cookie(admin).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
@@ -71,8 +74,8 @@ class AdminIntegrationTest extends PostTestSupport {
                 .andExpect(status().isOk());
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Test
     void 관리자는_비공개_블로그와_글을_보고_기록이_남는다() throws Exception {

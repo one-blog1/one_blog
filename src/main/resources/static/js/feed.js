@@ -10,9 +10,7 @@
   };
   const state = { tab: 'latest', page: 1 };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function tabs() {
     return document.querySelectorAll('[data-tab]');

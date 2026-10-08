@@ -1,5 +1,6 @@
 package com.oneblog.admin;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -46,11 +47,11 @@ public class NoticeService {
         this.listeners = listeners;
     }
 
-    public record NoticeItem(Long id, String title, String authorName, java.time.OffsetDateTime createdAt) {
+    public record NoticeItem(Long id, String title, String authorName, OffsetDateTime createdAt) {
     }
 
     public record NoticeDetail(Long id, String title, String contentHtml, String authorName,
-            java.time.OffsetDateTime createdAt) {
+            OffsetDateTime createdAt) {
     }
 
     @Transactional

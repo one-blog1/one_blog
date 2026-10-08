@@ -2,6 +2,7 @@ package com.oneblog.post;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +69,7 @@ public class PostImageExtension implements PostExtension {
         for (StoredFile f : fileRepository.findByStoredNameIn(names)) {
             files.put(f.getStoredName(), f);
         }
-        Set<Long> kept = new java.util.HashSet<>();
+        Set<Long> kept = new HashSet<>();
         int order = 0;
         for (String name : names) {
             StoredFile f = files.get(name);

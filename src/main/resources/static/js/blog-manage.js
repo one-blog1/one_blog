@@ -10,20 +10,9 @@
     state.me = event.detail.id;
   });
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = text;
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
   function base() {
     return '/api/blogs/' + encodeURIComponent(state.slug);

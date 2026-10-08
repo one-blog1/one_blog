@@ -11,24 +11,16 @@
     SUSPENDED: ['이 블로그에서 정지된 상태입니다', '정지 기간이 끝나면 다시 들어올 수 있어요.']
   };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function parsePath() {
     const parts = window.location.pathname.split('/').filter(Boolean);
     return { slug: decodeURIComponent(parts[1] || ''), id: parts[3] || '' };
   }
 
-  function keyQuery() {
-    const key = new URLSearchParams(window.location.search).get('key');
-    return key ? '?key=' + encodeURIComponent(key) : '';
-  }
+  const keyQuery = window.ui.keyQuery;
 
-  function formatDateTime(iso) {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ko-KR');
-  }
+  const formatDateTime = window.ui.formatDateTime;
 
   function showNotice(data) {
     const code = data && data.code;

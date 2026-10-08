@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.web.servlet.ResultActions;
 
 import com.jayway.jsonpath.JsonPath;
 import com.oneblog.post.PostTestSupport;
@@ -40,7 +41,7 @@ class SearchFeedIntegrationTest extends PostTestSupport {
                 "{\"title\":\"제주도 여행 비밀\",\"content\":\"본문\",\"tags\":[\"맛집\"]}"));
     }
 
-    private Long idOf(org.springframework.test.web.servlet.ResultActions actions) throws Exception {
+    private Long idOf(ResultActions actions) throws Exception {
         String body = actions.andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(body, "$.id")).longValue();
     }

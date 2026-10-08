@@ -5,20 +5,9 @@
 
   const state = { tab: 'stats', q: '', page: 1 };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = String(text);
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
   function date(iso) {
     const d = new Date(iso);

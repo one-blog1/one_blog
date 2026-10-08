@@ -5,9 +5,7 @@
 
   const state = { fileId: null, remove: false };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function setError(field, text) {
     const node = document.querySelector('[data-error-for="' + field + '"]');
@@ -30,9 +28,7 @@
     message.textContent = data.message || fallback;
   }
 
-  function avatarSrc(url) {
-    return url && url.startsWith('/files/') ? url : '/images/avatar-default.svg';
-  }
+  const avatarSrc = window.ui.avatarSrc;
 
   function show(view) {
     ['account-view', 'reauth-view', 'edit-view'].forEach(id => $(id).classList.toggle('hidden', id !== view));

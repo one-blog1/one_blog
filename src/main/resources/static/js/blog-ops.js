@@ -2,9 +2,7 @@
 (function () {
   'use strict';
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   let user = null;
   let loadedBlog = null;

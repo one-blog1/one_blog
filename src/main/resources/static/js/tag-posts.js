@@ -4,9 +4,7 @@
 
   const state = { tag: '', page: 1, size: 10 };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function postHref(card) {
     return '/blog/' + encodeURIComponent(card.blogSlug) + '/posts/' + encodeURIComponent(card.id);

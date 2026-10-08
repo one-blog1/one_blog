@@ -23,7 +23,7 @@ final class PagedIds {
             MapSqlParameterSource args, PageParams params) {
         Long total = jdbc.queryForObject("SELECT COUNT(*) " + fromWhere, args, Long.class);
         long totalItems = total == null ? 0 : total;
-        int totalPages = (int) Math.max(1, (totalItems + params.size() - 1) / params.size());
+        int totalPages = params.totalPages(totalItems);
         if (params.page() > totalPages) {
             params = params.firstPage();
         }

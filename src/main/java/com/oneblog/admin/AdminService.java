@@ -1,6 +1,7 @@
 package com.oneblog.admin;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,7 +59,7 @@ public class AdminService {
     // ── 회원 (ADM-01) ─────────────────────────────────────
 
     public record UserRow(Long id, String email, String name, String nickname, String phone, String status,
-            String role, int ownedBlogs, int joinedBlogs, java.time.OffsetDateTime createdAt) {
+            String role, int ownedBlogs, int joinedBlogs, OffsetDateTime createdAt) {
     }
 
     /** 이메일·이름·닉네임으로 찾는다. 이메일·전화번호는 가려서 보여준다 (4.4). */
@@ -129,7 +130,7 @@ public class AdminService {
     // ── 블로그 (ADM-02) ───────────────────────────────────
 
     public record BlogRow(Long id, String slug, String name, String visibility, String status, boolean hidden,
-            String ownerNickname, int memberCount, long postCount, java.time.OffsetDateTime createdAt) {
+            String ownerNickname, int memberCount, long postCount, OffsetDateTime createdAt) {
     }
 
     @Transactional(readOnly = true)
@@ -163,7 +164,7 @@ public class AdminService {
     // ── 글·댓글 (ADM-03) ──────────────────────────────────
 
     public record PostRow(Long id, String blogSlug, String blogName, String title, String authorNickname,
-            String postType, boolean hidden, boolean deleted, java.time.OffsetDateTime createdAt) {
+            String postType, boolean hidden, boolean deleted, OffsetDateTime createdAt) {
     }
 
     @Transactional(readOnly = true)
@@ -208,7 +209,7 @@ public class AdminService {
 
     /** blogSlug는 관리자 화면의 "바로가기" 주소용. 메인 공지에 달린 댓글이면 null. */
     public record CommentRow(Long id, Long postId, String blogSlug, String postTitle, String content,
-            String authorNickname, boolean hidden, boolean deleted, java.time.OffsetDateTime createdAt) {
+            String authorNickname, boolean hidden, boolean deleted, OffsetDateTime createdAt) {
     }
 
     @Transactional(readOnly = true)
@@ -296,7 +297,7 @@ public class AdminService {
     // ── 활동 기록 (ADM-06) ────────────────────────────────
 
     public record ActionRow(Long id, String adminLoginId, String actionType, String targetType, Long targetId,
-            String detail, String ipAddress, java.time.OffsetDateTime createdAt) {
+            String detail, String ipAddress, OffsetDateTime createdAt) {
     }
 
     @Transactional(readOnly = true)

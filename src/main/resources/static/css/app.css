@@ -952,23 +952,6 @@ button.primary.inline-button {
   text-decoration: underline;
 }
 
-.post-thumb {
-  display: none;
-  position: absolute;
-  left: 0;
-  top: 100%;
-  z-index: 10;
-  width: 160px;
-  border: 1.5px solid var(--text);
-  border-radius: var(--radius-field);
-  background: var(--surface);
-}
-
-.post-link:hover .post-thumb,
-.post-link:focus .post-thumb {
-  display: block;
-}
-
 .badge {
   padding: 1px 8px;
   border-radius: 999px;
@@ -1442,44 +1425,6 @@ form.search-row input {
   word-break: keep-all;
 }
 
-/* 검색창: 알약 하나 안에 입력과 단추 */
-.hero-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 620px;
-  padding: 6px 6px 6px 20px;
-  border: 1.5px solid var(--text);
-  border-radius: 999px;
-  background: var(--surface);
-}
-
-.hero-search:focus-within {
-  box-shadow: 0 0 0 4px var(--sun-soft);
-}
-
-.hero-search input {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 10px 0;
-  border: none;
-  background: transparent;
-  font-size: 17px;
-}
-
-.hero-search input:focus {
-  border: none;
-  box-shadow: none;
-  outline: none;
-}
-
-.hero-search button {
-  width: auto;
-  margin: 0;
-  padding: 11px 24px;
-}
-
 .home-blogs {
   margin-top: 36px;
 }
@@ -1493,13 +1438,6 @@ form.search-row input {
     padding: 12px 0 24px;
   }
 
-  .hero-search {
-    padding-left: 16px;
-  }
-
-  .hero-search button {
-    padding: 10px 18px;
-  }
 }
 
 /* ── 상단 메뉴: 알림·닉네임·프로필 사진 (D-101) ───────── */
@@ -2493,10 +2431,6 @@ body.modal-open {
   background: #2a2f39;
 }
 
-:root[data-theme="dark"] .hero-search {
-  border-color: var(--line);
-}
-
 :root[data-theme="dark"] .modal-overlay {
   background: rgba(0, 0, 0, 0.6);
 }
@@ -2570,5 +2504,41 @@ a.user-name:hover {
     order: 3;
     flex-basis: 100%;
     max-width: none;
+  }
+}
+
+/* 글 목록: 오른쪽 사진 미리보기 */
+.post-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.post-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-item-thumb {
+  flex-shrink: 0;
+  display: block;
+  width: 112px;
+  height: 80px;
+  border-radius: var(--radius-field);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.post-item-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 600px) {
+  .post-item-thumb {
+    width: 80px;
+    height: 64px;
   }
 }

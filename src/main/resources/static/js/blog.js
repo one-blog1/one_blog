@@ -10,9 +10,7 @@
     MEMBER_SUSPENDED: ['이 블로그에서 정지되었습니다', '']
   };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function slugFromPath() {
     const parts = window.location.pathname.split('/').filter(Boolean);

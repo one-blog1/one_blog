@@ -16,18 +16,22 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.web.PageParams;
+import com.oneblog.member.UserRole;
 import com.oneblog.post.dto.PostDetailResponse;
 import com.oneblog.post.dto.PostPageResponse;
 import com.oneblog.post.dto.PostRequest;
+import com.oneblog.view.ViewCounter;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /** 블로그 글 API (specs/004-posts/plan.md "API"). */
 @RestController
 public class PostController {
 
     private final PostService postService;
-    private final com.oneblog.view.ViewCounter viewCounter;
+    private final ViewCounter viewCounter;
 
-    public PostController(PostService postService, com.oneblog.view.ViewCounter viewCounter) {
+    public PostController(PostService postService, ViewCounter viewCounter) {
         this.postService = postService;
         this.viewCounter = viewCounter;
     }
@@ -57,9 +61,9 @@ public class PostController {
     @GetMapping("/api/posts/{id}")
     public PostDetailResponse detail(@PathVariable("id") Long id,
             @RequestParam(name = "key", required = false) String key,
-            @AuthenticationPrincipal AuthenticatedUser principal, jakarta.servlet.http.HttpServletRequest request) {
+            @AuthenticationPrincipal AuthenticatedUser principal, HttpServletRequest request) {
         PostDetailResponse detail = postService.detail(id, key, principal);
-        if (principal != null && principal.role() == com.oneblog.member.UserRole.ADMIN) {
+        if (principal != null && principal.role() == UserRole.ADMIN) {
             return detail;
         }
         boolean counted = viewCounter.record(id, principal == null ? null : principal.id(), request.getRemoteAddr(),

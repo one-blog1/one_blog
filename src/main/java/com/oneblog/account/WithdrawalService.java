@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneblog.auth.RefreshTokenRepository;
+import com.oneblog.blog.Blog;
 import com.oneblog.blog.BlogMemberRepository;
 import com.oneblog.blog.BlogRole;
 import com.oneblog.blog.BlogVisibility;
@@ -59,7 +60,7 @@ public class WithdrawalService {
     public List<OwnedBlog> blockingBlogs(Long userId) {
         return memberRepository.findMyBlogs(userId).stream()
                 .filter(row -> row[1] == BlogRole.OWNER)
-                .map(row -> (com.oneblog.blog.Blog) row[0])
+                .map(row -> (Blog) row[0])
                 .map(b -> new OwnedBlog(b.getSlug(), b.getName(), b.getVisibility(), b.isClosing()))
                 .toList();
     }
@@ -81,7 +82,7 @@ public class WithdrawalService {
         }
         LocalDateTime now = LocalDateTime.now();
         for (Object[] row : memberRepository.findMyBlogs(user.getId())) {
-            com.oneblog.blog.Blog blog = (com.oneblog.blog.Blog) row[0];
+            Blog blog = (Blog) row[0];
             memberRepository.findActive(blog.getId(), user.getId())
                     .ifPresent(member -> manageService.leaveInternal(blog.getId(), member, false, now));
         }

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** 블로그 카테고리(categories) 저장소. 블로그별 목록과 순서에 쓴다 (BRD-03). */
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     @Query("select c from Category c where c.blogId = :blogId and c.deletedAt is null order by c.sortOrder asc, c.id asc")

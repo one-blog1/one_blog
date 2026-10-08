@@ -3,6 +3,7 @@ package com.oneblog.blog.ops;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -99,7 +100,7 @@ public class BlogCloseService {
             if (blog.getCloseScheduledAt() == null) {
                 continue;
             }
-            long days = java.time.temporal.ChronoUnit.DAYS.between(today, BlogClock.seoulDate(blog.getCloseScheduledAt()));
+            long days = ChronoUnit.DAYS.between(today, BlogClock.seoulDate(blog.getCloseScheduledAt()));
             if (days == 3 || days == 1) {
                 audience.notifyAll(blog, NotificationType.BLOG_CLOSING,
                         "블로그 「" + blog.getName() + "」 폐쇄까지 " + days + "일 남았어요 ("

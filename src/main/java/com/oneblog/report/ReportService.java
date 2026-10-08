@@ -1,5 +1,6 @@
 package com.oneblog.report;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -24,6 +25,7 @@ import com.oneblog.blog.BlogRepository;
 import com.oneblog.comment.Comment;
 import com.oneblog.comment.CommentRepository;
 import com.oneblog.common.security.AuthenticatedUser;
+import com.oneblog.common.security.RateLimiter;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.common.web.ErrorResponse;
 import com.oneblog.common.web.PageParams;
@@ -71,13 +73,13 @@ public class ReportService {
     private final AdminService adminService;
     private final AdminActionLogger actionLogger;
     private final NotificationService notifications;
-    private final com.oneblog.common.security.RateLimiter rateLimiter;
+    private final RateLimiter rateLimiter;
 
     public ReportService(NamedParameterJdbcTemplate jdbc, BlogAccessService accessService,
             BlogRepository blogRepository, BlogMemberRepository memberRepository, PostRepository postRepository,
             CommentRepository commentRepository, UserRepository userRepository, SanctionService sanctionService,
             OwnerSanctionService ownerSanctionService, AdminService adminService, AdminActionLogger actionLogger,
-            NotificationService notifications, com.oneblog.common.security.RateLimiter rateLimiter) {
+            NotificationService notifications, RateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
         this.jdbc = jdbc;
         this.accessService = accessService;
@@ -115,7 +117,7 @@ public class ReportService {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 신고하지 않습니다.");
         }
         // 신고를 마구 넣지 못하게 한다 (D-80)
-        rateLimiter.check("report", String.valueOf(principal.id()), 20, java.time.Duration.ofHours(1));
+        rateLimiter.check("report", String.valueOf(principal.id()), 20, Duration.ofHours(1));
         ReportReason reason = parseReason(request.reason());
         String detail = request.detail() == null ? null : request.detail().strip();
         if (detail != null && detail.codePointCount(0, detail.length()) > 500) {

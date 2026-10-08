@@ -5,9 +5,7 @@
   const state = { page: 1, size: 10, category: null };
   let blog = null;
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function keyParam() {
     return new URLSearchParams(window.location.search).get('key');

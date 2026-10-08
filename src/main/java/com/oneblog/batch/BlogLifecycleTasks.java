@@ -1,6 +1,7 @@
 package com.oneblog.batch;
 
 import java.time.LocalDateTime;
+import java.util.function.ToIntFunction;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +28,7 @@ public class BlogLifecycleTasks {
         return task(20, "폐쇄 예정 알림", closeService::remind);
     }
 
-    static DailyTask task(int order, String name, java.util.function.ToIntFunction<LocalDateTime> body) {
+    static DailyTask task(int order, String name, ToIntFunction<LocalDateTime> body) {
         return new DailyTask() {
             @Override
             public int order() {

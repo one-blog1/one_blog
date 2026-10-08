@@ -2,11 +2,17 @@ package com.oneblog.blog;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.oneblog.admin.AdminActionLogger;
 import com.oneblog.blog.subscription.BlogSubscriptionRepository;
 import com.oneblog.common.web.ApiException;
 
@@ -23,13 +29,13 @@ public class BlogAccessService {
     private final BlogMemberRepository memberRepository;
     private final BlogPolicy policy;
     private final BlogSubscriptionRepository subscriptionRepository;
-    private final org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc;
-    private final com.oneblog.admin.AdminActionLogger adminActionLogger;
+    private final NamedParameterJdbcTemplate jdbc;
+    private final AdminActionLogger adminActionLogger;
 
     public BlogAccessService(BlogRepository blogRepository, BlogMemberRepository memberRepository,
             BlogPolicy policy, BlogSubscriptionRepository subscriptionRepository,
-            org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc,
-            com.oneblog.admin.AdminActionLogger adminActionLogger) {
+            NamedParameterJdbcTemplate jdbc,
+            AdminActionLogger adminActionLogger) {
         this.adminActionLogger = adminActionLogger;
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
@@ -57,7 +63,7 @@ public class BlogAccessService {
         BlogMember membership = viewerId == null ? null : memberRepository.findActive(blog.getId(), viewerId).orElse(null);
         if (membership != null) {
             // 정지된 멤버는 정지 기간 동안 이 블로그에 들어갈 수 없고, 기간과 사유를 안내받는다 (BLG-13, D-29)
-            if (membership.isSuspended(java.time.LocalDateTime.now())) {
+            if (membership.isSuspended(LocalDateTime.now())) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "MEMBER_SUSPENDED", suspensionMessage(blog, membership));
             }
             return new Access(blog, membership.getRole());
@@ -93,13 +99,13 @@ public class BlogAccessService {
     }
 
     private String suspensionMessage(Blog blog, BlogMember membership) {
-        java.time.LocalDateTime until = membership.getSuspendedUntil();
+        LocalDateTime until = membership.getSuspendedUntil();
         String when = until.getYear() >= 9999 ? "영구히"
-                : until.format(java.time.format.DateTimeFormatter.ofPattern("yyyy년 M월 d일 H시")) + "까지";
-        java.util.List<String> reasons = jdbc.queryForList("""
+                : until.format(DateTimeFormatter.ofPattern("yyyy년 M월 d일 H시")) + "까지";
+        List<String> reasons = jdbc.queryForList("""
                 SELECT reason FROM sanctions WHERE blog_id = :blogId AND user_id = :userId AND type = 'SUSPENSION'
                 ORDER BY id DESC LIMIT 1
-                """, new org.springframework.jdbc.core.namedparam.MapSqlParameterSource()
+                """, new MapSqlParameterSource()
                 .addValue("blogId", blog.getId()).addValue("userId", membership.getUserId()), String.class);
         return "이 블로그에서 " + when + " 정지되었습니다." + (reasons.isEmpty() ? "" : " 사유: " + reasons.get(0));
     }
@@ -109,8 +115,8 @@ public class BlogAccessService {
         if (viewerId == null) {
             return false;
         }
-        java.util.List<String> roles = jdbc.queryForList("SELECT role FROM users WHERE id = :id AND status = 'ACTIVE'",
-                new org.springframework.jdbc.core.namedparam.MapSqlParameterSource("id", viewerId), String.class);
+        List<String> roles = jdbc.queryForList("SELECT role FROM users WHERE id = :id AND status = 'ACTIVE'",
+                new MapSqlParameterSource("id", viewerId), String.class);
         return !roles.isEmpty() && "ADMIN".equals(roles.get(0));
     }
 

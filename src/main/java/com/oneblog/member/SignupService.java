@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.oneblog.auth.AccessTokenService;
 import com.oneblog.auth.AccessTokenService.SignupTicket;
 import com.oneblog.common.web.ApiException;
+import com.oneblog.common.web.ErrorResponse;
 import com.oneblog.member.dto.SignupRequest;
 import com.oneblog.verification.VerificationCode;
 import com.oneblog.verification.VerificationCodeRepository;
@@ -82,7 +83,7 @@ public class SignupService {
     }
 
     private void validate(SignupRequest request, String name, String nickname, String phone) {
-        List<com.oneblog.common.web.ErrorResponse.FieldError> errors = new ArrayList<>();
+        List<ErrorResponse.FieldError> errors = new ArrayList<>();
         if (!signupPolicy.isValidPassword(request.password())) {
             errors.add(field("password", "비밀번호는 8~15자이며 영문, 숫자, 특수문자를 모두 포함해야 합니다."));
         } else if (!request.password().equals(request.passwordConfirm())) {
@@ -102,8 +103,8 @@ public class SignupService {
         }
     }
 
-    private static com.oneblog.common.web.ErrorResponse.FieldError field(String name, String message) {
-        return new com.oneblog.common.web.ErrorResponse.FieldError(name, message);
+    private static ErrorResponse.FieldError field(String name, String message) {
+        return new ErrorResponse.FieldError(name, message);
     }
 
     private static ApiException ticketInvalid() {

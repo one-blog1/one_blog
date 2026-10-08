@@ -1,6 +1,8 @@
 package com.oneblog.blog;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -10,6 +12,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** 블로그(blogs) 저장소. 주소(slug)로 찾기, 목록, 멤버 수 갱신에 쓴다 (BLG-01~02). */
 public interface BlogRepository extends JpaRepository<Blog, Long> {
 
     Optional<Blog> findBySlug(String slug);
@@ -57,19 +60,19 @@ public interface BlogRepository extends JpaRepository<Blog, Long> {
             where s.blogId = b.id and s.userId = :userId and b.status <> :closed and b.deletedAt is null
             order by s.createdAt desc, s.id desc
             """)
-    java.util.List<Object[]> findSubscribedRows(@Param("userId") Long userId, @Param("closed") BlogStatus closed);
+    List<Object[]> findSubscribedRows(@Param("userId") Long userId, @Param("closed") BlogStatus closed);
 
-    default java.util.List<Object[]> findSubscribedRows(Long userId) {
+    default List<Object[]> findSubscribedRows(Long userId) {
         return findSubscribedRows(userId, BlogStatus.CLOSED);
     }
 
-    java.util.List<Blog> findByStatus(BlogStatus status);
+    List<Blog> findByStatus(BlogStatus status);
 
     @Query("select b from Blog b where b.status = :status and b.closeScheduledAt <= :now")
-    java.util.List<Blog> findCloseDue(@Param("status") BlogStatus status, @Param("now") java.time.LocalDateTime now);
+    List<Blog> findCloseDue(@Param("status") BlogStatus status, @Param("now") LocalDateTime now);
 
     /** 폐쇄 30일이 지나 내용을 지울 블로그 (D-86). */
     @Query("select b from Blog b where b.status = :status and b.closedAt <= :before and b.deletedAt is null")
-    java.util.List<Blog> findClosedBefore(@Param("status") BlogStatus status,
-            @Param("before") java.time.LocalDateTime before);
+    List<Blog> findClosedBefore(@Param("status") BlogStatus status,
+            @Param("before") LocalDateTime before);
 }

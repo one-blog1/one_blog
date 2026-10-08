@@ -15,9 +15,7 @@
 
   const state = { tags: [], coverFileId: null };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function goLogin() {
     window.location.href = '/login.html';

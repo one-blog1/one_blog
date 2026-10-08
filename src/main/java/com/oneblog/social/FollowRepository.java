@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.oneblog.member.UserStatus;
 
+/** 팔로우(follows) 저장소. 팔로워·팔로잉 수와 팔로우 여부에 쓴다 (SOC-01). */
 public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     Optional<Follow> findByFollowerIdAndFolloweeId(Long followerId, Long followeeId);

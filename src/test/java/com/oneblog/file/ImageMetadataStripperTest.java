@@ -3,10 +3,11 @@ package com.oneblog.file;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.zip.CRC32;
-
 import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ class ImageMetadataStripperTest {
                 .isPositive();
         assertThat(cleaned.length).isEqualTo(jpeg.length - xmpSegmentLength());
         // 그림은 그대로 읽힌다
-        assertThat(ImageIO.read(new java.io.ByteArrayInputStream(cleaned))).isNotNull();
+        assertThat(ImageIO.read(new ByteArrayInputStream(cleaned))).isNotNull();
     }
 
     @Test
@@ -48,19 +49,19 @@ class ImageMetadataStripperTest {
 
         byte[] cleaned = ImageMetadataStripper.strip(ImageType.PNG, withExif);
         assertThat(cleaned).isEqualTo(png);
-        assertThat(ImageIO.read(new java.io.ByteArrayInputStream(cleaned))).isNotNull();
+        assertThat(ImageIO.read(new ByteArrayInputStream(cleaned))).isNotNull();
     }
 
     @Test
     void WebP의_EXIF_XMP_덩어리를_빼고_크기를_고친다() {
         byte[] base = TestImages.webp();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.writeBytes(java.util.Arrays.copyOfRange(base, 0, 12));
+        out.writeBytes(Arrays.copyOfRange(base, 0, 12));
         // VP8X (EXIF·XMP 표시 켜짐)
         out.writeBytes("VP8X".getBytes(StandardCharsets.US_ASCII));
         out.writeBytes(TestImages.le32(10));
         out.writeBytes(new byte[] {0x0C, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-        out.writeBytes(java.util.Arrays.copyOfRange(base, 12, base.length));
+        out.writeBytes(Arrays.copyOfRange(base, 12, base.length));
         out.writeBytes("EXIF".getBytes(StandardCharsets.US_ASCII));
         out.writeBytes(TestImages.le32(GPS_MARK.length));
         out.writeBytes(GPS_MARK);
@@ -83,11 +84,11 @@ class ImageMetadataStripperTest {
     @Test
     void 구조가_깨진_파일은_거부한다() {
         byte[] jpeg = TestImages.jpeg();
-        byte[] truncated = java.util.Arrays.copyOf(jpeg, 20);
+        byte[] truncated = Arrays.copyOf(jpeg, 20);
         assertThatThrownBy(() -> ImageMetadataStripper.strip(ImageType.JPEG, truncated))
                 .isInstanceOf(IllegalArgumentException.class);
         byte[] png = TestImages.png();
-        byte[] noEnd = java.util.Arrays.copyOf(png, png.length - 12);
+        byte[] noEnd = Arrays.copyOf(png, png.length - 12);
         assertThatThrownBy(() -> ImageMetadataStripper.strip(ImageType.PNG, noEnd))
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -160,7 +161,7 @@ class ImageMetadataStripperTest {
     }
 
     private static byte[] concat(byte[] a, byte[] b) {
-        byte[] r = java.util.Arrays.copyOf(a, a.length + b.length);
+        byte[] r = Arrays.copyOf(a, a.length + b.length);
         System.arraycopy(b, 0, r, a.length, b.length);
         return r;
     }

@@ -1,5 +1,7 @@
 package com.oneblog.notification;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -138,7 +140,7 @@ public class NotificationHooks implements CommentListener, LikeListener, FollowL
 
     /** 관리자가 댓글을 지웠을 때 (ADM-03, D-107). 바로가기는 댓글이 있던 글. */
     @Override
-    public void commentDeletedByAdmin(com.oneblog.comment.Comment comment, String reason) {
+    public void commentDeletedByAdmin(Comment comment, String reason) {
         notifications.send(comment.getUserId(), NotificationType.COMMENT_DELETED,
                 "내 댓글이 운영 정책에 따라 관리자에 의해 삭제됐어요.", null, "COMMENT_DELETED:" + comment.getId(),
                 NotificationService.Extra.of(reason == null || reason.isBlank() ? null : "사유: " + reason.strip(),
@@ -171,7 +173,7 @@ public class NotificationHooks implements CommentListener, LikeListener, FollowL
     }
 
     static String profileLink(String nickname) {
-        return "/users/" + java.net.URLEncoder.encode(nickname, java.nio.charset.StandardCharsets.UTF_8)
+        return "/users/" + URLEncoder.encode(nickname, StandardCharsets.UTF_8)
                 .replace("+", "%20");
     }
 

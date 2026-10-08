@@ -18,6 +18,11 @@ public record PageParams(int page, int size) {
                 size != null && SIZES.contains(size) ? size : DEFAULT_SIZE);
     }
 
+    /** 전체 개수로 페이지 수를 센다. 하나도 없어도 1페이지. */
+    public int totalPages(long totalItems) {
+        return (int) Math.max(1, (totalItems + size - 1) / size);
+    }
+
     public int zeroBasedPage() {
         return page - 1;
     }

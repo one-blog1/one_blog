@@ -5,9 +5,7 @@
 
   const state = { email: null, token: null };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function showTab(name) {
     const password = name === 'password';

@@ -3,9 +3,7 @@
 (function () {
   'use strict';
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   async function load() {
     const result = await window.api.get('/api/me/notification-settings', { userAction: true, redirectOnLogout: true });

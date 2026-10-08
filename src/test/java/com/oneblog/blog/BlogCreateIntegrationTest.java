@@ -12,6 +12,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+
+import com.oneblog.file.TestImages;
 
 import jakarta.servlet.http.Cookie;
 
@@ -239,10 +244,10 @@ class BlogCreateIntegrationTest extends BlogTestSupport {
     }
 
     private Long uploadPng(Cookie login) throws Exception {
-        String body = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+        String body = mvc.perform(MockMvcRequestBuilders
                         .multipart("/api/files/blog-cover")
-                        .file(new org.springframework.mock.web.MockMultipartFile("file", "cover.png", "image/png",
-                                com.oneblog.file.TestImages.png()))
+                        .file(new MockMultipartFile("file", "cover.png", "image/png",
+                                TestImages.png()))
                         .with(org.springframework.security.test.web.servlet.request
                                 .SecurityMockMvcRequestPostProcessors.csrf())
                         .cookie(login))
@@ -255,7 +260,7 @@ class BlogCreateIntegrationTest extends BlogTestSupport {
     void 블로그_주소로_들어오면_블로그_화면을_준다() throws Exception {
         mvc.perform(get("/blog/anything"))
                 .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                .andExpect(MockMvcResultMatchers
                         .forwardedUrl("/blog.html"));
     }
 }

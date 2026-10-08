@@ -1,6 +1,7 @@
 package com.oneblog.account;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +55,7 @@ public class AccountService {
 
     /** masked=true면 이메일·이름·전화번호가 가려진 값이다 (비밀번호 재확인 전, D-110). */
     public record AccountResponse(String email, String name, String nickname, String phone, String profileImageUrl,
-            String bio, java.time.OffsetDateTime createdAt, boolean masked) {
+            String bio, OffsetDateTime createdAt, boolean masked) {
     }
 
     public record ProfileUpdateRequest(String nickname, String phone, String bio, Long profileFileId,
@@ -171,7 +172,8 @@ public class AccountService {
                 .forEach(StoredFile::markDeleted);
     }
 
-    User member(AuthenticatedUser principal) {
+    /** 활동 중인 일반 회원. 관리자면 403, 탈퇴했으면 401 (D-90). */
+    public User member(AuthenticatedUser principal) {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 회원정보 화면을 쓰지 않습니다.");
         }

@@ -2,6 +2,7 @@ package com.oneblog.post;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -152,6 +153,6 @@ public class PostPageRenderer {
     }
 
     private static String urlEncode(String value) {
-        return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

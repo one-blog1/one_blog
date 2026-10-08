@@ -18,6 +18,7 @@ import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.common.web.ErrorResponse;
 import com.oneblog.common.web.Times;
+import com.oneblog.member.HiddenAuthors;
 import com.oneblog.member.UserDisplayService;
 import com.oneblog.member.UserRole;
 import com.oneblog.member.ValidationFailedException;
@@ -43,11 +44,11 @@ public class CommentService {
     private final BlogAccessService accessService;
     private final UserDisplayService userDisplay;
     private final List<CommentListener> listeners;
-    private final com.oneblog.member.HiddenAuthors hiddenAuthorsOf;
+    private final HiddenAuthors hiddenAuthorsOf;
 
     public CommentService(CommentRepository commentRepository, PostRepository postRepository, PostService postService,
             BlogAccessService accessService, UserDisplayService userDisplay, List<CommentListener> listeners,
-            com.oneblog.member.HiddenAuthors hiddenAuthorsOf) {
+            HiddenAuthors hiddenAuthorsOf) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.postService = postService;
@@ -66,7 +67,7 @@ public class CommentService {
         BlogMember member = accessService.activeMembership(blog.getId(), viewerId);
         boolean manager = member != null && member.canManagePosts();
         // 관리자는 숨긴 댓글도 본다 (D-106)
-        boolean admin = principal != null && principal.role() == com.oneblog.member.UserRole.ADMIN;
+        boolean admin = principal != null && principal.role() == UserRole.ADMIN;
 
         // 내가 차단한 회원의 댓글은 가린다. 같은 블로그 멤버면 그대로 보인다 (SOC-05, D-36)
         Set<Long> hiddenAuthors = member == null && !admin ? hiddenAuthorsOf.of(viewerId) : Set.of();

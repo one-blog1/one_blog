@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 
+/** 회원(users) 저장소. 이메일·닉네임·관리자 아이디로 찾기, 처리 중 잠금에 쓴다 (USR 전체). */
 public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);

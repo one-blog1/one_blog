@@ -7,25 +7,11 @@
   let categories = [];
   let selected = null;
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = text;
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
-  function keyQuery() {
-    const key = new URLSearchParams(window.location.search).get('key');
-    return key ? '?key=' + encodeURIComponent(key) : '';
-  }
+  const keyQuery = window.ui.keyQuery;
 
   function canManage() {
     return !!(blog && blog.permissions && blog.permissions.canManagePosts);

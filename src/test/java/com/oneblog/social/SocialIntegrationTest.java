@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 
 import com.jayway.jsonpath.JsonPath;
 import com.oneblog.blog.BlogTestSupport;
@@ -57,7 +58,7 @@ class SocialIntegrationTest extends BlogTestSupport {
                 .andExpect(jsonPath("$.showBlogs").value(true))
                 .andExpect(jsonPath("$.allowFollow").value(true));
         mvc.perform(put("/api/me/privacy").with(csrf()).cookie(bob)
-                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"showBlogs\":false,\"showFollows\":false,\"allowFollow\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.showFollows").value(false));
@@ -76,7 +77,7 @@ class SocialIntegrationTest extends BlogTestSupport {
                 .andExpect(jsonPath("$.code").value("FOLLOW_NOT_ALLOWED"));
         // 보내지 않은 항목은 그대로
         mvc.perform(put("/api/me/privacy").with(csrf()).cookie(bob)
-                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"allowFollow\":true}"))
                 .andExpect(jsonPath("$.showBlogs").value(false))
                 .andExpect(jsonPath("$.allowFollow").value(true));

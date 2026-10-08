@@ -5,9 +5,7 @@
 
   const state = { q: '', type: 'post', target: 'all', sort: 'relevance', page: 1, size: 10, loggedIn: false };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function validQuery(q) {
     const length = Array.from(q).length;

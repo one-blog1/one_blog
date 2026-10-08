@@ -15,9 +15,7 @@
   let resendTimer = null;
   let password = '';
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function setMessage(el, text, ok) {
     el.textContent = text || '';

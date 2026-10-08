@@ -5,30 +5,13 @@
 
   let post = null;
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
-  function keyQuery() {
-    const key = new URLSearchParams(window.location.search).get('key');
-    return key ? '?key=' + encodeURIComponent(key) : '';
-  }
+  const keyQuery = window.ui.keyQuery;
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = text;
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
-  function formatDateTime(iso) {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ko-KR');
-  }
+  const formatDateTime = window.ui.formatDateTime;
 
   function message(text) {
     $('comment-message').textContent = text || '';

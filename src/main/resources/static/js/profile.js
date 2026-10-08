@@ -5,13 +5,9 @@
 
   const state = { nickname: '', profile: null, listKind: null, page: 1 };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
-  function avatarSrc(url) {
-    return url && url.startsWith('/files/') ? url : '/images/avatar-default.svg';
-  }
+  const avatarSrc = window.ui.avatarSrc;
 
   function profileUrl(nickname) {
     return '/users/' + encodeURIComponent(nickname);

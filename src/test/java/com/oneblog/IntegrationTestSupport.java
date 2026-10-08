@@ -7,6 +7,9 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +17,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -57,9 +62,9 @@ public abstract class IntegrationTestSupport {
         }
         // 기능이 늘 때마다 테이블을 적지 않도록, flyway 기록을 뺀 모든 테이블을 한 연결에서 비운다.
         // 테이블 이름은 information_schema에서 읽은 값이라 사용자 입력이 섞이지 않는다.
-        jdbc.execute((org.springframework.jdbc.core.ConnectionCallback<Void>) connection -> {
+        jdbc.execute((ConnectionCallback<Void>) connection -> {
             try (var statement = connection.createStatement()) {
-                java.util.List<String> tables = new java.util.ArrayList<>();
+                List<String> tables = new ArrayList<>();
                 try (var rs = statement.executeQuery("""
                         SELECT table_name FROM information_schema.tables
                         WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'
@@ -146,7 +151,7 @@ public abstract class IntegrationTestSupport {
     }
 
     @Autowired
-    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;
 
     /** 이메일 없는 관리자 계정을 만들고(D-94) 관리자 로그인으로 쿠키를 받는다 (D-98). */
     protected Cookie createAdminAndLogin(String loginId) throws Exception {

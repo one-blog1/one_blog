@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** 글(posts) 저장소. 블로그별·카테고리별 목록, 댓글 수 갱신, 탈퇴 멤버 글 연결 끊기에 쓴다 (BRD-01~03). */
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     /** 블로그의 보이는 글 (지워지지 않고 숨기지 않은). 정렬은 Pageable로 (BRD-02). */

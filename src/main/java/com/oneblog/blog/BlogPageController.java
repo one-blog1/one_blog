@@ -3,6 +3,13 @@ package com.oneblog.blog;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import com.oneblog.post.PostPageRenderer;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 블로그 첫 화면 주소 /blog/{주소} (D-70, research R1). 항상 같은 정적 화면을 주고, 내용은 화면이 API로 채운다.
@@ -11,9 +18,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Controller
 public class BlogPageController {
 
-    private final com.oneblog.post.PostPageRenderer postPageRenderer;
+    private final PostPageRenderer postPageRenderer;
 
-    public BlogPageController(com.oneblog.post.PostPageRenderer postPageRenderer) {
+    public BlogPageController(PostPageRenderer postPageRenderer) {
         this.postPageRenderer = postPageRenderer;
     }
 
@@ -24,11 +31,11 @@ public class BlogPageController {
 
     /** 글 상세 (004). SNS 미리보기를 위해 서버가 og 태그를 채운 HTML을 준다 (BRD-07, 014). */
     @GetMapping(value = "/blog/{slug}/posts/{id}", produces = "text/html;charset=UTF-8")
-    @org.springframework.web.bind.annotation.ResponseBody
+    @ResponseBody
     public String postPage(@PathVariable("slug") String slug, @PathVariable("id") String id,
-            @org.springframework.web.bind.annotation.RequestParam(name = "key", required = false) String key,
-            jakarta.servlet.http.HttpServletRequest request) {
-        String base = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromContextPath(request)
+            @RequestParam(name = "key", required = false) String key,
+            HttpServletRequest request) {
+        String base = ServletUriComponentsBuilder.fromContextPath(request)
                 .build().toUriString();
         return postPageRenderer.render(id, key, base, request.getRequestURI());
     }

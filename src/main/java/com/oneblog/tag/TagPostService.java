@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.oneblog.common.web.PageParams;
 import com.oneblog.post.PostCardService;
 import com.oneblog.post.dto.PostCardPage;
+import com.oneblog.search.SearchFilter;
 
 /**
  * 같은 태그의 글 (BRD-04). 태그 링크는 누구나 열 수 있으므로, 전체 공개 블로그의 보이는 글만 보여준다
@@ -31,10 +32,10 @@ public class TagPostService {
     private final TagPolicy tagPolicy;
     private final TagService tagService;
     private final PostCardService cardService;
-    private final List<com.oneblog.search.SearchFilter> filters;
+    private final List<SearchFilter> filters;
 
     public TagPostService(NamedParameterJdbcTemplate jdbc, TagPolicy tagPolicy, TagService tagService,
-            PostCardService cardService, List<com.oneblog.search.SearchFilter> filters) {
+            PostCardService cardService, List<SearchFilter> filters) {
         this.jdbc = jdbc;
         this.tagPolicy = tagPolicy;
         this.tagService = tagService;
@@ -52,7 +53,7 @@ public class TagPostService {
         MapSqlParameterSource args = new MapSqlParameterSource("tagId", tagId);
         // 차단한 회원의 글을 뺀다 (013, 검색과 같은 조건)
         StringBuilder from = new StringBuilder(FROM);
-        for (com.oneblog.search.SearchFilter filter : filters) {
+        for (SearchFilter filter : filters) {
             String condition = filter.postCondition(viewerId, args);
             if (condition != null) {
                 from.append(" AND ").append(condition);
@@ -61,7 +62,7 @@ public class TagPostService {
         String fromWhere = from.toString();
         Long total = jdbc.queryForObject("SELECT COUNT(*) " + fromWhere, args, Long.class);
         long totalItems = total == null ? 0 : total;
-        int totalPages = (int) Math.max(1, (totalItems + params.size() - 1) / params.size());
+        int totalPages = params.totalPages(totalItems);
         if (params.page() > totalPages) {
             params = params.firstPage();
         }

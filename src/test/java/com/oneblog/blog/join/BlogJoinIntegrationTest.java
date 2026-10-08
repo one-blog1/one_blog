@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.oneblog.blog.BlogTestSupport;
@@ -203,7 +204,7 @@ class BlogJoinIntegrationTest extends BlogTestSupport {
         apply(alice, "open-blog").andExpect(status().isCreated());
         // 강제 퇴장은 블랙리스트에 올리고(013, BLG-11), 블랙리스트에 걸리면 다시 참여할 수 없다
         mvc.perform(post("/api/blogs/open-blog/members/" + userId("alice@example.com") + "/sanctions").with(csrf())
-                        .cookie(owner).contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .cookie(owner).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"KICK\",\"reason\":\"규칙 위반\"}"))
                 .andExpect(status().isNoContent());
         apply(alice, "open-blog")

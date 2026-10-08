@@ -1,4 +1,5 @@
-// 메인 첫 화면 (BLG-06, BRD-09, D-100)
+// 메인 첫 화면 (BLG-06, BRD-09, D-100, D-111, D-113): [내 블로그][메인 피드][참여 신청] 전환.
+// 내 블로그는 참여 중인 블로그 아이콘과 그 블로그들의 새 글, 참여 신청은 기다리는 신청 목록과 취소.
 // - 로그인한 회원: 공지 아래 [내 블로그][메인 피드]. 기본은 "내 블로그"(참여 중인 블로그를 아이콘과 이름으로)
 // - 비회원·관리자: 메인 피드만
 // 주소 /?view=feed 이면 메인 피드로 연다. 로고(/)를 누르면 늘 "내 블로그"로 돌아온다.
@@ -8,9 +9,7 @@
 
   const state = { member: false, loaded: false };
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function requestedView() {
     const q = new URLSearchParams(window.location.search);

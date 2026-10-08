@@ -1,8 +1,13 @@
 package com.oneblog.admin;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.oneblog.common.security.AuthenticatedUser;
 
@@ -23,7 +28,7 @@ public class AdminActionLogger {
 
     /** 관리자 열람 기록의 조치 종류 (D-106). */
     public static final String CONTENT_VIEW = "CONTENT_VIEW";
-    private static final java.time.Duration VIEW_LOG_WINDOW = java.time.Duration.ofMinutes(10);
+    private static final Duration VIEW_LOG_WINDOW = Duration.ofMinutes(10);
 
     /**
      * 관리자가 숨김·비공개·일부 공개 블로그나 숨긴 글을 열어 본 기록 (ADM-06, D-106).
@@ -32,14 +37,14 @@ public class AdminActionLogger {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logView(Long adminId, String targetType, Long targetId, String detail) {
-        java.time.LocalDateTime since = java.time.LocalDateTime.now().minus(VIEW_LOG_WINDOW);
+        LocalDateTime since = LocalDateTime.now().minus(VIEW_LOG_WINDOW);
         if (repository.existsByAdminIdAndActionTypeAndTargetTypeAndTargetIdAndCreatedAtAfter(adminId, CONTENT_VIEW,
                 targetType, targetId, since)) {
             return;
         }
         String ip = null;
-        if (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes()
-                instanceof org.springframework.web.context.request.ServletRequestAttributes attrs) {
+        if (RequestContextHolder.getRequestAttributes()
+                instanceof ServletRequestAttributes attrs) {
             ip = attrs.getRequest().getRemoteAddr();
         }
         repository.save(AdminAction.of(adminId, CONTENT_VIEW, targetType, targetId, detail, ip));

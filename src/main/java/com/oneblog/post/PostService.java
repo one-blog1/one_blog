@@ -13,15 +13,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.oneblog.admin.AdminActionLogger;
 import com.oneblog.blog.Blog;
 import com.oneblog.blog.BlogAccessService;
 import com.oneblog.blog.BlogMember;
+import com.oneblog.blog.BlogQueryService;
 import com.oneblog.blog.BlogRepository;
 import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.text.MarkdownRenderer;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.common.web.PageParams;
 import com.oneblog.common.web.Times;
+import com.oneblog.member.HiddenAuthors;
 import com.oneblog.member.UserDisplayService;
 import com.oneblog.member.UserRole;
 import com.oneblog.post.dto.PostDetailResponse;
@@ -49,13 +52,13 @@ public class PostService {
     private final MarkdownRenderer markdown;
     private final UserDisplayService userDisplay;
     private final List<PostExtension> extensions;
-    private final com.oneblog.member.HiddenAuthors hiddenAuthorsOf;
-    private final com.oneblog.admin.AdminActionLogger adminActionLogger;
+    private final HiddenAuthors hiddenAuthorsOf;
+    private final AdminActionLogger adminActionLogger;
 
     public PostService(PostRepository postRepository, BlogRepository blogRepository, BlogAccessService accessService,
             PostPolicy policy, MarkdownRenderer markdown, UserDisplayService userDisplay,
-            List<PostExtension> extensions, com.oneblog.member.HiddenAuthors hiddenAuthorsOf,
-            com.oneblog.admin.AdminActionLogger adminActionLogger) {
+            List<PostExtension> extensions, HiddenAuthors hiddenAuthorsOf,
+            AdminActionLogger adminActionLogger) {
         this.adminActionLogger = adminActionLogger;
         this.postRepository = postRepository;
         this.blogRepository = blogRepository;
@@ -158,7 +161,7 @@ public class PostService {
                 post.getLikeCount(), post.getCommentCount(), view.liked, Times.toOffset(post.getCreatedAt()),
                 Times.toOffset(post.getUpdatedAt()), author, canDelete && !admin, principal != null && !admin,
                 post.isHidden() ? "관리자가 숨긴 글이에요." : (access.adminView()
-                        ? com.oneblog.blog.BlogQueryService.adminViewReason(blog) : null));
+                        ? BlogQueryService.adminViewReason(blog) : null));
     }
 
     /** 블로그 글 목록: 공지(최근 5개)와 일반 글(최신순, 번호 페이지) (BRD-02, D-06, D-76). */

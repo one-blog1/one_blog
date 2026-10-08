@@ -1,23 +1,12 @@
 // 글 목록 한 줄. 블로그 화면, 카테고리·태그 목록, 검색·피드가 함께 쓴다.
+// 왼쪽은 제목·정보·태그, 첫 사진이 있으면 오른쪽에 미리보기.
 // 사용자 입력(제목·작성자·태그)은 textContent로만 넣는다 (SEC-06).
 (function () {
   'use strict';
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = text;
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
-  function formatDate(iso) {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ko-KR');
-  }
+  const formatDate = window.ui.formatDate;
 
   /**
    * @param {object} post 목록 항목
@@ -27,21 +16,14 @@
   function create(post, href, options) {
     const opts = options || {};
     const li = el('li', 'post-item');
+    const main = el('div', 'post-item-main');
     const link = el('a', 'post-link');
     link.href = href;
     if (post.notice) {
       link.append(el('span', 'badge', '공지'));
     }
     link.append(el('span', 'post-title', post.title));
-    if (post.thumbnailUrl && post.thumbnailUrl.startsWith('/files/')) {
-      // 글 제목에 마우스를 올리면 첫 사진이 보인다 (6.3 썸네일)
-      const img = el('img', 'post-thumb');
-      img.src = post.thumbnailUrl;
-      img.alt = '';
-      img.loading = 'lazy';
-      link.append(img);
-    }
-    li.append(link);
+    main.append(link);
 
     const meta = [];
     if (opts.blogName) {
@@ -58,7 +40,7 @@
     } else {
       metaLine.textContent = meta.filter(Boolean).join(' · ');
     }
-    li.append(metaLine);
+    main.append(metaLine);
     if (Array.isArray(post.tags) && post.tags.length > 0) {
       const tags = el('ul', 'tag-list');
       post.tags.forEach(t => {
@@ -68,7 +50,22 @@
         tag.append(a);
         tags.append(tag);
       });
-      li.append(tags);
+      main.append(tags);
+    }
+    li.append(main);
+    // 첫 사진이 있으면 오른쪽에 미리보기 (6.3 썸네일). 누르면 글로 간다
+    if (post.thumbnailUrl && post.thumbnailUrl.startsWith('/files/')) {
+      const thumbLink = el('a', 'post-item-thumb');
+      thumbLink.href = href;
+      thumbLink.tabIndex = -1;
+      thumbLink.setAttribute('aria-hidden', 'true');
+      const img = el('img');
+      img.src = post.thumbnailUrl;
+      img.alt = '';
+      img.loading = 'lazy';
+      thumbLink.append(img);
+      li.append(thumbLink);
+      li.classList.add('has-thumb');
     }
     return li;
   }

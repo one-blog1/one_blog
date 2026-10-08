@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -249,7 +250,7 @@ public class BlogManageService {
         return require(blog, principal, BlogMember::isOwner, "블로그장만 할 수 있습니다.");
     }
 
-    private BlogMember require(Blog blog, AuthenticatedUser principal, java.util.function.Predicate<BlogMember> check,
+    private BlogMember require(Blog blog, AuthenticatedUser principal, Predicate<BlogMember> check,
             String message) {
         BlogMember me = accessService.activeMembership(blog.getId(), principal.id());
         if (me == null || !check.test(me)) {

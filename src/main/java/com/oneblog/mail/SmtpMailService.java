@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -28,7 +29,7 @@ public class SmtpMailService implements MailService {
     private final String from;
 
     public SmtpMailService(JavaMailSender mailSender,
-            @org.springframework.beans.factory.annotation.Value("${spring.mail.username:}") String from) {
+            @Value("${spring.mail.username:}") String from) {
         this.mailSender = mailSender;
         this.from = from;
     }

@@ -1,5 +1,8 @@
 package com.oneblog.blog.subscription;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,8 +16,10 @@ import com.oneblog.blog.BlogAccessService;
 import com.oneblog.blog.BlogPolicy;
 import com.oneblog.blog.BlogRepository;
 import com.oneblog.common.security.AuthenticatedUser;
+import com.oneblog.common.security.RateLimiter;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.common.web.Times;
+import com.oneblog.like.LikeService;
 import com.oneblog.member.UserRepository;
 import com.oneblog.member.UserRole;
 
@@ -33,11 +38,11 @@ public class SubscriptionService {
     private final BlogPolicy blogPolicy;
     private final UserRepository userRepository;
     private final List<SubscriptionListener> listeners;
-    private final com.oneblog.common.security.RateLimiter rateLimiter;
+    private final RateLimiter rateLimiter;
 
     public SubscriptionService(BlogSubscriptionRepository repository, BlogRepository blogRepository,
             BlogAccessService accessService, BlogPolicy blogPolicy, UserRepository userRepository,
-            List<SubscriptionListener> listeners, com.oneblog.common.security.RateLimiter rateLimiter) {
+            List<SubscriptionListener> listeners, RateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
         this.repository = repository;
         this.blogRepository = blogRepository;
@@ -51,7 +56,7 @@ public class SubscriptionService {
     }
 
     public record SubscribedBlog(String slug, String name, String coverImageUrl, String visibility, int memberCount,
-            java.time.OffsetDateTime subscribedAt) {
+            OffsetDateTime subscribedAt) {
     }
 
     @Transactional
@@ -59,8 +64,8 @@ public class SubscriptionService {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 블로그를 구독할 수 없습니다.");
         }
-        rateLimiter.check("toggle", String.valueOf(principal.id()), com.oneblog.like.LikeService.TOGGLES_PER_MINUTE,
-                java.time.Duration.ofMinutes(1));
+        rateLimiter.check("toggle", String.valueOf(principal.id()), LikeService.TOGGLES_PER_MINUTE,
+                Duration.ofMinutes(1));
         String slug = blogPolicy.normalizeSlug(rawSlug);
         Blog blog = slug == null ? null : blogRepository.findBySlug(slug).filter(Blog::isOpen).orElse(null);
         if (blog == null) {
@@ -90,7 +95,7 @@ public class SubscriptionService {
         for (Object[] row : blogRepository.findSubscribedRows(userId)) {
             Blog blog = (Blog) row[0];
             result.add(new SubscribedBlog(blog.getSlug(), blog.getName(), blog.getCoverImageUrl(),
-                    blog.getVisibility().name(), blog.getMemberCount(), Times.toOffset((java.time.LocalDateTime) row[1])));
+                    blog.getVisibility().name(), blog.getMemberCount(), Times.toOffset((LocalDateTime) row[1])));
         }
         return result;
     }

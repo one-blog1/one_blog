@@ -5,13 +5,14 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import jakarta.servlet.http.Cookie;
 
@@ -48,7 +49,7 @@ class PostIntegrationTest extends PostTestSupport {
                 .andExpect(jsonPath("$.content").exists());
         mvc.perform(get("/blog/open-blog/posts/" + id))
                 .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                .andExpect(MockMvcResultMatchers.content()
                         .string(org.hamcrest.Matchers.containsString("id=\"post\"")));
     }
 
@@ -57,7 +58,7 @@ class PostIntegrationTest extends PostTestSupport {
         writePost(stranger, "open-blog", """
                 {"title":"남의 블로그","content":"본문"}
                 """).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("NOT_A_MEMBER"));
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/blogs/open-blog/posts")
+        mvc.perform(MockMvcRequestBuilders.post("/api/blogs/open-blog/posts")
                         .with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"a\",\"content\":\"b\"}"))
                 .andExpect(status().isUnauthorized());
         makeAdmin("stranger@example.com", "admin01");

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import jakarta.servlet.http.Cookie;
 
@@ -143,7 +144,7 @@ class BlogAccessIntegrationTest extends BlogTestSupport {
     void 블로그_화면_HTML에는_블로그_정보가_없다() throws Exception {
         mvc.perform(get("/blog/secret-blog"))
                 .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                .andExpect(MockMvcResultMatchers
                         .forwardedUrl("/blog.html"));
     }
 }

@@ -12,11 +12,11 @@ public interface NoticeRepository extends JpaRepository<Post, Long> {
 
     @Query(value = """
             select p from Post p
-            where p.postType = com.oneblog.post.PostType.MAIN_NOTICE and p.deletedAt is null and p.hidden = false
+            where p.postType = PostType.MAIN_NOTICE and p.deletedAt is null and p.hidden = false
             """,
             countQuery = """
             select count(p) from Post p
-            where p.postType = com.oneblog.post.PostType.MAIN_NOTICE and p.deletedAt is null and p.hidden = false
+            where p.postType = PostType.MAIN_NOTICE and p.deletedAt is null and p.hidden = false
             """)
     Page<Post> findMainNotices(Pageable pageable);
 }

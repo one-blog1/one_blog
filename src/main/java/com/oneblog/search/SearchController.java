@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.oneblog.blog.dto.BlogListItem;
 import com.oneblog.common.security.AuthenticatedUser;
 import com.oneblog.common.web.PageParams;
+import com.oneblog.member.UserRole;
 import com.oneblog.post.dto.PostCard;
 
 /** 통합 검색·메인 피드·최근 검색어 (BRD-08, BRD-09, BLG-03, 6.1). */
@@ -87,6 +88,6 @@ public class SearchController {
 
     /** 관리자는 검색어를 남기지 않는다. */
     private static Long viewer(AuthenticatedUser principal) {
-        return principal == null || principal.role() == com.oneblog.member.UserRole.ADMIN ? null : principal.id();
+        return principal == null || principal.role() == UserRole.ADMIN ? null : principal.id();
     }
 }

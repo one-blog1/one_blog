@@ -17,6 +17,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 
 import com.oneblog.member.ValidationFailedException;
 
+/** 모든 API 오류를 같은 모양(ErrorResponse: code, message, fieldErrors)으로 바꿔 응답한다. 예상하지 못한 오류는 내용을 숨기고 로그만 남긴다. */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

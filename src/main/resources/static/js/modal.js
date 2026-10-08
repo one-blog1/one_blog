@@ -68,16 +68,7 @@
 (function () {
   'use strict';
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = String(text);
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
   function ask(message, options, withInput) {
     const opts = options || {};

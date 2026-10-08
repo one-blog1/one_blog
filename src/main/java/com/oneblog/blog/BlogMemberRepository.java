@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** 블로그 멤버(blog_members) 저장소. 멤버십 확인, 내 블로그 목록, 블로그장 찾기에 쓴다 (BLG-04~07). */
 public interface BlogMemberRepository extends JpaRepository<BlogMember, Long> {
 
     Optional<BlogMember> findByBlogIdAndUserIdAndStatus(Long blogId, Long userId, BlogMemberStatus status);

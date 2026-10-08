@@ -3,6 +3,7 @@ package com.oneblog.blog.ops;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -104,7 +105,7 @@ public class BlogTransferService {
     /** 나에게 온 대기 중인 위임 요청 (내 블로그 화면). */
     @Transactional(readOnly = true)
     public List<TransferItem> incoming(AuthenticatedUser principal) {
-        List<TransferItem> items = new java.util.ArrayList<>();
+        List<TransferItem> items = new ArrayList<>();
         for (BlogTransferRequest r : transferRepository.findByToUserIdAndStatusOrderByCreatedAtDesc(principal.id(),
                 TransferStatus.PENDING)) {
             Blog blog = blogRepository.findById(r.getBlogId()).filter(Blog::isOpen).orElse(null);

@@ -4,6 +4,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.oneblog.common.security.AuthenticatedUser;
@@ -27,10 +29,10 @@ public class ProfileController {
         return privacyService.get(principal);
     }
 
-    @org.springframework.web.bind.annotation.PutMapping("/api/me/privacy")
+    @PutMapping("/api/me/privacy")
     @ResponseBody
     public PrivacyService.Privacy updatePrivacy(@AuthenticationPrincipal AuthenticatedUser principal,
-            @org.springframework.web.bind.annotation.RequestBody PrivacyService.Privacy request) {
+            @RequestBody PrivacyService.Privacy request) {
         return privacyService.update(principal, request);
     }
 

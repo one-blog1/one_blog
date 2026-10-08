@@ -47,7 +47,7 @@ public class BlogMemberStatsService {
     public record Page<T>(List<T> items, int page, int size, long totalItems, int totalPages) {
 
         static <T> Page<T> of(List<T> items, PageParams params, long total) {
-            int totalPages = (int) Math.max(1, (total + params.size() - 1) / params.size());
+            int totalPages = params.totalPages(total);
             return new Page<>(items, params.page(), params.size(), total, totalPages);
         }
     }

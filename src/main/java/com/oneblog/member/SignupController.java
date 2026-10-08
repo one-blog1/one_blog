@@ -1,5 +1,6 @@
 package com.oneblog.member;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
@@ -14,12 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.oneblog.common.security.AuthCookies;
 import com.oneblog.common.security.CookieNames;
+import com.oneblog.common.security.RateLimiter;
 import com.oneblog.member.dto.NicknameAvailabilityResponse;
 import com.oneblog.member.dto.SignupRequest;
 import com.oneblog.verification.EmailVerificationService;
 import com.oneblog.verification.dto.EmailCodeRequest;
 import com.oneblog.verification.dto.VerifyCodeRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
@@ -33,11 +36,11 @@ public class SignupController {
     private final NicknameService nicknameService;
     private final AuthCookies authCookies;
 
-    private final com.oneblog.common.security.RateLimiter rateLimiter;
+    private final RateLimiter rateLimiter;
 
     public SignupController(EmailVerificationService verificationService, SignupService signupService,
             NicknameService nicknameService, AuthCookies authCookies,
-            com.oneblog.common.security.RateLimiter rateLimiter) {
+            RateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
         this.verificationService = verificationService;
         this.signupService = signupService;
@@ -49,9 +52,9 @@ public class SignupController {
     @PostMapping("/email-code")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Map<String, Object> sendCode(@Valid @RequestBody EmailCodeRequest request,
-            jakarta.servlet.http.HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest) {
         // 같은 IP가 여러 이메일로 메일을 마구 보내게 하지 않는다 (D-80)
-        rateLimiter.check("signup-code", httpRequest.getRemoteAddr(), 10, java.time.Duration.ofMinutes(10));
+        rateLimiter.check("signup-code", httpRequest.getRemoteAddr(), 10, Duration.ofMinutes(10));
         verificationService.sendSignupCode(request.email());
         return Map.of(
                 "message", "인증번호를 보냈습니다.",

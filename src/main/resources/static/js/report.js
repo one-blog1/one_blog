@@ -8,16 +8,7 @@
     ['PRIVACY', '개인정보 노출'], ['ILLEGAL', '불법 정보'], ['ETC', '기타']];
   let overlay = null;
 
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) {
-      node.className = className;
-    }
-    if (text !== undefined && text !== null) {
-      node.textContent = text;
-    }
-    return node;
-  }
+  const el = window.ui.el;
 
   function keyParam() {
     return new URLSearchParams(window.location.search).get('key');

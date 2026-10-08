@@ -1,5 +1,6 @@
 package com.oneblog.member;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -187,7 +188,7 @@ public class User {
      * 로그인 실패 기록 (SEC-03, 6.7). 5번 연속 틀리면 5분 잠그고 횟수를 0으로 되돌린다.
      * @return 잠겼으면 true
      */
-    public boolean recordLoginFailure(LocalDateTime now, int maxFailures, java.time.Duration lockFor) {
+    public boolean recordLoginFailure(LocalDateTime now, int maxFailures, Duration lockFor) {
         this.failedLoginCount++;
         if (failedLoginCount >= maxFailures) {
             this.lockedUntil = now.plus(lockFor);

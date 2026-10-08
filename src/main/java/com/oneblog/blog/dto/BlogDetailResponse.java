@@ -6,6 +6,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.oneblog.blog.BlogJoinPolicy;
 import com.oneblog.blog.BlogRole;
+import com.oneblog.blog.BlogStatus;
 import com.oneblog.blog.BlogVisibility;
 
 /**
@@ -29,7 +30,7 @@ public record BlogDetailResponse(
         @JsonInclude(JsonInclude.Include.NON_NULL) Permissions permissions,
         boolean subscribed,
         long subscriberCount,
-        com.oneblog.blog.BlogStatus status,
+        BlogStatus status,
         @JsonInclude(JsonInclude.Include.NON_NULL) OffsetDateTime closeScheduledAt,
         /** 관리자라서 보이는 블로그(숨김·비공개·일부 공개)면 그 이유. 아니면 빠진다 (D-106). */
         @JsonInclude(JsonInclude.Include.NON_NULL) String adminViewReason) {

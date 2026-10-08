@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 
+/** 참여 신청(blog_join_requests) 저장소. 대기 중인 신청 찾기와 처리 중 잠금에 쓴다 (BLG-04, BLG-05). */
 public interface BlogJoinRequestRepository extends JpaRepository<BlogJoinRequest, Long> {
 
     /** 이 회원의 이 블로그 신청 중 가장 최근 것. */

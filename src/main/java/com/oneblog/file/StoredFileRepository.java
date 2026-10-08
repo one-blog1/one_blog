@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/** 올린 파일(files) 저장소. 프로필 사진·블로그 표지·글 이미지 확인과 정리에 쓴다 (BRD-04). */
 public interface StoredFileRepository extends JpaRepository<StoredFile, Long> {
 
     Optional<StoredFile> findByStoredName(String storedName);

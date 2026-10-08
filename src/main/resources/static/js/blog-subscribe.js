@@ -6,9 +6,7 @@
   let blog = null;
   let user = null;
 
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const $ = window.ui.$;
 
   function render() {
     $('subscribe-button').textContent = blog.subscribed ? '구독 중 (취소)' : '구독하기';

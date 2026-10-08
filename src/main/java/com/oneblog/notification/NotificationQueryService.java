@@ -1,5 +1,7 @@
 package com.oneblog.notification;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -88,7 +90,7 @@ public class NotificationQueryService {
         }
         Long total = jdbc.queryForObject("SELECT COUNT(*) " + where, args, Long.class);
         long totalItems = total == null ? 0 : total;
-        int totalPages = (int) Math.max(1, (totalItems + params.size() - 1) / params.size());
+        int totalPages = params.totalPages(totalItems);
         if (params.page() > totalPages) {
             params = params.firstPage();
         }
@@ -213,7 +215,7 @@ public class NotificationQueryService {
     }
 
     private static String encode(String value) {
-        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     @Transactional

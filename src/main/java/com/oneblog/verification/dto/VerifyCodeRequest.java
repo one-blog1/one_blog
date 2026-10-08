@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/** 인증번호 확인 요청 본문: 이메일과 6자리 인증번호 (USR-02). */
 public record VerifyCodeRequest(
         @NotBlank(message = "이메일을 입력해 주세요.")
         @Email(message = "이메일 형식이 올바르지 않습니다.")
