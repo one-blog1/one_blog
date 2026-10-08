@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 서버 상태 확인 (D-117, D-120). 로드밸런서·배포 도구·CI가 "서버가 요청을 받을 수 있는지" 묻는 주소.
- * DB에 SELECT 1을 보내 되면 200 {"status":"UP","version":"0.1.1"}, 안 되면 503 {"status":"DOWN",...}.
+ * DB에 SELECT 1을 보내 되면 200 {"status":"UP","version":"0.1.0"}, 안 되면 503 {"status":"DOWN",...}.
  * version은 지금 떠 있는 서비스 버전(build.gradle.kts의 version). 로그인 없이 부를 수 있고 그 밖의 내부 정보는 담지 않는다.
  */
 @RestController
