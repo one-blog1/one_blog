@@ -9,7 +9,10 @@
 #   (선택) ADMIN_LOGIN_ID, ADMIN_PASSWORD 넣으면 처음 시작할 때 관리자 계정을 만듦
 #   (선택) COOKIE_SECURE                  HTTPS를 붙인 뒤 true. 없으면 false(http에서 로그인되도록)
 #   (선택) PUBLIC_BASE_URL                SNS 미리보기에 쓸 사이트 주소
-# JWT_SECRET, CODE_PEPPER는 서버에서 처음 배포할 때 만들어 ~/one-blog/secrets.env에 두고 계속 쓴다.
+#   (선택) CODE_PEPPER, PRIVACY_HASH_PEPPER, JWT_SECRET
+#          넣으면 서버의 ~/one-blog/secrets.env 값 대신 이 값을 쓴다. 로컬과 같은 DB를 쓰는 동안에는
+#          CODE_PEPPER(와 PRIVACY_HASH_PEPPER)를 로컬 .env와 같게 둬야 블랙리스트 해시가 맞는다
+# 넣지 않으면 JWT_SECRET, CODE_PEPPER는 서버에서 처음 배포할 때 만들어 ~/one-blog/secrets.env에 두고 계속 쓴다.
 name: Deploy
 
 on:
@@ -62,6 +65,9 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           COOKIE_SECURE: ${{ secrets.COOKIE_SECURE }}
           PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
+          CODE_PEPPER: ${{ secrets.CODE_PEPPER }}
+          PRIVACY_HASH_PEPPER: ${{ secrets.PRIVACY_HASH_PEPPER }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           for name in DB_ADDRESS DB_PORT DB_NAME DB_USERNAME DB_PASSWORD; do
             [ -n "${!name}" ] || { echo "GitHub Secret $name 가 비어 있습니다."; exit 1; }
@@ -88,6 +94,12 @@ jobs:
             if [ -n "$PUBLIC_BASE_URL" ]; then
               echo "PUBLIC_BASE_URL=$PUBLIC_BASE_URL"
             fi
+            # 있으면 서버 secrets.env보다 우선 (deploy.env를 나중에 읽음)
+            for name in CODE_PEPPER PRIVACY_HASH_PEPPER JWT_SECRET; do
+              if [ -n "${!name}" ]; then
+                echo "$name=${!name}"
+              fi
+            done
           } > deploy.env
 
       - name: 서버에 올리고 실행
