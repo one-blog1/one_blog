@@ -29,6 +29,7 @@ import com.oneblog.member.ValidationFailedException;
 /**
  * 회원정보 수정 (USR-07): 닉네임·프로필 사진·전화번호·소개·비밀번호. 본인만, 이메일·이름은 못 바꾼다.
  * 비밀번호를 바꾸면 지금 기기를 뺀 다른 기기의 로그인을 모두 끝낸다 (SEC-04).
+ * 수정 전 비밀번호 재확인(D-102)은 {@link ReauthService}가 하고 컨트롤러가 검사한다.
  * 관리자 계정은 프로필이 없다 (D-90).
  */
 @Service
@@ -59,7 +60,8 @@ public class AccountService {
             Boolean removeProfileImage) {
     }
 
-    public record PasswordChangeRequest(String currentPassword, String newPassword, String newPasswordConfirm) {
+    /** 현재 비밀번호는 재확인(D-102)으로 대신하므로 받지 않는다. */
+    public record PasswordChangeRequest(String newPassword, String newPasswordConfirm) {
 
         @Override
         public String toString() {
@@ -132,11 +134,6 @@ public class AccountService {
     @Transactional
     public void changePassword(AuthenticatedUser principal, PasswordChangeRequest request) {
         User user = member(principal);
-        if (request.currentPassword() == null || !passwordEncoder.matches(request.currentPassword(),
-                user.getPasswordHash())) {
-            throw new ValidationFailedException(List.of(
-                    new ErrorResponse.FieldError("currentPassword", "현재 비밀번호가 맞지 않습니다.")));
-        }
         List<ErrorResponse.FieldError> errors = new ArrayList<>();
         if (!policy.isValidPassword(request.newPassword())) {
             errors.add(new ErrorResponse.FieldError("newPassword",
@@ -163,7 +160,7 @@ public class AccountService {
                 .forEach(StoredFile::markDeleted);
     }
 
-    private User member(AuthenticatedUser principal) {
+    User member(AuthenticatedUser principal) {
         if (principal.role() == UserRole.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "ADMIN_NOT_ALLOWED", "관리자 계정은 회원정보 화면을 쓰지 않습니다.");
         }

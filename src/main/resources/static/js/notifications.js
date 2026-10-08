@@ -88,7 +88,16 @@
     bell = el('button', 'bell link-button');
     bell.type = 'button';
     bell.setAttribute('aria-haspopup', 'dialog');
-    bell.append(el('span', null, '🔔'));
+    // 종 모양 아이콘 (글자 이모지는 기기마다 색이 달라 선으로 그린다, D-104)
+    const ns = 'http://www.w3.org/2000/svg';
+    const icon = document.createElementNS(ns, 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.setAttribute('class', 'bell-icon');
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16zM10 20.5a2 2 0 0 0 4 0');
+    icon.append(path);
+    bell.append(icon);
     badge = el('span', 'bell-badge hidden', '0');
     bell.append(badge);
     area.prepend(bell);
@@ -113,7 +122,7 @@
       }
     });
     const settings = el('a', 'link-button', '설정');
-    settings.href = '/account.html#notification-settings';
+    settings.href = '/settings.html';
     const close = el('button', 'link-button', '닫기');
     close.type = 'button';
     close.addEventListener('click', toggle);

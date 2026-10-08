@@ -1,4 +1,5 @@
-// 내 정보 수정 (USR-07): 닉네임·프로필 사진·전화번호·소개, 비밀번호.
+// 내 정보 (USR-07): 보기 → [프로필 수정] → 비밀번호 재확인(D-102) → 닉네임·프로필 사진·전화번호·소개, 비밀번호 수정.
+// 재확인은 서버가 HttpOnly 쿠키로 기억하고, 수정 API가 직접 검사한다. 화면 전환은 보기 편하라고 하는 것뿐이다.
 (function () {
   'use strict';
 
@@ -33,9 +34,32 @@
     return url && url.startsWith('/files/') ? url : '/images/avatar-default.svg';
   }
 
+  function show(view) {
+    ['account-view', 'reauth-view', 'edit-view'].forEach(id => $(id).classList.toggle('hidden', id !== view));
+    const focus = { 'reauth-view': 'reauth-password', 'edit-view': 'nickname' }[view];
+    if (focus) {
+      $(focus).focus();
+    }
+  }
+
+  function formatDate(value) {
+    const d = value ? new Date(value) : null;
+    return d && !isNaN(d) ? d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '.' : '';
+  }
+
+  function formatTime(value) {
+    const d = new Date(value);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
   function fill(account) {
     $('account-email').textContent = account.email;
     $('account-name').textContent = account.name;
+    $('view-nickname').textContent = account.nickname;
+    $('view-bio').textContent = account.bio || '소개가 아직 없어요.';
+    $('view-phone').textContent = account.phone || '';
+    $('view-created').textContent = formatDate(account.createdAt);
+    $('view-avatar').src = avatarSrc(account.profileImageUrl);
     $('nickname').value = account.nickname;
     $('phone').value = account.phone || '';
     $('bio').value = account.bio || '';
@@ -63,6 +87,48 @@
     $('profile-preview').src = avatarSrc(result.data.url);
   }
 
+  // 확인 시간이 지나 서버가 거절하면 다시 비밀번호부터
+  function needsReauth(result) {
+    if (result.status === 403 && result.data && result.data.code === 'REAUTH_REQUIRED') {
+      $('reauth-message').className = 'message error';
+      $('reauth-message').textContent = '확인한 지 10분이 지났어요. 비밀번호를 다시 넣어 주세요.';
+      show('reauth-view');
+      return true;
+    }
+    return false;
+  }
+
+  async function startEdit() {
+    const status = await window.api.get('/api/me/reauth', { userAction: true });
+    if (status.ok && status.data && status.data.verified) {
+      openEdit(status.data.expiresAt);
+      return;
+    }
+    $('reauth-form').reset();
+    $('reauth-message').textContent = '';
+    setError('password', '');
+    show('reauth-view');
+  }
+
+  function openEdit(expiresAt) {
+    $('reauth-until').textContent = expiresAt ? formatTime(expiresAt) + '까지 수정할 수 있어요.' : '';
+    show('edit-view');
+  }
+
+  async function reauth(event) {
+    event.preventDefault();
+    setError('password', '');
+    $('reauth-message').textContent = '';
+    const result = await window.api.post('/api/me/reauth', { password: $('reauth-password').value },
+      { userAction: true });
+    $('reauth-password').value = '';
+    if (!result.ok || !result.data) {
+      showErrors(result, 'reauth-message', '확인하지 못했어요.');
+      return;
+    }
+    openEdit(result.data.expiresAt);
+  }
+
   async function saveProfile(event) {
     event.preventDefault();
     clearErrors($('profile-form'));
@@ -75,6 +141,9 @@
       removeProfileImage: state.remove
     };
     const result = await window.api.put('/api/me/profile', body, { userAction: true });
+    if (needsReauth(result)) {
+      return;
+    }
     if (!result.ok || !result.data) {
       showErrors(result, 'profile-message', '저장하지 못했어요.');
       return;
@@ -91,11 +160,13 @@
     clearErrors($('password-form'));
     $('password-message').textContent = '';
     const body = {
-      currentPassword: $('current-password').value,
       newPassword: $('new-password').value,
       newPasswordConfirm: $('new-password-confirm').value
     };
     const result = await window.api.put('/api/me/password', body, { userAction: true });
+    if (needsReauth(result)) {
+      return;
+    }
     if (!result.ok) {
       showErrors(result, 'password-message', '바꾸지 못했어요.');
       return;
@@ -105,73 +176,6 @@
     $('password-message').textContent = '비밀번호를 바꿨어요. 다른 기기의 로그인은 끝났어요.';
   }
 
-  async function loadSettings() {
-    const result = await window.api.get('/api/me/notification-settings');
-    if (!result.ok || !result.data) {
-      return;
-    }
-    const box = $('notification-types');
-    box.replaceChildren();
-    result.data.items.forEach(item => {
-      const label = document.createElement('label');
-      label.className = 'checkbox';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.dataset.type = item.type;
-      input.checked = item.enabled;
-      label.append(input, document.createTextNode(' ' + item.label));
-      box.append(label);
-    });
-    $('retention').value = String(result.data.retentionDays);
-  }
-
-  async function saveSettings(event) {
-    event.preventDefault();
-    const settings = {};
-    $('notification-types').querySelectorAll('input[data-type]').forEach(i => { settings[i.dataset.type] = i.checked; });
-    const result = await window.api.put('/api/me/notification-settings',
-      { retentionDays: parseInt($('retention').value, 10), settings: settings }, { userAction: true });
-    const message = $('settings-message');
-    message.className = result.ok ? 'message ok' : 'message error';
-    message.textContent = result.ok ? '저장했어요.' : ((result.data && result.data.message) || '저장하지 못했어요.');
-  }
-
-  async function loadWithdrawal() {
-    const result = await window.api.get('/api/me/withdrawal');
-    if (!result.ok || !Array.isArray(result.data)) {
-      return;
-    }
-    const list = $('withdraw-blogs');
-    list.replaceChildren();
-    result.data.forEach(b => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = '/blog/' + encodeURIComponent(b.slug) + '/manage';
-      a.textContent = b.name + (b.closing ? ' (폐쇄 예정)' : '');
-      li.append(a);
-      list.append(li);
-    });
-    $('withdraw-blocked').classList.toggle('hidden', result.data.length === 0);
-  }
-
-  async function withdraw(event) {
-    event.preventDefault();
-    setError('password', '');
-    $('withdraw-message').textContent = '';
-    if (!window.confirm('정말 탈퇴할까요? 되돌릴 수 없어요.')) {
-      return;
-    }
-    const result = await window.api.post('/api/me/withdrawal', { password: $('withdraw-password').value },
-      { userAction: true });
-    if (!result.ok) {
-      const data = result.data || {};
-      (data.fieldErrors || []).forEach(f => setError(f.field, f.message));
-      $('withdraw-message').textContent = data.message || '탈퇴하지 못했어요.';
-      return;
-    }
-    window.location.href = '/';
-  }
-
   document.addEventListener('DOMContentLoaded', async () => {
     const result = await window.api.get('/api/me/account', { userAction: true, redirectOnLogout: true });
     if (result.status === 401) {
@@ -179,7 +183,9 @@
       return;
     }
     if (!result.ok || !result.data) {
-      $('profile-message').textContent = (result.data && result.data.message) || '정보를 불러오지 못했어요.';
+      $('account-message').className = 'message error';
+      $('account-message').textContent = (result.data && result.data.message) || '정보를 불러오지 못했어요.';
+      $('edit-start').disabled = true;
       return;
     }
     fill(result.data);
@@ -192,9 +198,14 @@
     });
     $('profile-form').addEventListener('submit', saveProfile);
     $('password-form').addEventListener('submit', changePassword);
-    $('notification-settings').addEventListener('submit', saveSettings);
-    loadSettings();
-    $('withdraw-form').addEventListener('submit', withdraw);
-    loadWithdrawal();
+    $('edit-start').addEventListener('click', startEdit);
+    $('reauth-form').addEventListener('submit', reauth);
+    $('reauth-cancel').addEventListener('click', () => show('account-view'));
+    $('edit-done').addEventListener('click', () => {
+      $('profile-message').textContent = '';
+      $('password-message').textContent = '';
+      show('account-view');
+      $('edit-start').focus();
+    });
   });
 })();

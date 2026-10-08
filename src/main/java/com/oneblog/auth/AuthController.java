@@ -97,6 +97,6 @@ public class AuthController {
     @GetMapping("/api/me")
     public MeResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
         User user = authService.getActiveUser(principal.id());
-        return new MeResponse(user.getId(), user.getNickname(), user.getRole().name());
+        return new MeResponse(user.getId(), user.getNickname(), user.getRole().name(), user.getProfileImageUrl());
     }
 }

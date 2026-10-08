@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>회원 탈퇴 - One Blog</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">One Blog</a>
+    <nav id="header-user" aria-label="회원 메뉴"></nav>
+  </header>
+  <main>
+    <section class="card" aria-labelledby="withdraw-title">
+      <h1 id="withdraw-title">회원 탈퇴</h1>
+      <ul class="withdraw-notes">
+        <li>탈퇴하면 바로 로그인할 수 없어요.</li>
+        <li>쓴 글과 댓글은 지워지지 않고 "탈퇴한 회원"으로 남아요.</li>
+        <li>이메일·이름·전화번호 같은 개인정보는 30일 뒤 지워져요.</li>
+      </ul>
+      <div id="withdraw-blocked" class="withdraw-blocked hidden">
+        <p>블로그장인 블로그가 있어 아직 탈퇴할 수 없어요. 블로그마다 위임하거나 폐쇄가 끝난 뒤에 탈퇴해 주세요.</p>
+        <ul id="withdraw-blogs"></ul>
+      </div>
+      <form id="withdraw-form" novalidate>
+        <label class="checkbox"><input id="withdraw-agree" type="checkbox"> 위 내용을 읽었고 탈퇴할게요</label>
+        <label for="withdraw-password">비밀번호 확인</label>
+        <input id="withdraw-password" type="password" autocomplete="current-password" maxlength="15">
+        <p class="message error" data-error-for="password" role="alert"></p>
+        <p id="withdraw-message" class="message error" role="alert"></p>
+        <button id="withdraw-submit" class="primary danger" type="submit" disabled>탈퇴하기</button>
+      </form>
+      <p class="footer-links"><a href="/account.html">내 정보로 돌아가기</a></p>
+    </section>
+  </main>
+  <script src="/js/api.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/withdraw.js"></script>
+</body>
+</html>

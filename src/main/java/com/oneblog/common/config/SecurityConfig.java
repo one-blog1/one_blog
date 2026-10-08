@@ -69,7 +69,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/signup.html", "/login.html",
                                 "/blog-new.html", "/my-blogs.html", "/blog.html", "/post.html", "/post-edit.html",
                                 "/admin.html", "/admin-login.html", "/notice.html", "/tag.html",
-                                "/profile.html", "/account.html", "/search.html", "/blog-manage.html", "/find-account.html",
+                                "/profile.html", "/account.html", "/settings.html", "/withdraw.html", "/search.html",
+                                "/blog-manage.html", "/find-account.html",
                                 "/css/**", "/js/**", "/images/**", "/fonts/**", "/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
                         // 블로그 첫 화면과 업로드 이미지, 블로그 목록·첫 화면 정보는 비회원도 본다.

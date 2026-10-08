@@ -29,6 +29,9 @@ public class AccessTokenService {
     public static final String CLAIM_SESSION_ID = "sid";
     public static final String TYPE_ACCESS = "ACCESS";
     public static final String TYPE_SIGNUP = "SIGNUP";
+    public static final String TYPE_REAUTH = "REAUTH";
+    /** 프로필 수정 전 비밀번호 재확인이 유효한 시간 (USR-07, D-102). */
+    public static final Duration REAUTH_TTL = Duration.ofMinutes(10);
     private static final String CLAIM_EMAIL = "email";
     private static final String CLAIM_VERIFICATION_ID = "vid";
 
@@ -62,6 +65,38 @@ public class AccessTokenService {
                 .claim(CLAIM_VERIFICATION_ID, String.valueOf(verificationId))
                 .build();
         return encode(claims);
+    }
+
+    /** 비밀번호 재확인 티켓. 회원(sub)과 로그인 행(sid)에 묶여 다른 기기에서는 쓸 수 없다 (D-102). */
+    public String issueReauthTicket(Long userId, Long sessionId) {
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject(String.valueOf(userId))
+                .issuedAt(now)
+                .expiresAt(now.plus(REAUTH_TTL))
+                .claim(CLAIM_SESSION_ID, String.valueOf(sessionId))
+                .claim(CLAIM_TYPE, TYPE_REAUTH)
+                .build();
+        return encode(claims);
+    }
+
+    /** 이 회원·이 로그인의 재확인 티켓이면 만료 시각을, 아니면 빈 값을 돌려준다. */
+    public Optional<Instant> readReauthTicket(String token, Long userId, Long sessionId) {
+        if (token == null || token.isBlank() || userId == null || sessionId == null) {
+            return Optional.empty();
+        }
+        try {
+            Jwt jwt = decoder.decode(token);
+            if (!TYPE_REAUTH.equals(jwt.getClaimAsString(CLAIM_TYPE))
+                    || !String.valueOf(userId).equals(jwt.getSubject())
+                    || !String.valueOf(sessionId).equals(jwt.getClaimAsString(CLAIM_SESSION_ID))
+                    || jwt.getExpiresAt() == null || !jwt.getExpiresAt().isAfter(Instant.now())) {
+                return Optional.empty();
+            }
+            return Optional.of(jwt.getExpiresAt());
+        } catch (JwtException e) {
+            return Optional.empty();
+        }
     }
 
     /** 서명·만료·용도를 검사하고 가입 티켓 내용을 돌려준다. 하나라도 틀리면 비어 있다. */

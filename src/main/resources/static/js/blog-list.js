@@ -14,7 +14,8 @@
   }
 
   function writeQuery() {
-    const q = new URLSearchParams({ sort: state.sort, page: String(state.page), size: String(state.size) });
+    // 블로그 둘러보기는 메인 피드 화면에 있으므로 view=feed를 함께 남긴다 (D-100)
+    const q = new URLSearchParams({ view: 'feed', sort: state.sort, page: String(state.page), size: String(state.size) });
     window.history.replaceState(null, '', '/?' + q.toString());
   }
 

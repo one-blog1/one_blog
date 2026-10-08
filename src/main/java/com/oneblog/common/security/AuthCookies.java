@@ -20,6 +20,7 @@ public class AuthCookies {
     public static final String ACCESS_PATH = "/";
     public static final String REFRESH_PATH = "/api/auth";
     public static final String SIGNUP_PATH = "/api/auth/signup";
+    public static final String REAUTH_PATH = "/api/me";
     public static final Duration SIGNUP_TICKET_TTL = Duration.ofMinutes(30);
 
     private final boolean secure;
@@ -42,6 +43,22 @@ public class AuthCookies {
     public void clearLoginCookies(HttpServletResponse response) {
         add(response, expired(CookieNames.ACCESS_TOKEN, ACCESS_PATH, "Lax"));
         add(response, expired(CookieNames.REFRESH_TOKEN, REFRESH_PATH, "Lax"));
+        clearReauthTicket(response);
+    }
+
+    /** 비밀번호 재확인 표시 (D-102): 내 정보 API에만 보내고, 다른 사이트에서 온 요청에는 붙지 않는다. */
+    public void setReauthTicket(HttpServletResponse response, String ticket) {
+        add(response, ResponseCookie.from(CookieNames.REAUTH_TICKET, ticket)
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Strict")
+                .path(REAUTH_PATH)
+                .maxAge(com.oneblog.auth.AccessTokenService.REAUTH_TTL)
+                .build());
+    }
+
+    public void clearReauthTicket(HttpServletResponse response) {
+        add(response, expired(CookieNames.REAUTH_TICKET, REAUTH_PATH, "Strict"));
     }
 
     public void setSignupTicket(HttpServletResponse response, String ticket) {

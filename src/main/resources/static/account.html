@@ -12,16 +12,44 @@
     <nav id="header-user" aria-label="회원 메뉴"></nav>
   </header>
   <main>
-    <section class="card">
-      <h1>내 정보</h1>
-      <p class="hint">이메일과 이름은 바꿀 수 없어요.</p>
+    <section id="account-view" class="card" aria-labelledby="account-title">
+      <h1 id="account-title">내 정보</h1>
+      <div class="profile-summary">
+        <img id="view-avatar" class="avatar large" src="/images/avatar-default.svg" alt="">
+        <div>
+          <p id="view-nickname" class="profile-summary-name"></p>
+          <p id="view-bio" class="profile-summary-bio"></p>
+        </div>
+      </div>
       <dl class="account-fixed">
         <dt>이메일</dt><dd id="account-email"></dd>
         <dt>이름</dt><dd id="account-name"></dd>
+        <dt>휴대전화</dt><dd id="view-phone"></dd>
+        <dt>가입일</dt><dd id="view-created"></dd>
       </dl>
+      <p id="account-message" class="message" role="status"></p>
+      <button id="edit-start" class="primary" type="button">프로필 수정</button>
+    </section>
+
+    <section id="reauth-view" class="card hidden" aria-labelledby="reauth-title">
+      <h1 id="reauth-title">비밀번호 확인</h1>
+      <p class="hint">정보를 바꾸기 전에 본인인지 한 번 더 확인해요. 확인하면 10분 동안 이 기기에서 수정할 수 있어요.</p>
+      <form id="reauth-form" novalidate>
+        <label for="reauth-password">비밀번호</label>
+        <input id="reauth-password" type="password" autocomplete="current-password" maxlength="15" required>
+        <p class="message error" data-error-for="password" role="alert"></p>
+        <p id="reauth-message" class="message" role="status"></p>
+        <button class="primary" type="submit">확인</button>
+      </form>
+      <button id="reauth-cancel" class="link-button back-link" type="button">취소</button>
+    </section>
+
+    <section id="edit-view" class="card hidden" aria-labelledby="edit-title">
+      <h1 id="edit-title">프로필 수정</h1>
+      <p id="reauth-until" class="hint"></p>
+      <p class="hint">이메일과 이름은 바꿀 수 없어요.</p>
 
       <form id="profile-form" novalidate>
-        <h2>프로필</h2>
         <div class="cover-picker">
           <img id="profile-preview" class="avatar large" src="/images/avatar-default.svg" alt="프로필 사진 미리보기">
           <div>
@@ -51,9 +79,6 @@
       <form id="password-form" novalidate>
         <h2>비밀번호 바꾸기</h2>
         <p class="hint">바꾸면 이 기기를 뺀 다른 기기에서는 모두 로그아웃돼요.</p>
-        <label for="current-password">현재 비밀번호</label>
-        <input id="current-password" type="password" autocomplete="current-password" maxlength="15" required>
-        <p class="message error" data-error-for="currentPassword" role="alert"></p>
         <label for="new-password">새 비밀번호 <span class="hint-inline">(8~15자, 영문·숫자·특수문자 모두)</span></label>
         <input id="new-password" type="password" autocomplete="new-password" maxlength="15" required>
         <p class="message error" data-error-for="newPassword" role="alert"></p>
@@ -64,33 +89,10 @@
         <button class="primary" type="submit">비밀번호 바꾸기</button>
       </form>
 
-      <form id="notification-settings" novalidate>
-        <h2>알림 설정</h2>
-        <p class="hint">끌 수 있는 알림만 보여요. 계정과 블로그 운영에 꼭 필요한 알림은 끌 수 없어요.</p>
-        <div id="notification-types"></div>
-        <label for="retention">알림 보관 기간</label>
-        <select id="retention">
-          <option value="30">30일</option>
-          <option value="7">7일</option>
-        </select>
-        <p id="settings-message" class="message" role="status"></p>
-        <button class="primary" type="submit">알림 설정 저장</button>
-      </form>
-
-      <form id="withdraw-form" novalidate>
-        <h2>회원탈퇴</h2>
-        <p class="hint">탈퇴하면 바로 로그인할 수 없고, 쓴 글은 "탈퇴한 회원"으로 남아요. 개인정보는 30일 뒤 지워져요.</p>
-        <div id="withdraw-blocked" class="hidden">
-          <p class="message error">블로그장인 블로그가 있어 탈퇴할 수 없어요. 블로그마다 위임하거나 폐쇄가 끝난 뒤에 탈퇴해 주세요.</p>
-          <ul id="withdraw-blogs"></ul>
-        </div>
-        <label for="withdraw-password">비밀번호 확인</label>
-        <input id="withdraw-password" type="password" autocomplete="current-password" maxlength="15">
-        <p class="message error" data-error-for="password" role="alert"></p>
-        <p id="withdraw-message" class="message error" role="alert"></p>
-        <button class="secondary danger-button" type="submit">탈퇴하기</button>
-      </form>
+      <button id="edit-done" class="secondary edit-done" type="button">수정 마치기</button>
     </section>
+
+    <p class="withdraw-link"><a href="/withdraw.html">회원 탈퇴</a></p>
   </main>
   <script src="/js/api.js"></script>
   <script src="/js/header.js"></script>
