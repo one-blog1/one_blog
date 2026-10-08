@@ -32,7 +32,8 @@
   function render(blog) {
     const c = window.blogCard;
     document.title = blog.name + ' - One Blog';
-    $('blog-cover').src = c.coverSrc(blog.coverImageUrl);
+    // 대표 이미지가 없으면 블로그 색과 첫 글자로 (목록 카드와 같은 색)
+    $('blog-cover').replaceChildren(c.cover(blog, 'blog-hero'));
     $('blog-name').textContent = blog.name;
 
     const meta = [c.VISIBILITY_LABEL[blog.visibility] || blog.visibility,
