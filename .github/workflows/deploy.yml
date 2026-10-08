@@ -1,5 +1,8 @@
-# 자동 배포 (D-118): main에 push(또는 PR merge)되면 CI가 돌고, CI가 성공하면 이 작업이 서버에 배포한다.
-# 1) Docker 이미지를 만든다 (태그 = 커밋 앞 7자리)
+# 자동 배포 (D-118, D-120): 버전을 올렸을 때만 배포한다.
+# main에 push(또는 PR merge) → CI 성공 → build.gradle.kts의 version(예: 0.2.0)에 해당하는 태그 v0.2.0이
+# 아직 없으면 배포하고, 배포가 성공하면 그 커밋에 태그 v0.2.0을 붙인다. 버전이 그대로면 CI만 돌고 배포하지 않는다.
+# 수동 실행(Actions → Deploy → Run workflow)은 버전과 상관없이 지금 main을 다시 배포한다(시크릿을 바꿨을 때 등).
+# 1) Docker 이미지를 만든다 (태그 = 버전-커밋 앞 7자리)
 # 2) 이미지, 배포 스크립트(scripts/deploy.sh), 환경변수 파일(deploy.env)을 SSH로 서버의 ~/one-blog/ 에 올린다
 # 3) 서버에서 deploy.sh를 실행한다: 8430 포트로 새 컨테이너 실행 → /api/health 확인 → 실패하면 바로 전 버전으로 되돌림
 # 필요한 GitHub Secrets
@@ -27,16 +30,51 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 
+permissions:
+  contents: write   # 배포 성공 후 버전 태그를 붙이기 위해
+
 jobs:
-  deploy:
+  version:
     # main push로 돈 CI가 성공했을 때만 (PR의 CI는 제외). 수동 실행(workflow_dispatch)은 언제나
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: 버전 확인
+        id: check
+        run: |
+          VERSION="$(sed -nE 's/^version = "([^"]+)".*/\1/p' build.gradle.kts)"
+          [ -n "$VERSION" ] || { echo "::error::build.gradle.kts에서 version을 읽지 못했습니다."; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "v$VERSION 태그가 이미 있지만 수동 실행이라 다시 배포합니다."
+              echo "deploy=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "::notice title=배포 안 함::버전이 $VERSION 그대로입니다 (v$VERSION 태그가 이미 있음). 배포하려면 build.gradle.kts의 version을 올리세요."
+              echo "deploy=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "새 버전 $VERSION: 배포합니다."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: version
+    if: needs.version.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      VERSION: ${{ needs.version.outputs.version }}
       REMOTE_DIR: one-blog
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +82,7 @@ jobs:
           ref: ${{ env.SHA }}
 
       - name: 이미지 태그
-        run: echo "TAG=${SHA::7}" >> "$GITHUB_ENV"
+        run: echo "TAG=$VERSION-${SHA::7}" >> "$GITHUB_ENV"
 
       - name: Docker 이미지 만들기
         run: |
@@ -128,3 +166,16 @@ jobs:
       - name: 환경변수 파일 지우기
         if: always()
         run: rm -f deploy.env
+
+      - name: 버전 태그 붙이기
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "v$VERSION 태그가 이미 있습니다."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" "$SHA" -m "One Blog $VERSION"
+          git push origin "v$VERSION"
+          echo "::notice title=배포 완료::One Blog $VERSION을 배포하고 v$VERSION 태그를 붙였습니다."
+

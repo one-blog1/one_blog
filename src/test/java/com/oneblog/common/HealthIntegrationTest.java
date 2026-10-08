@@ -1,6 +1,7 @@
 package com.oneblog.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,14 +12,16 @@ import org.junit.jupiter.api.Test;
 
 import com.oneblog.IntegrationTestSupport;
 
-/** 배포 기본 동작 (D-117): 상태 확인 주소와 서버·DB 시간대. */
+/** 배포 기본 동작 (D-117, D-120): 상태 확인 주소와 지금 버전, 서버·DB 시간대. */
 class HealthIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 상태_확인은_로그인_없이_UP() throws Exception {
         mvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+                .andExpect(jsonPath("$.status").value("UP"))
+                // build.gradle.kts의 version이 빌드 정보로 들어갔는지 (없으면 unknown이 나와 실패)
+                .andExpect(jsonPath("$.version").value(matchesPattern("\\d+\\.\\d+\\.\\d+")));
     }
 
     @Test

@@ -1,0 +1,40 @@
+# 버전 태그 직접 붙이기 (D-120). 평소에는 Deploy가 배포 성공 후 자동으로 붙이므로 쓸 일이 거의 없다.
+# 자동 배포를 도입하기 전의 버전(v0.1.0 = 0488c60)처럼, 지난 커밋에 태그를 붙여야 할 때 Actions에서 수동 실행한다.
+name: Tag version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '버전 (예: 0.1.0, 앞에 v 없이)'
+        required: true
+      sha:
+        description: '태그를 붙일 커밋 (예: 0488c60)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 태그 붙이기
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET: ${{ inputs.sha }}
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::버전 형식은 0.1.0 처럼 숫자.숫자.숫자"; exit 1; }
+          FULL="$(git rev-parse --verify "$TARGET^{commit}")" || { echo "::error::커밋 $TARGET 을 찾지 못했습니다"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "::error::v$VERSION 태그가 이미 있습니다"; exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" "$FULL" -m "One Blog $VERSION"
+          git push origin "v$VERSION"
+          echo "::notice::v$VERSION → ${FULL::7}"

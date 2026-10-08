@@ -2,20 +2,30 @@
 
 요구사항(4장 무중단 배포, 8장 D-117 등)은 문서 저장소 [one-blog1/one-blog_docs](https://github.com/one-blog1/one-blog_docs)에 있습니다.
 
-배포 방식은 **GitHub Actions → Docker 이미지 → SSH로 서버에 실행**입니다 (D-118). main에 push하거나 PR을 merge하면 자동으로 배포됩니다.
+배포 방식은 **GitHub Actions → Docker 이미지 → SSH로 서버에 실행**입니다 (D-118). **버전을 올렸을 때만 배포합니다** (D-120).
 
 ## 0. 자동 배포
 
 ```
-main에 push / PR merge
+build.gradle.kts의 version을 올려(예: 0.1.1 → 0.2.0) main에 push / PR merge
   → CI (.github/workflows/ci.yml): 테스트, jar 실행 확인, Docker 실행 확인
   → CI가 성공하면 Deploy (.github/workflows/deploy.yml)
-      1) Docker 이미지 만들기 (태그 = 커밋 앞 7자리)
+      0) 버전 확인: 태그 v0.2.0이 아직 없을 때만 배포 (버전이 그대로면 CI만 돌고 끝)
+      1) Docker 이미지 만들기 (태그 = 버전-커밋 앞 7자리)
       2) 이미지 + scripts/deploy.sh + deploy.env(Secrets로 만듦)를 SSH로 서버 ~/one-blog/ 에 올림
       3) 서버에서 scripts/deploy.sh 실행
            기존 컨테이너 정상 종료 → 새 컨테이너를 8430 포트로 실행 → /api/health 확인
            실패하면 바로 전 버전으로 되돌리고 Actions를 실패로 표시
+      4) 성공하면 그 커밋에 태그 v0.2.0을 붙임
 ```
+
+**버전 올리는 법**: `build.gradle.kts`의 `version = "..."` 한 줄만 바꿉니다. 번호 규칙과 릴리즈 노트·공지 순서는 문서 저장소 [releases/README.md](https://github.com/one-blog1/one-blog_docs/blob/main/releases/README.md)를 따릅니다.
+
+**지금 떠 있는 버전**: `curl http://<서버>:8430/api/health` → `{"status":"UP","version":"0.1.1"}`
+
+**다시 배포**(시크릿을 바꿨을 때 등): Actions → Deploy → Run workflow. 버전과 상관없이 지금 main을 다시 배포합니다.
+
+**지난 커밋에 태그 붙이기**: Actions → Tag version → 버전과 커밋을 넣고 실행 (자동 배포 전의 v0.1.0 같은 경우).
 
 CI가 실패하면 배포하지 않습니다. 수동 배포는 Actions 탭의 Deploy에서 "Run workflow"를 누릅니다.
 

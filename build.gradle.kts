@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.oneblog"
-version = "0.1.0"
+version = "0.1.1"
 
 java {
     toolchain {
@@ -43,6 +43,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+// 빌드 정보(버전·빌드 시각)를 META-INF/build-info.properties로 넣는다. /api/health가 지금 버전을 알려 줄 때 쓴다 (D-120)
+// 버전을 올리려면 위의 version만 바꾼다. main에 올리면 그 버전으로 배포되고 태그 v버전이 붙는다 (DEPLOY.md)
+springBoot {
+    buildInfo()
 }
 
 // 배포용 jar는 bootJar 하나만 만든다 (build/libs에 실행 가능한 jar 하나: one-blog.jar)
