@@ -1,5 +1,11 @@
 package com.oneblog.search;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import com.oneblog.common.web.ErrorResponse;
+import com.oneblog.member.ValidationFailedException;
 
 /**
  * 검색어 정리와 검사 (BRD-08, 6.1).
