@@ -36,5 +36,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" "$FULL" -m "One Blog $VERSION"
-          git push origin "v$VERSION"
+          if ! OUT="$(git push origin "v$VERSION" 2>&1)"; then
+            echo "::error title=태그 push 실패::$(echo "$OUT" | tr '\n' ' ' | cut -c1-500)"
+            exit 1
+          fi
           echo "::notice::v$VERSION → ${FULL::7}"
