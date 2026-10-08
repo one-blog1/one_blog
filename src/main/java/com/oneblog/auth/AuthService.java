@@ -77,25 +77,36 @@ public class AuthService {
         rateLimiter.check("login", String.valueOf(ip), LOGIN_PER_IP, LOGIN_WINDOW);
         String loginId = rawLoginId == null ? "" : rawLoginId.strip().toLowerCase(java.util.Locale.ROOT);
         User user = userRepository.findByLoginId(loginId).orElse(null);
+        // 관리자는 계정 잠금·사람 확인을 하지 않는다 (D-105). 같은 IP 요청 제한(D-80)만 남는다
         authenticate(user != null && user.getRole() == UserRole.ADMIN ? user : null, password, ip, captchaToken,
-                "아이디 또는 비밀번호가 올바르지 않습니다.");
+                "아이디 또는 비밀번호가 올바르지 않습니다.", false);
         return issue(user, rememberMe);
     }
 
     /** 사용자가 null이어도 같은 시간만큼 bcrypt를 돌려 응답 시간으로 가입 여부를 알 수 없게 한다. */
     private void authenticate(User user, String password, String ip, String captchaToken, String failMessage) {
+        authenticate(user, password, ip, captchaToken, failMessage, true);
+    }
+
+    /** lockable=false면 실패 횟수·잠금·사람 확인을 건너뛴다 (관리자, D-105). */
+    private void authenticate(User user, String password, String ip, String captchaToken, String failMessage,
+            boolean lockable) {
         LocalDateTime now = LocalDateTime.now();
-        if (user != null && user.isLocked(now)) {
+        if (lockable && user != null && user.isLocked(now)) {
             long seconds = Math.max(1, java.time.Duration.between(now, user.getLockedUntil()).toSeconds());
             throw ApiException.withRetryAfter(HttpStatus.LOCKED, "LOGIN_LOCKED",
                     "로그인을 5번 틀려 잠시 잠겼습니다. 잠시 후 다시 시도해 주세요.", seconds);
         }
-        if (user != null && user.getFailedLoginCount() >= CAPTCHA_AFTER_FAILURES && !turnstile.verify(captchaToken, ip)) {
+        if (lockable && user != null && user.getFailedLoginCount() >= CAPTCHA_AFTER_FAILURES
+                && !turnstile.verify(captchaToken, ip)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CAPTCHA_REQUIRED", "사람인지 확인해 주세요.");
         }
         boolean passwordMatches = passwordEncoder.matches(password == null ? "" : password,
                 user != null ? user.getPasswordHash() : dummyHash);
         if (user == null || !user.isActive()) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", failMessage);
+        }
+        if (!passwordMatches && !lockable) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", failMessage);
         }
         if (!passwordMatches) {

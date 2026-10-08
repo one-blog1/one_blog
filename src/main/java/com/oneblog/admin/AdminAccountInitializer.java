@@ -11,13 +11,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.oneblog.member.SignupPolicy;
 import com.oneblog.member.User;
 import com.oneblog.member.UserRepository;
 
 /**
  * ADMIN_LOGIN_ID, ADMIN_PASSWORD 환경변수가 있으면 처음 관리자 계정을 만든다 (SEC-09, D-94, D-98).
  * 이미 있으면 아무것도 하지 않는다(비밀번호를 덮어쓰지 않는다).
+ * 관리자 비밀번호에는 회원 비밀번호 규칙(SEC-02)을 적용하지 않는다 (D-105).
  */
 @Component
 public class AdminAccountInitializer implements ApplicationRunner {
@@ -29,14 +29,12 @@ public class AdminAccountInitializer implements ApplicationRunner {
     private final AdminProperties properties;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SignupPolicy signupPolicy;
 
     public AdminAccountInitializer(AdminProperties properties, UserRepository userRepository,
-            PasswordEncoder passwordEncoder, SignupPolicy signupPolicy) {
+            PasswordEncoder passwordEncoder) {
         this.properties = properties;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.signupPolicy = signupPolicy;
     }
 
     @Override
@@ -48,8 +46,8 @@ public class AdminAccountInitializer implements ApplicationRunner {
         if (loginId.isEmpty() || password == null || password.isEmpty()) {
             return;
         }
-        if (!LOGIN_ID.matcher(loginId).matches() || !signupPolicy.isValidPassword(password)) {
-            log.warn("ADMIN_LOGIN_ID(영문 소문자·숫자·_ 4~30자) 또는 ADMIN_PASSWORD(SEC-02 규칙)가 맞지 않아 관리자 계정을 만들지 않았습니다.");
+        if (!LOGIN_ID.matcher(loginId).matches()) {
+            log.warn("ADMIN_LOGIN_ID가 규칙(영문 소문자·숫자·_ 4~30자)에 맞지 않아 관리자 계정을 만들지 않았습니다.");
             return;
         }
         if (userRepository.existsByLoginId(loginId)) {

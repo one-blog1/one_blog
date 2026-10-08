@@ -49,6 +49,32 @@ class AdminIntegrationTest extends PostTestSupport {
     }
 
     @Test
+    void 관리자는_여러_번_틀려도_잠기지_않고_짧은_비밀번호도_쓸_수_있다() throws Exception {
+        for (int i = 0; i < 6; i++) {
+            mvc.perform(post("/api/auth/admin/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"loginId\":\"admin01\",\"password\":\"Wrong123!\"}"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.code").value("LOGIN_FAILED"));
+        }
+        Integer failures = jdbc.queryForObject(
+                "SELECT failed_login_count FROM users WHERE login_id = 'admin01'", Integer.class);
+        org.assertj.core.api.Assertions.assertThat(failures).isZero();
+        mvc.perform(post("/api/auth/admin/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"admin01\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isOk());
+
+        // 회원 비밀번호 규칙(SEC-02)에 안 맞는 비밀번호도 관리자는 쓸 수 있다 (D-105)
+        jdbc.update("INSERT INTO users (login_id, password_hash, role, status) VALUES ('admin02', ?, 'ADMIN', 'ACTIVE')",
+                passwordEncoder.encode("1234"));
+        mvc.perform(post("/api/auth/admin/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"loginId\":\"admin02\",\"password\":\"1234\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Test
     void 관리자_API는_관리자만() throws Exception {
         mvc.perform(get("/api/admin/users")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/admin/users").cookie(owner)).andExpect(status().isForbidden());
