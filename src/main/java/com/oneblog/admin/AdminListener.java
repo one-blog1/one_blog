@@ -7,4 +7,7 @@ public interface AdminListener {
 
     default void postDeletedByAdmin(Post post, String reason) {
     }
+
+    default void commentDeletedByAdmin(com.oneblog.comment.Comment comment, String reason) {
+    }
 }

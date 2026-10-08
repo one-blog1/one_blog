@@ -75,6 +75,29 @@ class AdminIntegrationTest extends PostTestSupport {
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Test
+    void 관리자는_비공개_블로그와_글을_보고_기록이_남는다() throws Exception {
+        createBlog(owner, "secret-blog", "PRIVATE").andExpect(status().isCreated());
+        Long secretPost = writePost(owner, "secret-blog", "비밀 글", "본문");
+        mvc.perform(get("/api/blogs/secret-blog")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/posts/" + secretPost)).andExpect(status().isForbidden());
+
+        mvc.perform(get("/api/blogs/secret-blog").cookie(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.adminViewReason").value("비공개 블로그예요."));
+        mvc.perform(get("/api/blogs/secret-blog/posts").cookie(admin)).andExpect(status().isOk());
+        mvc.perform(get("/api/posts/" + secretPost).cookie(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.adminViewReason").value("비공개 블로그예요."))
+                .andExpect(jsonPath("$.canComment").value(false));
+        // 같은 블로그를 여러 번 봐도 10분 안에는 한 번만 남는다 (ADM-06)
+        Integer views = jdbc.queryForObject("SELECT COUNT(*) FROM admin_actions WHERE action_type = 'CONTENT_VIEW'"
+                + " AND target_type = 'BLOG' AND target_id = ?", Integer.class, blogId("secret-blog"));
+        assertThat(views).isEqualTo(1);
+        // 보기만 한다: 관리자는 댓글을 쓸 수 없다
+        mvc.perform(post("/api/posts/" + secretPost + "/comments").with(csrf()).cookie(admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"관리자 댓글\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void 관리자_API는_관리자만() throws Exception {
         mvc.perform(get("/api/admin/users")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/admin/users").cookie(owner)).andExpect(status().isForbidden());
@@ -114,6 +137,9 @@ class AdminIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/blogs")).andExpect(jsonPath("$.totalItems").value(0));
         mvc.perform(get("/api/blogs/open-blog")).andExpect(status().isNotFound());
         mvc.perform(get("/api/blogs/open-blog").cookie(owner)).andExpect(status().isOk());
+        // 관리자는 숨긴 블로그도 본다 (D-106)
+        mvc.perform(get("/api/blogs/open-blog").cookie(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.adminViewReason").value("관리자가 숨긴 블로그예요."));
         adminPost("/api/admin/blogs/" + blogId + "/hide", "{\"hidden\":false}").andExpect(status().isNoContent());
         mvc.perform(get("/api/blogs/open-blog")).andExpect(status().isOk());
     }
@@ -123,6 +149,9 @@ class AdminIntegrationTest extends PostTestSupport {
         adminPost("/api/admin/posts/" + postId + "/hide", "{\"hidden\":true}").andExpect(status().isNoContent());
         mvc.perform(get("/api/posts/" + postId)).andExpect(status().isNotFound());
         mvc.perform(get("/api/blogs/open-blog/posts")).andExpect(jsonPath("$.totalItems").value(0));
+        // 관리자는 숨긴 글도 본다 (D-106)
+        mvc.perform(get("/api/posts/" + postId).cookie(admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.adminViewReason").value("관리자가 숨긴 글이에요."));
         adminPost("/api/admin/posts/" + postId + "/hide", "{\"hidden\":false}").andExpect(status().isNoContent());
         mvc.perform(get("/api/posts/" + postId)).andExpect(status().isOk());
 
@@ -142,6 +171,10 @@ class AdminIntegrationTest extends PostTestSupport {
         Long commentId = ((Number) JsonPath.read(body, "$.id")).longValue();
         adminPost("/api/admin/comments/" + commentId + "/hide", "{\"hidden\":true}").andExpect(status().isNoContent());
         mvc.perform(get("/api/posts/" + postId + "/comments")).andExpect(jsonPath("$.length()").value(0));
+        // 관리자에게는 숨긴 댓글도 보이고 숨김 표시가 붙는다 (D-106)
+        mvc.perform(get("/api/posts/" + postId + "/comments").cookie(admin))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].hidden").value(true));
         mvc.perform(get("/api/admin/comments").cookie(admin)).andExpect(jsonPath("$.items[0].hidden").value(true))
                 // 관리자 화면 "바로가기" 주소용 (/blog/{slug}/posts/{postId}#comment-{id})
                 .andExpect(jsonPath("$.items[0].blogSlug").value("open-blog"))

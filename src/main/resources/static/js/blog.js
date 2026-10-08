@@ -35,6 +35,11 @@
     // 대표 이미지가 없으면 블로그 색과 첫 글자로 (목록 카드와 같은 색)
     $('blog-cover').replaceChildren(c.cover(blog, 'blog-hero'));
     $('blog-name').textContent = blog.name;
+    // 관리자라서 보이는 내용이면 알려 준다 (D-106)
+    if (blog.adminViewReason) {
+      $('admin-view').textContent = blog.adminViewReason + ' 관리자에게만 보여요. 연 기록은 관리자 활동 기록에 남아요.';
+      $('admin-view').classList.remove('hidden');
+    }
 
     const meta = [c.VISIBILITY_LABEL[blog.visibility] || blog.visibility,
       blog.joinPolicy === 'APPROVAL' ? '승인제' : '자유 참여'];

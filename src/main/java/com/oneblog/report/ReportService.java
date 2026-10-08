@@ -351,9 +351,9 @@ public class ReportService {
                 + "processed_at = :now WHERE status = 'PENDING' AND " + sameQueue
                 + " AND target_type = :type AND target_id = :targetId", args);
         for (Long[] row : reporters) {
-            notifications.send(row[1], NotificationType.REPORT_RESULT,
-                    "신고하신 내용을 확인하고 처리했어요: " + RESULT_LABELS.getOrDefault(result, result), null,
-                    "REPORT_RESULT:" + row[0]);
+            notifications.send(row[1], NotificationType.REPORT_RESULT, "신고하신 내용을 확인하고 처리했어요.", null,
+                    "REPORT_RESULT:" + row[0], notifications.extraFor(row[0],
+                            "처리 결과: " + RESULT_LABELS.getOrDefault(result, result), null, null));
         }
     }
 

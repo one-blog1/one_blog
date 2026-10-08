@@ -30,12 +30,14 @@ public record PostDetailResponse(
         OffsetDateTime updatedAt,
         boolean canEdit,
         boolean canDelete,
-        boolean canComment) {
+        boolean canComment,
+        /** 관리자라서 보이는 글(숨긴 글, 숨김·비공개·일부 공개 블로그의 글)이면 그 이유 (D-106). */
+        @JsonInclude(JsonInclude.Include.NON_NULL) String adminViewReason) {
 
     /** 이번 요청에서 센 조회수를 더한 응답 (014). */
     public PostDetailResponse withViewCount(int count) {
         return new PostDetailResponse(id, blogSlug, blogName, title, contentHtml, content, authorId, authorName, notice,
                 categoryId, categoryName, tags, count, likeCount, commentCount, liked, createdAt, updatedAt, canEdit,
-                canDelete, canComment);
+                canDelete, canComment, adminViewReason);
     }
 }

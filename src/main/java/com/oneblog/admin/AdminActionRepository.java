@@ -7,4 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AdminActionRepository extends JpaRepository<AdminAction, Long> {
 
     Page<AdminAction> findAllByOrderByCreatedAtDescIdDesc(Pageable pageable);
+
+    boolean existsByAdminIdAndActionTypeAndTargetTypeAndTargetIdAndCreatedAtAfter(Long adminId, String actionType,
+            String targetType, Long targetId, java.time.LocalDateTime after);
 }

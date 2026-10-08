@@ -39,6 +39,13 @@ public class NotificationController {
         return Map.of("count", service.unreadCount(principal));
     }
 
+    /** 알림 자세히 보기: 사유와 바로가기 (D-107). 열면 읽음이 된다. */
+    @GetMapping("/api/notifications/{id}")
+    public NotificationQueryService.Detail detail(@PathVariable("id") Long id,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        return service.detail(principal, id);
+    }
+
     @PostMapping("/api/notifications/{id}/read")
     public ResponseEntity<Void> read(@PathVariable("id") Long id, @AuthenticationPrincipal AuthenticatedUser principal) {
         service.markRead(principal, id);

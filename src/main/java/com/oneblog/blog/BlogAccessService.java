@@ -14,6 +14,7 @@ import com.oneblog.common.web.ApiException;
  * 블로그를 볼 수 있는지 한 곳에서 판단한다 (BLG-01, SEC-07, research R7).
  * 역할은 화면이나 토큰이 아니라 요청마다 저장된 멤버십으로 확인한다 (constitution III).
  * 관리자 숨김(007), 정지(013)도 여기서 판단한다. 블랙리스트는 참여 신청에서 막는다(BlacklistService).
+ * 관리자는 숨김·비공개·일부 공개 블로그도 읽을 수 있고, 그때마다 활동 기록에 남는다 (ADM-02, ADM-06, D-106).
  */
 @Service
 public class BlogAccessService {
@@ -23,10 +24,13 @@ public class BlogAccessService {
     private final BlogPolicy policy;
     private final BlogSubscriptionRepository subscriptionRepository;
     private final org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc;
+    private final com.oneblog.admin.AdminActionLogger adminActionLogger;
 
     public BlogAccessService(BlogRepository blogRepository, BlogMemberRepository memberRepository,
             BlogPolicy policy, BlogSubscriptionRepository subscriptionRepository,
-            org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc) {
+            org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc,
+            com.oneblog.admin.AdminActionLogger adminActionLogger) {
+        this.adminActionLogger = adminActionLogger;
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
         this.policy = policy;
@@ -59,7 +63,10 @@ public class BlogAccessService {
             return new Access(blog, membership.getRole());
         }
         if (blog.isHidden()) {
-            // 관리자가 숨긴 블로그는 멤버가 아니면 없는 블로그처럼 보인다 (ADM-02)
+            // 관리자가 숨긴 블로그는 멤버가 아니면 없는 블로그처럼 보인다 (ADM-02). 관리자는 볼 수 있다 (D-106)
+            if (isAdmin(viewerId)) {
+                return adminView(blog, viewerId, "숨긴 블로그");
+            }
             throw new ApiException(HttpStatus.NOT_FOUND, "BLOG_NOT_FOUND", "블로그를 찾을 수 없습니다.");
         }
 
@@ -71,9 +78,17 @@ public class BlogAccessService {
                         || (viewerId != null && subscriptionRepository.existsByBlogIdAndUserId(blog.getId(), viewerId))) {
                     yield new Access(blog, null);
                 }
+                if (isAdmin(viewerId)) {
+                    yield adminView(blog, viewerId, "일부 공개 블로그");
+                }
                 throw new ApiException(HttpStatus.FORBIDDEN, "LINK_REQUIRED", "링크가 있어야 볼 수 있는 블로그입니다.");
             }
-            case PRIVATE -> throw new ApiException(HttpStatus.FORBIDDEN, "PRIVATE_BLOG", "비공개 블로그입니다.");
+            case PRIVATE -> {
+                if (isAdmin(viewerId)) {
+                    yield adminView(blog, viewerId, "비공개 블로그");
+                }
+                throw new ApiException(HttpStatus.FORBIDDEN, "PRIVATE_BLOG", "비공개 블로그입니다.");
+            }
         };
     }
 
@@ -87,6 +102,21 @@ public class BlogAccessService {
                 """, new org.springframework.jdbc.core.namedparam.MapSqlParameterSource()
                 .addValue("blogId", blog.getId()).addValue("userId", membership.getUserId()), String.class);
         return "이 블로그에서 " + when + " 정지되었습니다." + (reasons.isEmpty() ? "" : " 사유: " + reasons.get(0));
+    }
+
+    /** 관리자 계정인지 (볼 수 없는 경우에만 묻는다). 역할은 요청마다 DB로 확인한다 (constitution III). */
+    public boolean isAdmin(Long viewerId) {
+        if (viewerId == null) {
+            return false;
+        }
+        java.util.List<String> roles = jdbc.queryForList("SELECT role FROM users WHERE id = :id AND status = 'ACTIVE'",
+                new org.springframework.jdbc.core.namedparam.MapSqlParameterSource("id", viewerId), String.class);
+        return !roles.isEmpty() && "ADMIN".equals(roles.get(0));
+    }
+
+    private Access adminView(Blog blog, Long adminId, String what) {
+        adminActionLogger.logView(adminId, "BLOG", blog.getId(), what + " 열람: " + blog.getSlug());
+        return new Access(blog, null, true);
     }
 
     /** 길이와 내용을 함께, 시간 차이 없이 비교한다 (research R6). */
@@ -106,7 +136,12 @@ public class BlogAccessService {
         return memberRepository.findActive(blogId, userId).orElse(null);
     }
 
-    public record Access(Blog blog, BlogRole myRole) {
+    /** adminView: 관리자라서 볼 수 있는 경우(숨김·비공개·일부 공개) (D-106). */
+    public record Access(Blog blog, BlogRole myRole, boolean adminView) {
+
+        public Access(Blog blog, BlogRole myRole) {
+            this(blog, myRole, false);
+        }
 
         public boolean isMember() {
             return myRole != null;

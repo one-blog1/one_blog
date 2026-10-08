@@ -45,6 +45,11 @@
     $('blog-link').href = blogUrl;
     $('category-name').textContent = post.categoryName ? '› ' + post.categoryName : '';
     $('post-title').textContent = (post.notice ? '[공지] ' : '') + post.title;
+    // 관리자라서 보이는 내용이면 알려 준다 (D-106)
+    if (post.adminViewReason) {
+      $('admin-view').textContent = post.adminViewReason + ' 관리자에게만 보여요. 연 기록은 관리자 활동 기록에 남아요.';
+      $('admin-view').classList.remove('hidden');
+    }
     const meta = [post.authorName, formatDateTime(post.createdAt)];
     if (post.updatedAt && post.updatedAt !== post.createdAt) {
       meta.push('수정 ' + formatDateTime(post.updatedAt));

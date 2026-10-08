@@ -1895,3 +1895,22 @@ button.secondary.edit-done {
 .comment.comment-target:focus {
   outline: none;
 }
+
+/* 관리자 열람 안내 (D-106) */
+.admin-view {
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border: 1.5px dashed var(--text);
+  border-radius: var(--radius-field);
+  font-size: 14px;
+}
+
+.badge.muted {
+  margin-left: 6px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.comment.is-hidden .comment-body {
+  color: var(--muted);
+}

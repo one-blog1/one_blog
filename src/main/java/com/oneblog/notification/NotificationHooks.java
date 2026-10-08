@@ -131,9 +131,18 @@ public class NotificationHooks implements CommentListener, LikeListener, FollowL
             return;
         }
         notifications.send(post.getUserId(), NotificationType.POST_DELETED,
-                "내 글 「" + post.getTitle() + "」이 운영 정책에 따라 관리자에 의해 삭제됐어요."
-                        + (reason == null || reason.isBlank() ? "" : " 사유: " + reason.strip()),
-                null, "POST_DELETED:" + post.getId());
+                "내 글 「" + post.getTitle() + "」이 운영 정책에 따라 관리자에 의해 삭제됐어요.",
+                null, "POST_DELETED:" + post.getId(), NotificationService.Extra.of(
+                        reason == null || reason.isBlank() ? null : "사유: " + reason.strip(), "POST", post.getId()));
+    }
+
+    /** 관리자가 댓글을 지웠을 때 (ADM-03, D-107). 바로가기는 댓글이 있던 글. */
+    @Override
+    public void commentDeletedByAdmin(com.oneblog.comment.Comment comment, String reason) {
+        notifications.send(comment.getUserId(), NotificationType.COMMENT_DELETED,
+                "내 댓글이 운영 정책에 따라 관리자에 의해 삭제됐어요.", null, "COMMENT_DELETED:" + comment.getId(),
+                NotificationService.Extra.of(reason == null || reason.isBlank() ? null : "사유: " + reason.strip(),
+                        "COMMENT", comment.getId()));
     }
 
     /** 블로그장·부블로그장이 남의 글을 지웠을 때 (3.6 "내 글 삭제됨"). 작성자가 직접 지운 것은 알리지 않는다. */

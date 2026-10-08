@@ -19,5 +19,7 @@ public record CommentResponse(
         OffsetDateTime createdAt,
         boolean canEdit,
         boolean canDelete,
-        List<CommentResponse> replies) {
+        List<CommentResponse> replies,
+        /** 관리자가 숨긴 댓글. 관리자에게만 보이고 그때만 true (D-106). */
+        boolean hidden) {
 }

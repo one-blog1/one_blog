@@ -62,6 +62,11 @@
       if (c.edited) {
         head.append(el('span', 'comment-edited', ' (수정됨)'));
       }
+      // 관리자에게만 오는 숨긴 댓글 (D-106)
+      if (c.hidden) {
+        li.classList.add('is-hidden');
+        head.append(el('span', 'badge muted', '숨긴 댓글'));
+      }
       li.append(head);
       const body = el('p', 'comment-body');
       if (c.replyToNickname) {

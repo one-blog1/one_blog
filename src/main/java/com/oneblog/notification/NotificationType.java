@@ -19,6 +19,7 @@ public enum NotificationType {
     BLOG_PRIVATE("BLOG", false, "비공개 전환"),
     BLACKLIST_RESULT("BLOG", false, "블랙리스트 해제 문의 결과"),
     POST_DELETED("OPERATION", false, "내 글 삭제됨"),
+    COMMENT_DELETED("OPERATION", false, "내 댓글 삭제됨"),
     REPORT_RESULT("OPERATION", true, "신고 처리 결과"),
     SANCTION("OPERATION", false, "경고·정지·강제 퇴장"),
     OWNER_SANCTION("OPERATION", false, "블로그장 경고·권한 박탈"),

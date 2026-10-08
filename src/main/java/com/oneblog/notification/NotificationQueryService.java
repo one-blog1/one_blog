@@ -49,6 +49,20 @@ public class NotificationQueryService {
             OffsetDateTime createdAt) {
     }
 
+    /**
+     * 알림 자세히 보기 (3.6, D-107). linkUrl이 없으면 linkUnavailable에 이유가 있을 수 있다(글이 지워짐 등).
+     * linkLabel은 바로가기 단추 글자.
+     */
+    public record Detail(Long id, String type, String typeLabel, String tab, String message, String detail,
+            String linkUrl, String linkLabel, String linkUnavailable, boolean read, OffsetDateTime createdAt) {
+    }
+
+    /** 바로가기 계산 결과 (주소 또는 갈 수 없는 이유). */
+    record Link(String url, String label, String unavailable) {
+
+        static final Link NONE = new Link(null, null, null);
+    }
+
     public record Page(List<Item> items, String tab, long unreadCount, int page, int size, long totalItems,
             int totalPages) {
     }
@@ -110,6 +124,96 @@ public class NotificationQueryService {
                 throw new ApiException(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다.");
             }
         }
+    }
+
+    /** 알림 하나를 자세히 본다. 열면 읽음으로 바꾼다 (D-107). */
+    @Transactional
+    public Detail detail(AuthenticatedUser principal, Long id) {
+        Long userId = member(principal);
+        MapSqlParameterSource args = new MapSqlParameterSource().addValue("userId", userId).addValue("id", id);
+        List<Detail> rows = jdbc.query("SELECT n.id, n.type, n.tab, n.message, n.detail, n.link_url, n.target_type,"
+                + " n.target_id, n.is_read, n.created_at " + MINE + " AND n.id = :id", args, (rs, i) -> {
+                    long rawTargetId = rs.getLong(8);
+                    Long targetId = rs.wasNull() ? null : rawTargetId;
+                    Link link = link(rs.getString(7), targetId, rs.getString(6));
+                    String type = rs.getString(2);
+                    String typeLabel;
+                    try {
+                        typeLabel = NotificationType.valueOf(type).label();
+                    } catch (IllegalArgumentException e) {
+                        typeLabel = type;
+                    }
+                    return new Detail(rs.getLong(1), type, typeLabel, rs.getString(3), rs.getString(4),
+                            rs.getString(5), link.url(), link.label(), link.unavailable(), true,
+                            Times.toOffset(rs.getTimestamp(10).toLocalDateTime()));
+                });
+        if (rows.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "알림을 찾을 수 없습니다.");
+        }
+        jdbc.update("UPDATE notifications SET is_read = 1, read_at = CURRENT_TIMESTAMP(6)"
+                + " WHERE id = :id AND user_id = :userId AND is_read = 0", args);
+        return rows.get(0);
+    }
+
+    /**
+     * 바로가기 주소. 대상이 있으면 지금 상태로 계산하고(지운 글이면 없음), 없으면 보낼 때 정한 주소.
+     * 댓글은 지워졌더라도 그 댓글이 달린 글이 남아 있으면 글의 그 위치로 간다.
+     */
+    Link link(String targetType, Long targetId, String linkUrl) {
+        Link fallback = linkUrl == null ? Link.NONE : new Link(linkUrl, "바로가기", null);
+        if (targetType == null || targetId == null) {
+            return fallback;
+        }
+        MapSqlParameterSource args = new MapSqlParameterSource("id", targetId);
+        switch (targetType) {
+            case "COMMENT" -> {
+                List<Link> links = jdbc.query("SELECT c.id, c.deleted_at IS NOT NULL, p.id, p.deleted_at IS NOT NULL,"
+                        + " b.slug, b.status FROM comments c JOIN posts p ON p.id = c.post_id"
+                        + " LEFT JOIN blogs b ON b.id = p.blog_id WHERE c.id = :id", args, (rs, i) -> {
+                            if (rs.getBoolean(4) || rs.getString(5) == null || "CLOSED".equals(rs.getString(6))) {
+                                return new Link(null, null, "댓글이 달린 글이 삭제돼서 바로 갈 수 없어요.");
+                            }
+                            String post = postUrl(rs.getString(5), rs.getLong(3));
+                            return rs.getBoolean(2) ? new Link(post, "댓글이 있던 글로 가기", null)
+                                    : new Link(post + "#comment-" + rs.getLong(1), "댓글 위치로 가기", null);
+                        });
+                return links.isEmpty() ? new Link(null, null, "댓글을 찾을 수 없어요.") : links.get(0);
+            }
+            case "POST" -> {
+                List<Link> links = jdbc.query("SELECT p.id, p.deleted_at IS NOT NULL, b.slug, b.status"
+                        + " FROM posts p LEFT JOIN blogs b ON b.id = p.blog_id WHERE p.id = :id", args, (rs, i) -> {
+                            if (rs.getBoolean(2)) {
+                                return new Link(null, null, "글이 삭제돼서 바로 갈 수 없어요.");
+                            }
+                            if (rs.getString(3) == null) {
+                                return new Link("/notice.html?id=" + rs.getLong(1), "공지로 가기", null);
+                            }
+                            if ("CLOSED".equals(rs.getString(4))) {
+                                return new Link(null, null, "블로그가 폐쇄돼서 바로 갈 수 없어요.");
+                            }
+                            return new Link(postUrl(rs.getString(3), rs.getLong(1)), "글로 가기", null);
+                        });
+                return links.isEmpty() ? new Link(null, null, "글을 찾을 수 없어요.") : links.get(0);
+            }
+            case "BLOG" -> {
+                List<Link> links = jdbc.query("SELECT slug, status, deleted_at IS NOT NULL FROM blogs WHERE id = :id",
+                        args, (rs, i) -> "CLOSED".equals(rs.getString(2)) || rs.getBoolean(3)
+                                ? new Link(null, null, "블로그가 폐쇄돼서 바로 갈 수 없어요.")
+                                : new Link("/blog/" + encode(rs.getString(1)), "블로그로 가기", null));
+                return links.isEmpty() ? fallback : links.get(0);
+            }
+            default -> {
+                return fallback;
+            }
+        }
+    }
+
+    private static String postUrl(String slug, long postId) {
+        return "/blog/" + encode(slug) + "/posts/" + postId;
+    }
+
+    private static String encode(String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     @Transactional

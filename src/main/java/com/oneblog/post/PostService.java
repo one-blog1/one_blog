@@ -50,10 +50,13 @@ public class PostService {
     private final UserDisplayService userDisplay;
     private final List<PostExtension> extensions;
     private final com.oneblog.member.HiddenAuthors hiddenAuthorsOf;
+    private final com.oneblog.admin.AdminActionLogger adminActionLogger;
 
     public PostService(PostRepository postRepository, BlogRepository blogRepository, BlogAccessService accessService,
             PostPolicy policy, MarkdownRenderer markdown, UserDisplayService userDisplay,
-            List<PostExtension> extensions, com.oneblog.member.HiddenAuthors hiddenAuthorsOf) {
+            List<PostExtension> extensions, com.oneblog.member.HiddenAuthors hiddenAuthorsOf,
+            com.oneblog.admin.AdminActionLogger adminActionLogger) {
+        this.adminActionLogger = adminActionLogger;
         this.postRepository = postRepository;
         this.blogRepository = blogRepository;
         this.accessService = accessService;
@@ -135,10 +138,10 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PostDetailResponse detail(Long postId, String key, AuthenticatedUser principal) {
-        Post post = findBlogPost(postId);
+        Post post = findBlogPostFor(postId, principal);
         Blog blog = blogOf(post);
         Long viewerId = principal == null ? null : principal.id();
-        accessService.check(blog, key, viewerId);
+        BlogAccessService.Access access = accessService.check(blog, key, viewerId);
         boolean author = principal != null && isActiveAuthor(post, blog, principal);
         BlogMember member = accessService.activeMembership(blog.getId(), viewerId);
         boolean admin = principal != null && principal.role() == UserRole.ADMIN;
@@ -153,7 +156,9 @@ public class PostService {
                 UserDisplayService.authorName(names, post.getUserId(), post.isAuthorDetached()), post.isNotice(),
                 post.getCategoryId(), view.categoryName, view.tags, post.getViewCount() + view.extraViews,
                 post.getLikeCount(), post.getCommentCount(), view.liked, Times.toOffset(post.getCreatedAt()),
-                Times.toOffset(post.getUpdatedAt()), author, canDelete && !admin, principal != null && !admin);
+                Times.toOffset(post.getUpdatedAt()), author, canDelete && !admin, principal != null && !admin,
+                post.isHidden() ? "관리자가 숨긴 글이에요." : (access.adminView()
+                        ? com.oneblog.blog.BlogQueryService.adminViewReason(blog) : null));
     }
 
     /** 블로그 글 목록: 공지(최근 5개)와 일반 글(최신순, 번호 페이지) (BRD-02, D-06, D-76). */
@@ -215,6 +220,20 @@ public class PostService {
     }
 
     /** 블로그 글(블로그 공지 포함)만. 지워졌거나 숨긴 글, 메인 공지는 여기서 404. */
+    /**
+     * 보는 사람 기준으로 글을 찾는다. 관리자는 숨긴 글도 볼 수 있고 활동 기록에 남는다 (ADM-03, ADM-06, D-106).
+     * 지운 글은 관리자에게도 없다.
+     */
+    public Post findBlogPostFor(Long postId, AuthenticatedUser principal) {
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post != null && post.getBlogId() != null && !post.isDeleted() && post.isHidden()
+                && principal != null && principal.role() == UserRole.ADMIN) {
+            adminActionLogger.logView(principal.id(), "POST", post.getId(), "숨긴 글 열람");
+            return post;
+        }
+        return findBlogPost(postId);
+    }
+
     public Post findBlogPost(Long postId) {
         Post post = postRepository.findById(postId).orElse(null);
         if (post == null || !post.isVisible() || post.getBlogId() == null) {

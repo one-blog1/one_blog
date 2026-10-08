@@ -59,17 +59,19 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public List<CommentResponse> list(Long postId, String key, AuthenticatedUser principal) {
-        Post post = postService.findBlogPost(postId);
+        Post post = postService.findBlogPostFor(postId, principal);
         Blog blog = postService.blogOf(post);
         Long viewerId = principal == null ? null : principal.id();
         accessService.check(blog, key, viewerId);
         BlogMember member = accessService.activeMembership(blog.getId(), viewerId);
         boolean manager = member != null && member.canManagePosts();
+        // 관리자는 숨긴 댓글도 본다 (D-106)
+        boolean admin = principal != null && principal.role() == com.oneblog.member.UserRole.ADMIN;
 
         // 내가 차단한 회원의 댓글은 가린다. 같은 블로그 멤버면 그대로 보인다 (SOC-05, D-36)
-        Set<Long> hiddenAuthors = member == null ? hiddenAuthorsOf.of(viewerId) : Set.of();
+        Set<Long> hiddenAuthors = member == null && !admin ? hiddenAuthorsOf.of(viewerId) : Set.of();
         List<Comment> all = commentRepository.findByPost(postId).stream()
-                .filter(c -> !c.isHidden() && !hiddenAuthors.contains(c.getUserId())).toList();
+                .filter(c -> (admin || !c.isHidden()) && !hiddenAuthors.contains(c.getUserId())).toList();
         Set<Long> userIds = new HashSet<>();
         for (Comment c : all) {
             userIds.add(c.getUserId());
@@ -185,6 +187,6 @@ public class CommentService {
                 c.getReplyToUserId() == null ? null
                         : names.getOrDefault(c.getReplyToUserId(), UserDisplayService.WITHDRAWN_MEMBER),
                 deleted ? null : c.getContent(), c.isEdited(), deleted, Times.toOffset(c.getCreatedAt()),
-                !deleted && mine, !deleted && (mine || manager), replies);
+                !deleted && mine, !deleted && (mine || manager), replies, c.isHidden());
     }
 }
