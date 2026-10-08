@@ -12,5 +12,5 @@
 - [X] T008 [P] 화면 `blog.html` 참여 영역·신청 목록, `js/blog-join.js`, `api.js`에 put·delete
 - [X] T009 테스트 `BlogJoinIntegrationTest` (자유 참여, 승인·거절·취소, 7일, 권한, 비공개·일부 공개, 되살리기, 강제 퇴장, 관리자)
 - [X] T010 `IntegrationTestSupport`가 모든 테이블을 비우도록 바꿈 (기능이 늘어도 테스트 정리 코드를 고치지 않게)
-- [ ] T011 `./gradlew test` 통과 확인 (Mac 연결 후)
+- [X] T011 `./gradlew test` 통과 (182개, 2026-10-08)
 - [ ] T012 `v0.3.0` 태그 (테스트 통과·push 승인 후)
