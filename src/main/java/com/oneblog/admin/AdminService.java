@@ -247,6 +247,9 @@ public class AdminService {
         comment.delete();
         postRepository.addCommentCount(comment.getPostId(), -1);
         actionLogger.log(admin, "COMMENT_DELETE", "COMMENT", commentId, reason, request);
+        for (AdminListener listener : listeners) {
+            listener.commentDeletedByAdmin(comment, reason);
+        }
     }
 
     // ── 통계 (ADM-05) ─────────────────────────────────────

@@ -30,7 +30,9 @@ public record BlogDetailResponse(
         boolean subscribed,
         long subscriberCount,
         com.oneblog.blog.BlogStatus status,
-        @JsonInclude(JsonInclude.Include.NON_NULL) OffsetDateTime closeScheduledAt) {
+        @JsonInclude(JsonInclude.Include.NON_NULL) OffsetDateTime closeScheduledAt,
+        /** 관리자라서 보이는 블로그(숨김·비공개·일부 공개)면 그 이유. 아니면 빠진다 (D-106). */
+        @JsonInclude(JsonInclude.Include.NON_NULL) String adminViewReason) {
 
     /** 블로그장은 모두 true, 부블로그장은 받은 권한만 (2장, D-71). */
     public record Permissions(boolean canEditInfo, boolean canManageMembers, boolean canManagePosts) {

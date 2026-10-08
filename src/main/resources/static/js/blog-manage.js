@@ -82,7 +82,7 @@
     document.querySelectorAll('#info-form [data-error-for]').forEach(n => { n.textContent = ''; });
     const tags = $('tags').value.split(',').map(t => t.trim()).filter(Boolean);
     const result = await window.api.put(base() + '/info', {
-      name: $('name').value.trim(), description: $('description').value, coverFileId: state.coverFileId,
+      description: $('description').value, coverFileId: state.coverFileId,
       removeCover: state.removeCover, tags: tags
     }, { userAction: true });
     if (!result.ok) {
@@ -147,6 +147,10 @@
     const owner = state.blog.myRole === 'OWNER';
     const rows = $('member-rows');
     rows.replaceChildren();
+    // 블로그장 말고 멤버가 없으면 표 대신 빈 안내만
+    const others = result.data.filter(m => m.role !== 'OWNER');
+    $('members-table').classList.toggle('hidden', others.length === 0);
+    $('members-empty').classList.toggle('hidden', others.length > 0);
     result.data.forEach(m => {
       const tr = el('tr');
       [m.nickname, m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));

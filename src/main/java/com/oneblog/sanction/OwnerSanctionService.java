@@ -72,7 +72,8 @@ public class OwnerSanctionService {
         actionLogger.log(admin, "OWNER_WARNING", "BLOG", blogId, reason, request);
         long warnings = sanctionRepository.countSince(blogId, ownerId, SanctionType.OWNER_WARNING, now.minusYears(1));
         notifications.send(ownerId, NotificationType.OWNER_SANCTION, "블로그 「" + blog.getName()
-                + "」 운영에 대해 관리자 경고를 받았어요 (" + warnings + "/" + OWNER_WARNING_LIMIT + "). 사유: " + reason, null, null);
+                + "」 운영에 대해 관리자 경고를 받았어요 (" + warnings + "/" + OWNER_WARNING_LIMIT + ").", null, null,
+                notifications.extraFor(reportId, "사유: " + reason, "BLOG", blog.getId()));
         if (warnings >= OWNER_WARNING_LIMIT) {
             return revoke(blog, ownerId, "경고 " + OWNER_WARNING_LIMIT + "회 누적", reportId, admin, request, now);
         }
@@ -98,7 +99,8 @@ public class OwnerSanctionService {
         memberRepository.saveAndFlush(owner);
         actionLogger.log(admin, "OWNER_REVOKE", "BLOG", blog.getId(), reason, request);
         notifications.send(ownerId, NotificationType.OWNER_SANCTION, "블로그 「" + blog.getName()
-                + "」의 블로그장 권한이 박탈됐어요. 이제 일반 멤버예요. 사유: " + reason, null, null);
+                + "」의 블로그장 권한이 박탈됐어요. 이제 일반 멤버예요.", null, null,
+                notifications.extraFor(reportId, "사유: " + reason, "BLOG", blog.getId()));
 
         BlogMember successor = memberRepository.findSubOwners(blog.getId()).stream()
                 .filter(m -> m.getSubOwnerSince() != null)
@@ -130,7 +132,8 @@ public class OwnerSanctionService {
         actionLogger.log(admin, "BLOG_FORCE_CLOSE", "BLOG", blogId, reason, request);
         Long ownerId = memberRepository.findOwnerId(blogId);
         notifications.send(ownerId, NotificationType.OWNER_SANCTION, "블로그 「" + blog.getName()
-                + "」이 운영 정책에 따라 7일 뒤 폐쇄돼요. 사유: " + reason, null, null);
+                + "」이 운영 정책에 따라 7일 뒤 폐쇄돼요.", null, null,
+                NotificationService.Extra.of("사유: " + reason, "BLOG", blog.getId()));
     }
 
     private Blog openBlog(Long blogId) {

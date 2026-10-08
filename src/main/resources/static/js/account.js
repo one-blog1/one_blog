@@ -52,6 +52,7 @@
     return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
+  // 내 정보 화면: 서버가 가린 값 그대로 (이메일·이름·전화번호)
   function fill(account) {
     $('account-email').textContent = account.email;
     $('account-name').textContent = account.name;
@@ -60,6 +61,10 @@
     $('view-phone').textContent = account.phone || '';
     $('view-created').textContent = formatDate(account.createdAt);
     $('view-avatar').src = avatarSrc(account.profileImageUrl);
+  }
+
+  // 수정 화면: 비밀번호 재확인 뒤 받은 가리지 않은 값
+  function fillForm(account) {
     $('nickname').value = account.nickname;
     $('phone').value = account.phone || '';
     $('bio').value = account.bio || '';
@@ -110,9 +115,26 @@
     show('reauth-view');
   }
 
-  function openEdit(expiresAt) {
+  // 수정 화면에서만 가리지 않은 값을 받아 채운다. 내 정보 화면은 늘 가린 값 (D-110)
+  async function openEdit(expiresAt) {
+    const result = await window.api.get('/api/me/account?full=true', { userAction: true });
+    if (!result.ok || !result.data || result.data.masked) {
+      $('reauth-message').className = 'message error';
+      $('reauth-message').textContent = '비밀번호를 다시 넣어 주세요.';
+      show('reauth-view');
+      return;
+    }
+    fillForm(result.data);
     $('reauth-until').textContent = expiresAt ? formatTime(expiresAt) + '까지 수정할 수 있어요.' : '';
     show('edit-view');
+  }
+
+  async function backToAccount() {
+    const result = await window.api.get('/api/me/account', { userAction: true });
+    if (result.ok && result.data) {
+      fill(result.data);
+    }
+    show('account-view');
   }
 
   async function reauth(event) {
@@ -150,7 +172,7 @@
     }
     state.fileId = null;
     state.remove = false;
-    fill(result.data);
+    fillForm(result.data);
     $('profile-message').className = 'message ok';
     $('profile-message').textContent = '저장했어요.';
   }
@@ -204,8 +226,7 @@
     $('edit-done').addEventListener('click', () => {
       $('profile-message').textContent = '';
       $('password-message').textContent = '';
-      show('account-view');
-      $('edit-start').focus();
+      backToAccount().then(() => $('edit-start').focus());
     });
   });
 })();

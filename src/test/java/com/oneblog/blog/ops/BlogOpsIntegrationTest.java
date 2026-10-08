@@ -53,7 +53,7 @@ class BlogOpsIntegrationTest extends PostTestSupport {
 
     @Test
     void 정보는_정보_수정_권한이_있어야_고친다() throws Exception {
-        String body = "{\"name\":\"새 이름\",\"description\":\"새 소개\",\"tags\":[\"새태그\"]}";
+        String body = "{\"description\":\"새 소개\",\"tags\":[\"새태그\"]}";
         mvc.perform(put("/api/blogs/open-blog/info").with(csrf()).cookie(member)
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
         mvc.perform(put("/api/blogs/open-blog/members/" + memberId() + "/sub-owner").with(csrf()).cookie(owner)
@@ -63,8 +63,13 @@ class BlogOpsIntegrationTest extends PostTestSupport {
         mvc.perform(put("/api/blogs/open-blog/info").with(csrf()).cookie(member)
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNoContent());
         mvc.perform(get("/api/blogs/open-blog"))
-                .andExpect(jsonPath("$.name").value("새 이름"))
+                .andExpect(jsonPath("$.description").value("새 소개"))
                 .andExpect(jsonPath("$.tags[0]").value("새태그"));
+        // 블로그 이름은 바꿀 수 없다 (D-109)
+        mvc.perform(put("/api/blogs/open-blog/info").with(csrf()).cookie(owner)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"새 이름\",\"description\":\"새 소개\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("name"));
         // 부블로그장도 공개 범위는 못 바꾼다 (블로그장만)
         mvc.perform(put("/api/blogs/open-blog/settings").with(csrf()).cookie(member)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"visibility\":\"PRIVATE\"}"))

@@ -450,8 +450,9 @@ button:disabled {
   color: var(--ok);
 }
 
+/* 숨김은 어떤 표시 규칙보다 우선한다 (단추의 inline-flex가 숨김을 이겨 빈 검은 막대로 보이던 문제) */
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .footer-links {
@@ -1881,17 +1882,213 @@ button.secondary.edit-done {
   background: var(--bg);
 }
 
-/* 바로가기로 온 댓글: 지금 여기 (D-104) */
+/* 바로가기로 온 댓글: 형광 노랑 배경과 테두리로 강조 (D-104, D-108) */
 .comment.comment-target {
-  margin: 0 -10px;
-  padding-left: 10px;
-  padding-right: 10px;
+  margin: 4px -12px;
+  padding: 10px 12px;
+  border: 2px solid #f5c400;
   border-radius: var(--radius-field);
-  background: var(--sun-soft);
-  box-shadow: inset 4px 0 0 var(--sun);
-  transition: background-color 0.6s ease;
+  background: #fff68f;
 }
 
 .comment.comment-target:focus {
   outline: none;
+}
+
+/* 관리자 열람 안내 (D-106) */
+.admin-view {
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border: 1.5px dashed var(--text);
+  border-radius: var(--radius-field);
+  font-size: 14px;
+}
+
+.badge.muted {
+  margin-left: 6px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.comment.is-hidden .comment-body {
+  color: var(--muted);
+}
+
+/* ── 아이콘 단추와 이름표 (D-108) ─────────────────── */
+button.icon-button,
+a.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+button.icon-button:hover,
+a.icon-button:hover {
+  background: var(--bg);
+}
+
+.icon-button.danger {
+  color: var(--error);
+}
+
+.icon-button .icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 마우스를 올리거나 키보드로 가면 이름이 뜬다 */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 창 오른쪽 끝·왼쪽 끝의 단추는 이름표가 창 밖으로 나가지 않게 */
+.tip-end[data-tip]:hover::after,
+.tip-end[data-tip]:focus-visible::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.tip-start[data-tip]:hover::after,
+.tip-start[data-tip]:focus-visible::after {
+  left: 0;
+  transform: none;
+}
+
+.comment-actions {
+  align-items: center;
+  gap: 2px;
+}
+
+.comment-actions .icon-button {
+  width: 32px;
+  height: 32px;
+}
+
+.comment-actions .icon-button .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── 알림 창: 목록과 자세히 보기 (D-107) ─────────────── */
+.notification-head .icon-button {
+  width: 34px;
+  height: 34px;
+}
+
+.notification-head strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.notification-body {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.notification-body:hover {
+  background: var(--bg);
+}
+
+.notification-message {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notification-detail {
+  padding-top: 4px;
+}
+
+.notification-type {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.notification-detail-message {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.notification-reason {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-field);
+  background: var(--bg);
+  white-space: pre-line;
+}
+
+.notification-go {
+  margin-top: 6px;
+}
+
+input[readonly] {
+  background: var(--bg);
+  color: var(--muted);
+  cursor: default;
+}
+
+input[readonly]:focus {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+/* 설정: 알림 종류는 두 줄(2열)로, 그 아래 보관 기간 */
+#notification-types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 20px;
+  margin-top: 12px;
+}
+
+#notification-types .checkbox {
+  margin: 6px 0;
+}
+
+@media (max-width: 380px) {
+  #notification-types {
+    grid-template-columns: 1fr;
+  }
 }

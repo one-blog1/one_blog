@@ -121,7 +121,20 @@ public class BlogQueryService {
                 toOffset(blog.getCreatedAt()), access.myRole(), shareUrl, permissions(blog, viewerId),
                 viewerId != null && subscriptionRepository.existsByBlogIdAndUserId(blog.getId(), viewerId),
                 subscriptionRepository.countByBlogId(blog.getId()), blog.getStatus(),
-                blog.getCloseScheduledAt() == null ? null : toOffset(blog.getCloseScheduledAt()));
+                blog.getCloseScheduledAt() == null ? null : toOffset(blog.getCloseScheduledAt()),
+                access.adminView() ? adminViewReason(blog) : null);
+    }
+
+    /** 관리자 열람 안내 문구 (D-106). */
+    public static String adminViewReason(Blog blog) {
+        if (blog.isHidden()) {
+            return "관리자가 숨긴 블로그예요.";
+        }
+        return switch (blog.getVisibility()) {
+            case PRIVATE -> "비공개 블로그예요.";
+            case UNLISTED -> "일부 공개 블로그예요.";
+            default -> null;
+        };
     }
 
     private BlogDetailResponse.Permissions permissions(Blog blog, Long viewerId) {

@@ -93,7 +93,7 @@ public class SanctionService {
             case "WARNING" -> {
                 sanctionRepository.save(Sanction.of(blog.getId(), userId, SanctionType.WARNING, false, principal.id(),
                         reason, reportId));
-                notify(userId, blog, "블로그 「" + blog.getName() + "」에서 경고를 받았어요. 사유: " + reason);
+                notify(userId, blog, "블로그 「" + blog.getName() + "」에서 경고를 받았어요.", reason, reportId);
             }
             case "SUSPENSION" -> {
                 if (request.days() != null && !SUSPENSION_DAYS.contains(request.days())) {
@@ -106,14 +106,14 @@ public class SanctionService {
                 target.suspendUntil(sanction.getEndsAt());
                 memberRepository.saveAndFlush(target);
                 notify(userId, blog, "블로그 「" + blog.getName() + "」에서 "
-                        + (request.days() == null ? "영구히" : sanction.getEndsAt().format(WHEN) + "까지") + " 정지됐어요. 사유: "
-                        + reason);
+                        + (request.days() == null ? "영구히" : sanction.getEndsAt().format(WHEN) + "까지") + " 정지됐어요.",
+                        reason, reportId);
             }
             case "RELEASE" -> {
                 sanctionRepository.findOpen(blog.getId(), userId, SanctionType.SUSPENSION).forEach(s -> s.release(now));
                 target.releaseSuspension();
                 memberRepository.saveAndFlush(target);
-                notify(userId, blog, "블로그 「" + blog.getName() + "」 정지가 풀렸어요.");
+                notify(userId, blog, "블로그 「" + blog.getName() + "」 정지가 풀렸어요.", null, null);
             }
             case "KICK" -> kick(blog, target, principal.id(), reason, reportId, now);
             default -> throw new ValidationFailedException(List.of(
@@ -131,7 +131,7 @@ public class SanctionService {
         memberRepository.saveAndFlush(target);
         blogRepository.addMemberCount(blog.getId(), -1);
         postRepository.detachAuthor(blog.getId(), target.getUserId());
-        notify(target.getUserId(), blog, "블로그 「" + blog.getName() + "」에서 강제 퇴장됐어요. 사유: " + reason);
+        notify(target.getUserId(), blog, "블로그 「" + blog.getName() + "」에서 강제 퇴장됐어요.", reason, reportId);
     }
 
     /** 1년 안에 받은 정지 수 (멤버 목록 표시, D-46). */
@@ -140,8 +140,10 @@ public class SanctionService {
         return sanctionRepository.countSince(blogId, userId, SanctionType.SUSPENSION, LocalDateTime.now().minusYears(1));
     }
 
-    private void notify(Long userId, Blog blog, String message) {
-        notifications.send(userId, NotificationType.SANCTION, message, null, null);
+    /** 사유는 알림 자세히 보기에만, 바로가기는 신고 대상(댓글·글) 또는 블로그 (D-107). */
+    private void notify(Long userId, Blog blog, String message, String reason, Long reportId) {
+        notifications.send(userId, NotificationType.SANCTION, message, null, null,
+                notifications.extraFor(reportId, reason == null ? null : "사유: " + reason, "BLOG", blog.getId()));
     }
 
     static String reason(String raw, boolean required) {

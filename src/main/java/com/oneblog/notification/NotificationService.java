@@ -25,6 +25,21 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     static final int MESSAGE_MAX = 300;
+    static final int DETAIL_MAX = 1000;
+
+    /**
+     * 알림 자세히 보기에만 보이는 내용 (3.6, D-107).
+     * detail: 사유처럼 목록에 다 보이지 않을 수 있는 글. target: 바로가기 대상(POST·COMMENT·BLOG와 ID).
+     * 바로가기 주소는 알림을 열 때 대상으로 계산한다(그사이 글이 지워졌으면 바로가기가 없다).
+     */
+    public record Extra(String detail, String targetType, Long targetId) {
+
+        public static final Extra NONE = new Extra(null, null, null);
+
+        public static Extra of(String detail, String targetType, Long targetId) {
+            return new Extra(detail, targetType, targetId);
+        }
+    }
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -32,16 +47,50 @@ public class NotificationService {
         this.jdbc = jdbc;
     }
 
+    /**
+     * 신고에서 시작한 조치면 신고 대상(글·댓글·블로그)을, 아니면 fallback 대상을 바로가기로 단다 (D-107).
+     * 회원 신고(USER·PROFILE)는 바로갈 위치가 없어 fallback을 쓴다.
+     */
+    public Extra extraFor(Long reportId, String detail, String fallbackType, Long fallbackId) {
+        if (reportId != null) {
+            try {
+                List<Extra> found = jdbc.query("SELECT target_type, target_id FROM reports WHERE id = :id",
+                        new MapSqlParameterSource("id", reportId), (rs, i) -> {
+                            String type = rs.getString(1);
+                            return "POST".equals(type) || "COMMENT".equals(type) || "BLOG".equals(type)
+                                    ? new Extra(detail, type, rs.getLong(2)) : null;
+                        });
+                if (!found.isEmpty() && found.get(0) != null) {
+                    return found.get(0);
+                }
+            } catch (RuntimeException e) {
+                log.warn("신고 대상을 읽지 못했습니다: report={}", reportId, e);
+            }
+        }
+        return new Extra(detail, fallbackType, fallbackId);
+    }
+
     public void send(Long userId, NotificationType type, String message, String linkUrl, String dedupeKey) {
+        send(userId, type, message, linkUrl, dedupeKey, Extra.NONE);
+    }
+
+    public void send(Long userId, NotificationType type, String message, String linkUrl, String dedupeKey,
+            Extra extra) {
         if (userId == null) {
             return;
         }
-        sendAll(List.of(userId), type, message, linkUrl, dedupeKey);
+        sendAll(List.of(userId), type, message, linkUrl, dedupeKey, extra);
     }
 
     /** 여러 사람에게 같은 알림. 받는 사람 목록은 중복을 뺀다. */
     public void sendAll(Collection<Long> userIds, NotificationType type, String message, String linkUrl,
             String dedupeKey) {
+        sendAll(userIds, type, message, linkUrl, dedupeKey, Extra.NONE);
+    }
+
+    public void sendAll(Collection<Long> userIds, NotificationType type, String message, String linkUrl,
+            String dedupeKey, Extra extra) {
+        Extra more = extra == null ? Extra.NONE : extra;
         Set<Long> ids = new LinkedHashSet<>(userIds);
         ids.remove(null);
         if (ids.isEmpty()) {
@@ -56,11 +105,15 @@ public class NotificationService {
                         .addValue("tab", type.tab())
                         .addValue("message", shorten(message))
                         .addValue("link", linkUrl)
-                        .addValue("dedupe", dedupeKey));
+                        .addValue("dedupe", dedupeKey)
+                        .addValue("detail", shorten(more.detail(), DETAIL_MAX))
+                        .addValue("targetType", more.targetType())
+                        .addValue("targetId", more.targetId()));
             }
             jdbc.batchUpdate("""
-                    INSERT IGNORE INTO notifications (user_id, type, tab, message, link_url, dedupe_key)
-                    SELECT u.id, :type, :tab, :message, :link, :dedupe FROM users u
+                    INSERT IGNORE INTO notifications (user_id, type, tab, message, link_url, dedupe_key,
+                                                      detail, target_type, target_id)
+                    SELECT u.id, :type, :tab, :message, :link, :dedupe, :detail, :targetType, :targetId FROM users u
                     WHERE u.id = :userId AND u.role = 'USER' AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
                       AND NOT EXISTS (SELECT 1 FROM notification_settings s
                                       WHERE s.user_id = u.id AND s.type = :type AND s.enabled = 0)
@@ -94,7 +147,17 @@ public class NotificationService {
         if (message == null) {
             return "";
         }
-        return message.codePointCount(0, message.length()) <= MESSAGE_MAX ? message
-                : message.substring(0, message.offsetByCodePoints(0, MESSAGE_MAX - 1)) + "…";
+        String value = shorten(message, MESSAGE_MAX);
+        return value == null ? "" : value;
+    }
+
+    /** max 글자(코드 포인트)를 넘으면 자르고 "…". null·빈 값은 null. */
+    static String shorten(String text, int max) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        String value = text.strip();
+        return value.codePointCount(0, value.length()) <= max ? value
+                : value.substring(0, value.offsetByCodePoints(0, max - 1)) + "…";
     }
 }

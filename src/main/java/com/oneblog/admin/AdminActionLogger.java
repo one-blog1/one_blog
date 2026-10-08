@@ -21,6 +21,30 @@ public class AdminActionLogger {
         this.repository = repository;
     }
 
+    /** 관리자 열람 기록의 조치 종류 (D-106). */
+    public static final String CONTENT_VIEW = "CONTENT_VIEW";
+    private static final java.time.Duration VIEW_LOG_WINDOW = java.time.Duration.ofMinutes(10);
+
+    /**
+     * 관리자가 숨김·비공개·일부 공개 블로그나 숨긴 글을 열어 본 기록 (ADM-06, D-106).
+     * 한 화면에서 여러 API가 같은 블로그를 확인하므로 같은 대상은 10분에 한 번만 남긴다.
+     * 읽기 전용 조회 중에도 남도록 새 트랜잭션으로 쓴다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void logView(Long adminId, String targetType, Long targetId, String detail) {
+        java.time.LocalDateTime since = java.time.LocalDateTime.now().minus(VIEW_LOG_WINDOW);
+        if (repository.existsByAdminIdAndActionTypeAndTargetTypeAndTargetIdAndCreatedAtAfter(adminId, CONTENT_VIEW,
+                targetType, targetId, since)) {
+            return;
+        }
+        String ip = null;
+        if (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes()
+                instanceof org.springframework.web.context.request.ServletRequestAttributes attrs) {
+            ip = attrs.getRequest().getRemoteAddr();
+        }
+        repository.save(AdminAction.of(adminId, CONTENT_VIEW, targetType, targetId, detail, ip));
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public void log(AuthenticatedUser admin, String actionType, String targetType, Long targetId, String detail,
             HttpServletRequest request) {

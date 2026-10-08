@@ -52,8 +52,9 @@ public class AccountService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /** masked=true면 이메일·이름·전화번호가 가려진 값이다 (비밀번호 재확인 전, D-110). */
     public record AccountResponse(String email, String name, String nickname, String phone, String profileImageUrl,
-            String bio, java.time.OffsetDateTime createdAt) {
+            String bio, java.time.OffsetDateTime createdAt, boolean masked) {
     }
 
     public record ProfileUpdateRequest(String nickname, String phone, String bio, Long profileFileId,
@@ -69,13 +70,23 @@ public class AccountService {
         }
     }
 
-    /** 내 정보. 본인 화면이라 가리지 않은 값을 준다 (전화번호는 보기 좋게 하이픈). */
+    /** 내 정보 (비밀번호 재확인 뒤라 가리지 않은 값). 전화번호는 보기 좋게 하이픈. */
     @Transactional(readOnly = true)
     public AccountResponse account(AuthenticatedUser principal) {
+        return account(principal, true);
+    }
+
+    /**
+     * 내 정보. 비밀번호를 다시 확인하기 전에는 이메일·이름·전화번호를 가린다.
+     * 옆 사람이 화면을 보거나 로그인된 채 둔 기기에서 개인정보가 드러나지 않게 (D-110).
+     */
+    @Transactional(readOnly = true)
+    public AccountResponse account(AuthenticatedUser principal, boolean full) {
         User user = member(principal);
-        return new AccountResponse(user.getEmail(), user.getName(), user.getNickname(),
-                Masking.formatPhone(user.getPhone()), user.getProfileImageUrl(), user.getBio(),
-                Times.toOffset(user.getCreatedAt()));
+        return new AccountResponse(full ? user.getEmail() : Masking.email(user.getEmail()),
+                full ? user.getName() : Masking.name(user.getName()), user.getNickname(),
+                full ? Masking.formatPhone(user.getPhone()) : Masking.phone(user.getPhone()),
+                user.getProfileImageUrl(), user.getBio(), Times.toOffset(user.getCreatedAt()), !full);
     }
 
     @Transactional
