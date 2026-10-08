@@ -25,7 +25,7 @@ build.gradle.kts의 version을 올려(예: 0.1.1 → 0.2.0) main에 push / PR me
 
 **다시 배포**(시크릿을 바꿨을 때 등): Actions → Deploy → Run workflow. 버전과 상관없이 지금 main을 다시 배포합니다.
 
-**지난 커밋에 태그 붙이기**: Actions → Tag version → 버전과 커밋을 넣고 실행 (자동 배포 전의 v0.1.0 같은 경우).
+**지난 커밋에 태그 붙이기**(자동 배포 전의 v0.1.0 같은 경우): 내 컴퓨터에서 `git tag -a v0.1.0 0488c60 -m "One Blog 0.1.0" && git push origin v0.1.0`. Actions의 토큰은 워크플로 파일이 지금 main과 다른 옛 커밋에 태그를 붙일 수 없습니다.
 
 CI가 실패하면 배포하지 않습니다. 수동 배포는 Actions 탭의 Deploy에서 "Run workflow"를 누릅니다.
 
