@@ -89,11 +89,22 @@ class AccountIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 내_정보를_보고_닉네임_전화번호_소개를_바꾼다() throws Exception {
+        // 비밀번호를 다시 확인하기 전에는 가려서 보인다 (D-110)
         mvc.perform(get("/api/me/account").cookie(alice))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("al***@example.com"))
+                .andExpect(jsonPath("$.name").value("홍*동"))
+                .andExpect(jsonPath("$.phone").value("010-****-5678"))
+                .andExpect(jsonPath("$.masked").value(true));
+        // 재확인 뒤라도 내 정보 화면(full 없이)은 가린다
+        mvc.perform(get("/api/me/account").cookie(alice, reauth)).andExpect(jsonPath("$.masked").value(true));
+        mvc.perform(get("/api/me/account").param("full", "true").cookie(alice)).andExpect(jsonPath("$.masked").value(true));
+        mvc.perform(get("/api/me/account").param("full", "true").cookie(alice, reauth))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("alice@example.com"))
                 .andExpect(jsonPath("$.name").value("홍길동"))
-                .andExpect(jsonPath("$.phone").value("010-1234-5678"));
+                .andExpect(jsonPath("$.phone").value("010-1234-5678"))
+                .andExpect(jsonPath("$.masked").value(false));
 
         mvc.perform(put("/api/me/profile").with(csrf()).cookie(alice, reauth).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"nickname\":\"새앨리스\",\"phone\":\"010-9999-8888\",\"bio\":\"  안녕하세요  \"}"))

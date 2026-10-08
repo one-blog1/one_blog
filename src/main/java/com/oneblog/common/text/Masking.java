@@ -38,6 +38,23 @@ public final class Masking {
         return head + "-" + "*".repeat(middle) + "-" + tail;
     }
 
+    /** 이름: 처음과 끝 글자만 보이고 가운데를 가린다 (홍길동 → 홍*동, 김철 → 김*). */
+    public static String name(String name) {
+        if (name == null || name.isBlank()) {
+            return name;
+        }
+        int[] cps = name.strip().codePoints().toArray();
+        if (cps.length == 1) {
+            return "*";
+        }
+        StringBuilder out = new StringBuilder().appendCodePoint(cps[0]);
+        if (cps.length == 2) {
+            return out.append('*').toString();
+        }
+        out.append("*".repeat(cps.length - 2));
+        return out.appendCodePoint(cps[cps.length - 1]).toString();
+    }
+
     /** 숫자만 저장된 번호를 보기 좋게 (010-1234-5678). */
     public static String formatPhone(String phone) {
         if (phone == null) {

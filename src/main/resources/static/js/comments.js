@@ -77,7 +77,7 @@
 
       const actions = el('div', 'comment-actions');
       if (post.canComment) {
-        const reply = el('button', 'link-button', '답글');
+        const reply = window.icons.button('reply', '답글');
         reply.type = 'button';
         reply.addEventListener('click', () => {
           const existing = li.querySelector(':scope > .reply-form');
@@ -91,19 +91,16 @@
         actions.append(reply);
       }
       if (c.canEdit) {
-        const edit = el('button', 'link-button', '수정');
-        edit.type = 'button';
+        const edit = window.icons.button('edit', '수정');
         edit.addEventListener('click', () => startEdit(li, c));
         actions.append(edit);
       }
       if (c.canDelete) {
-        const remove = el('button', 'link-button danger', '삭제');
-        remove.type = 'button';
+        const remove = window.icons.button('trash', '삭제', 'danger');
         remove.addEventListener('click', () => removeComment(c.id));
         actions.append(remove);
       }
-      const report = el('button', 'link-button report-comment hidden', '신고');
-      report.type = 'button';
+      const report = window.icons.button('flag', '신고', 'report-comment hidden');
       report.dataset.commentId = String(c.id);
       report.dataset.mine = String(!!c.canEdit);
       actions.append(report);
@@ -185,7 +182,6 @@
     target.setAttribute('tabindex', '-1');
     target.scrollIntoView({ block: 'center' });
     target.focus({ preventScroll: true });
-    window.setTimeout(() => target.classList.remove('comment-target'), 4000);
   }
 
   async function load() {

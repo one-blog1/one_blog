@@ -31,10 +31,10 @@
 
       <div class="post-actions">
         <button id="like-button" class="secondary hidden" type="button" aria-pressed="false">좋아요</button>
-        <button id="share-button" class="secondary" type="button">링크 복사</button>
-        <a id="edit-link" class="button-link hidden" href="#">수정</a>
-        <button id="delete-button" class="link-button danger hidden" type="button">삭제</button>
-        <button id="report-button" class="link-button hidden" type="button">신고</button>
+        <button id="share-button" type="button" data-icon="link">링크 복사</button>
+        <a id="edit-link" class="hidden" href="#" data-icon="edit">수정</a>
+        <button id="delete-button" class="danger hidden" type="button" data-icon="trash">삭제</button>
+        <button id="report-button" class="hidden" type="button" data-icon="flag">신고</button>
       </div>
       <p id="post-message" class="message" role="status"></p>
     </article>
@@ -52,6 +52,7 @@
   </main>
 
   <script src="/js/api.js"></script>
+  <script src="/js/icons.js"></script>
   <script src="/js/header.js"></script>
   <script src="/js/post.js"></script>
   <script src="/js/comments.js"></script>

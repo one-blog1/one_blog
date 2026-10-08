@@ -99,11 +99,13 @@ public class BlogManageService {
     public void updateInfo(String slug, AuthenticatedUser principal, InfoRequest request) {
         Blog blog = accessService.check(slug, null, principal.id()).blog();
         BlogMember me = require(blog, principal, BlogMember::canEditInfo, "블로그 정보를 고칠 권한이 없습니다.");
-        String name = policy.normalizeName(request.name());
+        // 블로그 이름은 만든 뒤 바꿀 수 없다 (BLG-05, D-109). 보내지 않거나 지금 이름 그대로면 된다
+        String name = blog.getName();
+        String requestedName = request.name() == null ? null : policy.normalizeName(request.name());
         String description = policy.normalizeDescription(request.description());
         List<ErrorResponse.FieldError> errors = new ArrayList<>();
-        if (!policy.isValidName(name)) {
-            errors.add(new ErrorResponse.FieldError("name", "블로그 이름은 1~50자로 입력해 주세요."));
+        if (requestedName != null && !requestedName.isEmpty() && !requestedName.equals(name)) {
+            errors.add(new ErrorResponse.FieldError("name", "블로그 이름은 바꿀 수 없어요."));
         }
         if (!policy.isValidDescription(description)) {
             errors.add(new ErrorResponse.FieldError("description", "소개는 500자까지 쓸 수 있습니다."));

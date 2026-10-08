@@ -79,9 +79,15 @@ public class AccountController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * 내 정보 화면은 이메일·이름·전화번호를 가려서 보여 준다. full=true(프로필 수정 화면)이고 비밀번호를
+     * 다시 확인한 뒤에만 가리지 않은 값을 준다 (D-110).
+     */
     @GetMapping("/api/me/account")
-    public AccountService.AccountResponse account(@AuthenticationPrincipal AuthenticatedUser principal) {
-        return accountService.account(principal);
+    public AccountService.AccountResponse account(@AuthenticationPrincipal AuthenticatedUser principal,
+            @org.springframework.web.bind.annotation.RequestParam(name = "full", defaultValue = "false") boolean full,
+            @CookieValue(name = CookieNames.REAUTH_TICKET, required = false) String ticket) {
+        return accountService.account(principal, full && reauthService.expiresAt(principal, ticket).isPresent());
     }
 
     @PutMapping("/api/me/profile")

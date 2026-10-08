@@ -20,8 +20,8 @@
 
       <form id="info-form" class="manage-block hidden" novalidate>
         <h2>블로그 정보</h2>
-        <label for="name">블로그 이름</label>
-        <input id="name" type="text" maxlength="50" required>
+        <label for="name">블로그 이름 <span class="hint-inline">(만든 뒤에는 바꿀 수 없어요)</span></label>
+        <input id="name" type="text" maxlength="50" readonly aria-readonly="true">
         <p class="message error" data-error-for="name" role="alert"></p>
         <label for="description">소개</label>
         <textarea id="description" rows="3" maxlength="500"></textarea>
@@ -70,7 +70,8 @@
 
       <section id="members-block" class="manage-block hidden" aria-labelledby="members-title">
         <h2 id="members-title">멤버</h2>
-        <div class="table-scroll">
+        <p id="members-empty" class="hint hidden">아직 다른 멤버가 없어요.</p>
+        <div id="members-table" class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>닉네임</th><th>이름</th><th>이메일</th><th>전화번호</th><th>역할</th><th></th></tr></thead>
             <tbody id="member-rows"></tbody>
@@ -115,6 +116,7 @@
     </section>
   </main>
   <script src="/js/api.js"></script>
+  <script src="/js/icons.js"></script>
   <script src="/js/header.js"></script>
   <script src="/js/blog-manage.js"></script>
 </body>
