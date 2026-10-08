@@ -88,9 +88,9 @@ class BlogOpsIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/blogs/open-blog").cookie(subscriber)).andExpect(status().isForbidden());
 
         // 공개 블로그 3개를 가진 상태에서 비공개를 공개로 바꾸면 개수 제한에 걸린다 (BLG-10)
-        createBlog(owner, "p2", "PUBLIC").andExpect(status().isCreated());
-        createBlog(owner, "p3", "PUBLIC").andExpect(status().isCreated());
-        createBlog(owner, "p4", "UNLISTED").andExpect(status().isCreated());
+        createBlog(owner, "pub-two", "PUBLIC").andExpect(status().isCreated());
+        createBlog(owner, "pub-three", "PUBLIC").andExpect(status().isCreated());
+        createBlog(owner, "link-four", "UNLISTED").andExpect(status().isCreated());
         mvc.perform(put("/api/blogs/open-blog/settings").with(csrf()).cookie(owner)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"visibility\":\"PUBLIC\"}"))
                 .andExpect(status().isConflict())

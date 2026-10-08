@@ -45,7 +45,7 @@ public class FeedService {
 
     @Transactional(readOnly = true)
     public SearchPage<PostCard> feed(String rawTab, PageParams params, Long viewerId) {
-        String tab = TABS.contains(rawTab) ? rawTab : "latest";
+        String tab = rawTab != null && TABS.contains(rawTab) ? rawTab : "latest";
         MapSqlParameterSource args = new MapSqlParameterSource();
         StringBuilder fromWhere = new StringBuilder("FROM posts p JOIN blogs b ON b.id = p.blog_id WHERE ")
                 .append(SearchService.VISIBLE_POST);

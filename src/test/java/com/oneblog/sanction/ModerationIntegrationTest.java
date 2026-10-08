@@ -132,7 +132,8 @@ class ModerationIntegrationTest extends PostTestSupport {
 
         mvc.perform(post("/api/blogs/open-blog/join").with(csrf()).cookie(member))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("BLACKLISTED"));
-        // 블랙리스트에 없는 사람은 문의할 것이 없다
+        // 블랙리스트에 없는 사람은 문의할 것이 없다 (테스트 회원은 전화번호가 모두 같아 바깥사람의 번호를 바꾼다)
+        jdbc.update("UPDATE users SET phone = '01099990000' WHERE email = 'out@example.com'");
         mvc.perform(post("/api/blogs/open-blog/blacklist-inquiries").with(csrf()).cookie(outsider)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"풀어 주세요\"}")).andExpect(status().isConflict());
         mvc.perform(post("/api/blogs/open-blog/blacklist-inquiries").with(csrf()).cookie(member)

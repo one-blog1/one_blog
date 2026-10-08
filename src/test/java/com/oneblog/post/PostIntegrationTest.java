@@ -84,7 +84,8 @@ class PostIntegrationTest extends PostTestSupport {
     @Test
     void 본문의_스크립트와_위험한_링크는_지운다() throws Exception {
         Long id = writePost(member, "open-blog", "XSS",
-                "<script>alert(1)</script> [링크](javascript:alert(1)) <img src=x onerror=alert(1)> [좋은링크](https://example.com)");
+                // <script>로 시작하는 줄은 HTML 블록이 되므로 링크는 다음 문단에 둔다
+                "<script>alert(1)</script>\\n\\n[링크](javascript:alert(1)) <img src=x onerror=alert(1)> [좋은링크](https://example.com)");
         String html = com.jayway.jsonpath.JsonPath.read(mvc.perform(get("/api/posts/" + id))
                 .andReturn().getResponse().getContentAsString(), "$.contentHtml");
         // 마크다운 안의 HTML은 실행되지 않는 글자(&lt;...&gt;)로 바뀐다

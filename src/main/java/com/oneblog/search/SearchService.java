@@ -100,7 +100,7 @@ public class SearchService {
     public SearchPage<PostCard> posts(String rawQ, String rawTarget, String rawSort, PageParams params, Long viewerId) {
         SearchQuery query = SearchQuery.parse(rawQ);
         String sort = sort(rawSort);
-        String target = TARGETS.contains(rawTarget) ? rawTarget : "all";
+        String target = rawTarget != null && TARGETS.contains(rawTarget) ? rawTarget : "all";
         remember(viewerId, query, params);
         MapSqlParameterSource args = new MapSqlParameterSource();
         List<String> conditions = new ArrayList<>();
