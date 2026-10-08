@@ -28,34 +28,38 @@
     return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ko-KR');
   }
 
+  // 블로그 머리의 참여 단추. 신청 취소는 메인의 "참여 신청" 탭에서 한다 (D-111)
   function renderJoin(status) {
     const text = $('join-text');
     const button = $('join-button');
+    const state = $('join-state');
     show('join-area', true);
-    show('join-cancel', false);
     show('join-button', false);
+    show('join-state', false);
+    show('join-requests-link', false);
+    text.textContent = '';
     if (!loggedIn) {
-      text.textContent = '로그인하면 이 블로그에 참여할 수 있어요.';
-      button.textContent = '로그인';
+      button.textContent = '로그인하고 참여하기';
       button.onclick = () => { window.location.href = '/login.html'; };
       show('join-button', true);
       return;
     }
     switch (status.status) {
       case 'MEMBER':
-        text.textContent = '이 블로그의 멤버예요.';
+        show('join-area', false); // 멤버면 단추가 필요 없다 (역할은 위 줄에 "나: 멤버"로 보인다)
         break;
       case 'PENDING':
-        text.textContent = '참여를 신청했어요. 블로그장의 승인을 기다리는 중이에요.';
-        show('join-cancel', true);
+        state.textContent = '참여 신청 중';
+        show('join-state', true);
+        show('join-requests-link', true);
         break;
       case 'REJECTED':
         text.textContent = '참여 신청이 거절됐어요. ' + formatDate(status.retryAt) + '부터 다시 신청할 수 있어요.';
+        show('join-area', false);
         break;
       default:
         text.textContent = blog.joinPolicy === 'APPROVAL'
-          ? '승인제 블로그예요. 신청하면 블로그장이 확인 후 승인해요.'
-          : '자유 참여 블로그예요. 누르면 바로 멤버가 돼요.';
+          ? '승인제 블로그예요. 신청하면 블로그장이 확인한 뒤 멤버가 돼요.' : '';
         button.textContent = blog.joinPolicy === 'APPROVAL' ? '참여 신청' : '참여하기';
         button.onclick = apply;
         show('join-button', true);
@@ -94,15 +98,48 @@
     // 블랙리스트에 걸렸으면 해제 문의를 남길 수 있다 (BLG-12)
     if (result.data && result.data.code === 'BLACKLISTED') {
       $('inquiry-button').classList.remove('hidden');
+      $('ops-area').classList.remove('hidden');
     }
   }
 
-  async function cancel() {
-    const result = await window.api.request('DELETE', baseUrl() + '/join' + keyQuery(), { userAction: true });
-    if (result.ok && result.data) {
-      renderJoin(result.data);
-    } else {
-      $('join-message').textContent = (result.data && result.data.message) || '취소하지 못했어요.';
+  function requestItem(r) {
+    const li = document.createElement('li');
+    const name = document.createElement('span');
+    name.className = 'request-name';
+    name.textContent = r.nickname + ' · ' + formatDate(r.requestedAt);
+    const approve = document.createElement('button');
+    approve.type = 'button';
+    approve.className = 'secondary';
+    approve.textContent = '승인';
+    approve.addEventListener('click', () => decide(r.id, 'approve'));
+    const reject = document.createElement('button');
+    reject.type = 'button';
+    reject.className = 'link-button';
+    reject.textContent = '거절';
+    reject.addEventListener('click', () => decide(r.id, 'reject'));
+    li.append(name, approve, reject);
+    return li;
+  }
+
+  // 신청이 많으면 다섯 건만 보이고 나머지는 더보기 창에서 (D-112)
+  const INLINE = 5;
+  let requests = [];
+  let requestModal = null;
+
+  function renderRequestModal() {
+    if (!requestModal) {
+      return;
+    }
+    const list = document.createElement('ul');
+    list.className = 'request-list';
+    requests.forEach(r => list.append(requestItem(r)));
+    requestModal.setTitle('참여 신청 ' + requests.length + '건');
+    requestModal.body.replaceChildren(list);
+    if (requests.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'hint';
+      empty.textContent = '대기 중인 신청이 없어요.';
+      requestModal.body.append(empty);
     }
   }
 
@@ -112,43 +149,32 @@
       show('manage-area', false); // 멤버 관리 권한이 없으면 숨긴다
       return;
     }
+    requests = result.data;
     show('manage-area', true);
     const list = $('request-list');
     list.replaceChildren();
-    $('request-count').textContent = result.data.length > 0 ? String(result.data.length) + '건' : '';
-    show('request-empty', result.data.length === 0);
-    result.data.forEach(r => {
-      const li = document.createElement('li');
-      const name = document.createElement('span');
-      name.className = 'request-name';
-      name.textContent = r.nickname + ' · ' + formatDate(r.requestedAt);
-      const approve = document.createElement('button');
-      approve.type = 'button';
-      approve.className = 'secondary';
-      approve.textContent = '승인';
-      approve.addEventListener('click', () => decide(r.id, 'approve'));
-      const reject = document.createElement('button');
-      reject.type = 'button';
-      reject.className = 'link-button';
-      reject.textContent = '거절';
-      reject.addEventListener('click', () => decide(r.id, 'reject'));
-      li.append(name, approve, reject);
-      list.append(li);
-    });
+    $('request-count').textContent = requests.length > 0 ? String(requests.length) + '건' : '';
+    show('request-empty', requests.length === 0);
+    requests.slice(0, INLINE).forEach(r => list.append(requestItem(r)));
+    show('request-more', requests.length > INLINE);
+    renderRequestModal();
   }
 
   async function decide(id, action) {
     const result = await window.api.post(baseUrl() + '/join-requests/' + encodeURIComponent(id) + '/' + action,
       undefined, { userAction: true });
     if (!result.ok) {
-      window.alert((result.data && result.data.message) || '처리하지 못했어요.');
+      await window.dialog.alert((result.data && result.data.message) || '처리하지 못했어요.');
     }
     loadRequests();
   }
 
   document.addEventListener('blog:loaded', (event) => {
     blog = event.detail;
-    $('join-cancel').addEventListener('click', cancel);
+    $('request-more').addEventListener('click', () => {
+      requestModal = window.modal.open({ title: '참여 신청', onClose: () => { requestModal = null; } });
+      renderRequestModal();
+    });
     loadStatus();
     if (blog.myRole === 'OWNER' || blog.myRole === 'SUB_OWNER') {
       loadRequests();

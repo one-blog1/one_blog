@@ -232,7 +232,7 @@
       await loadPost();
     }
     const draft = loadDraft();
-    if (draft && window.confirm('임시 저장한 글이 있어요. 불러올까요?')) {
+    if (draft && await window.dialog.confirm('임시 저장한 글이 있어요. 불러올까요?')) {
       $('title').value = draft.title || '';
       setContent(draft.content || '');
       state.tags = draft.tags || [];

@@ -24,9 +24,11 @@ public class BlogOpsController {
     private final BlogManageService manageService;
     private final BlogTransferService transferService;
     private final BlogCloseService closeService;
+    private final BlogMemberStatsService statsService;
 
     public BlogOpsController(BlogManageService manageService, BlogTransferService transferService,
-            BlogCloseService closeService) {
+            BlogCloseService closeService, BlogMemberStatsService statsService) {
+        this.statsService = statsService;
         this.manageService = manageService;
         this.transferService = transferService;
         this.closeService = closeService;
@@ -60,6 +62,31 @@ public class BlogOpsController {
     public List<BlogManageService.MemberItem> members(@PathVariable("slug") String slug,
             @AuthenticationPrincipal AuthenticatedUser principal) {
         return manageService.members(slug, principal);
+    }
+
+    /** 블로그장 전용 멤버 더보기: 글 수·댓글 수·경고 횟수 (D-112). */
+    @GetMapping("/api/blogs/{slug}/member-stats")
+    public BlogMemberStatsService.Page<BlogMemberStatsService.MemberStat> memberStats(
+            @PathVariable("slug") String slug, @AuthenticationPrincipal AuthenticatedUser principal,
+            @org.springframework.web.bind.annotation.RequestParam(name = "page", required = false) String page,
+            @org.springframework.web.bind.annotation.RequestParam(name = "size", required = false) String size) {
+        return statsService.members(slug, principal, com.oneblog.common.web.PageParams.of(page, size));
+    }
+
+    @GetMapping("/api/blogs/{slug}/members/{userId}/posts")
+    public BlogMemberStatsService.Page<BlogMemberStatsService.MemberPost> memberPosts(
+            @PathVariable("slug") String slug, @PathVariable("userId") Long userId,
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @org.springframework.web.bind.annotation.RequestParam(name = "page", required = false) String page) {
+        return statsService.posts(slug, userId, principal, com.oneblog.common.web.PageParams.of(page, "10"));
+    }
+
+    @GetMapping("/api/blogs/{slug}/members/{userId}/comments")
+    public BlogMemberStatsService.Page<BlogMemberStatsService.MemberComment> memberComments(
+            @PathVariable("slug") String slug, @PathVariable("userId") Long userId,
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @org.springframework.web.bind.annotation.RequestParam(name = "page", required = false) String page) {
+        return statsService.comments(slug, userId, principal, com.oneblog.common.web.PageParams.of(page, "10"));
     }
 
     @PutMapping("/api/blogs/{slug}/members/{userId}/sub-owner")

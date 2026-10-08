@@ -21,7 +21,16 @@
     <div id="view-switch" class="view-switch hidden" role="group" aria-label="메인 화면 고르기">
       <button type="button" data-view="home" aria-pressed="true">내 블로그</button>
       <button type="button" data-view="feed" aria-pressed="false">메인 피드</button>
+      <button type="button" data-view="requests" aria-pressed="false">참여 신청</button>
     </div>
+
+    <section id="requests-view" class="requests-view hidden" aria-labelledby="requests-title">
+      <h1 id="requests-title">참여 신청</h1>
+      <p class="hint">승인을 기다리는 블로그예요. 블로그장이 승인하면 알림으로 알려 드려요.</p>
+      <p id="requests-message" class="message" role="status"></p>
+      <ul id="my-request-list" class="my-request-list"></ul>
+      <p id="requests-empty" class="hint hidden">기다리는 참여 신청이 없어요.</p>
+    </section>
 
     <section id="home-view" class="home-view hidden" aria-labelledby="home-title">
       <div class="list-header">
@@ -91,6 +100,7 @@
 
   <script src="/js/api.js"></script>
   <script src="/js/icons.js"></script>
+  <script src="/js/modal.js"></script>
   <script src="/js/header.js"></script>
   <script src="/js/blog-card.js"></script>
   <script src="/js/blog-list.js"></script>

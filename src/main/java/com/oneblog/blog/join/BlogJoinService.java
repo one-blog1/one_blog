@@ -40,10 +40,13 @@ public class BlogJoinService {
     private final UserRepository userRepository;
     private final List<JoinListener> listeners;
     private final List<JoinGate> gates;
+    private final org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc;
 
     public BlogJoinService(BlogAccessService accessService, BlogRepository blogRepository,
             BlogMemberRepository memberRepository, BlogJoinRequestRepository requestRepository,
-            UserRepository userRepository, List<JoinListener> listeners, List<JoinGate> gates) {
+            UserRepository userRepository, List<JoinListener> listeners, List<JoinGate> gates,
+            org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate jdbc) {
+        this.jdbc = jdbc;
         this.accessService = accessService;
         this.blogRepository = blogRepository;
         this.memberRepository = memberRepository;
@@ -124,6 +127,35 @@ public class BlogJoinService {
         }
         locked.cancel();
         return JoinStatusResponse.of("NONE");
+    }
+
+    /** 내가 신청하고 기다리는 블로그 (메인 "참여 신청" 탭, BLG-04, D-111). */
+    public record MyJoinRequest(Long id, String blogSlug, String blogName, String coverImageUrl,
+            java.time.OffsetDateTime requestedAt) {
+    }
+
+    @Transactional(readOnly = true)
+    public List<MyJoinRequest> myPendingRequests(AuthenticatedUser principal) {
+        return jdbc.query("""
+                SELECT r.id, b.slug, b.name, b.cover_image_url, r.created_at
+                FROM blog_join_requests r JOIN blogs b ON b.id = r.blog_id
+                WHERE r.user_id = :userId AND r.status = 'PENDING' AND b.status <> 'CLOSED' AND b.deleted_at IS NULL
+                ORDER BY r.created_at DESC, r.id DESC
+                """, new org.springframework.jdbc.core.namedparam.MapSqlParameterSource("userId", principal.id()),
+                (rs, i) -> new MyJoinRequest(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                        com.oneblog.common.web.Times.toOffset(rs.getTimestamp(5).toLocalDateTime())));
+    }
+
+    /** 참여 신청 탭에서 취소. 블로그가 그사이 비공개가 됐어도 내 신청이면 취소할 수 있다. */
+    @Transactional
+    public void cancelMine(Long requestId, AuthenticatedUser principal) {
+        BlogJoinRequest locked = requestRepository.findForUpdateById(requestId)
+                .filter(r -> r.getUserId().equals(principal.id()))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "JOIN_REQUEST_NOT_FOUND", "취소할 신청이 없습니다."));
+        if (!locked.isPending()) {
+            throw new ApiException(HttpStatus.CONFLICT, "JOIN_REQUEST_ALREADY_PROCESSED", "이미 처리된 신청입니다.");
+        }
+        locked.cancel();
     }
 
     /** 대기 중인 신청 목록 (블로그장, 멤버 관리 권한을 받은 부블로그장). */

@@ -138,7 +138,7 @@
   }
 
   async function removeComment(id) {
-    if (!window.confirm('댓글을 삭제할까요?')) {
+    if (!await window.dialog.confirm('댓글을 삭제할까요?')) {
       return;
     }
     const result = await window.api.delete('/api/comments/' + encodeURIComponent(id), { userAction: true });

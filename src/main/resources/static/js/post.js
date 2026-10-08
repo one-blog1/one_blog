@@ -96,7 +96,7 @@
   }
 
   async function remove(post, blogUrl) {
-    if (!window.confirm('글을 정말 삭제하시겠습니까?')) { // 6.3 글 삭제 시 확인
+    if (!await window.dialog.confirm('글을 정말 삭제하시겠습니까?')) { // 6.3 글 삭제 시 확인
       return;
     }
     const result = await window.api.delete('/api/posts/' + encodeURIComponent(post.id), { userAction: true });

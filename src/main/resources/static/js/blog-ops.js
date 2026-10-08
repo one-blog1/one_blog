@@ -1,4 +1,4 @@
-// 블로그 첫 화면의 운영 버튼: 관리 화면 링크, 블로그 나가기(BLG-07), 폐쇄 예정 안내(BLG-09, D-67).
+// 블로그 첫 화면의 운영 버튼: 관리 화면 링크(머리), 블로그 나가기·신고(맨 아래 작게, D-111), 폐쇄 예정 안내(BLG-09, D-67).
 (function () {
   'use strict';
 
@@ -27,7 +27,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     $('inquiry-button').addEventListener('click', async () => {
-      const message = window.prompt('블랙리스트 해제를 요청하는 이유를 적어 주세요. (예: 전화번호 주인이 바뀌었어요)');
+      const message = await window.dialog.prompt('블랙리스트 해제를 요청하는 이유를 적어 주세요. (예: 전화번호 주인이 바뀌었어요)');
       if (!message || !loadedBlog) {
         return;
       }
@@ -60,7 +60,7 @@
       const leave = $('leave-button');
       leave.classList.remove('hidden');
       leave.addEventListener('click', async () => {
-        if (!window.confirm('이 블로그에서 나갈까요? 내가 쓴 글은 "탈퇴한 계정"으로 남아요.')) {
+        if (!await window.dialog.confirm('이 블로그에서 나갈까요? 내가 쓴 글은 "탈퇴한 계정"으로 남아요.')) {
           return;
         }
         const result = await window.api.delete('/api/blogs/' + encodeURIComponent(blog.slug) + '/membership',
@@ -71,7 +71,7 @@
         }
         window.location.reload();
       });
+      $('ops-area').classList.remove('hidden');
     }
-    $('ops-area').classList.remove('hidden');
   });
 })();

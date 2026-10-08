@@ -142,7 +142,7 @@
     });
     const clear = window.icons.button('trash', '전체 삭제', 'tip-end danger');
     clear.addEventListener('click', async () => {
-      if (window.confirm('받은 알림을 모두 지울까요?')) {
+      if (await window.dialog.confirm('받은 알림을 모두 지울까요?')) {
         await window.api.delete('/api/notifications', { userAction: true });
         load();
       }
@@ -181,7 +181,9 @@
         return;
       }
       const path = event.composedPath();
-      if (!path.includes(panel) && !path.includes(bell)) {
+      // 확인 창(전체 삭제 확인 등)을 누른 것은 바깥 클릭이 아니다
+      const inDialog = path.some(n => n.classList && n.classList.contains('modal-overlay'));
+      if (!inDialog && !path.includes(panel) && !path.includes(bell)) {
         setOpen(false);
       }
     });

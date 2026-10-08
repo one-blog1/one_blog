@@ -46,6 +46,39 @@ class BlogOpsIntegrationTest extends PostTestSupport {
         return userId("member@example.com");
     }
 
+    @Test
+    void 블로그장은_멤버별_글_댓글_경고_수를_보고_그_목록으로_들어간다() throws Exception {
+        Long postId = writePost(member, "open-blog", "멤버의 글", "본문");
+        mvc.perform(post("/api/posts/" + postId + "/comments").with(csrf()).cookie(member)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"멤버의 댓글\"}"))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/blogs/open-blog/members/" + memberId() + "/sanctions").with(csrf()).cookie(owner)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"type\":\"WARNING\",\"reason\":\"도배\"}"))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/blogs/open-blog/member-stats").cookie(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalItems").value(2))
+                .andExpect(jsonPath("$.items[1].nickname").value("멤버회원"))
+                .andExpect(jsonPath("$.items[1].postCount").value(1))
+                .andExpect(jsonPath("$.items[1].commentCount").value(1))
+                .andExpect(jsonPath("$.items[1].warningCount").value(1));
+        mvc.perform(get("/api/blogs/open-blog/members/" + memberId() + "/posts").cookie(owner))
+                .andExpect(jsonPath("$.items[0].title").value("멤버의 글"));
+        mvc.perform(get("/api/blogs/open-blog/members/" + memberId() + "/comments").cookie(owner))
+                .andExpect(jsonPath("$.items[0].content").value("멤버의 댓글"))
+                .andExpect(jsonPath("$.items[0].postId").value(postId.intValue()));
+
+        // 블로그장 전용: 멤버 관리 권한을 받은 부블로그장도 못 본다 (D-112)
+        mvc.perform(put("/api/blogs/open-blog/members/" + memberId() + "/sub-owner").with(csrf()).cookie(owner)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"subOwner\":true,\"canEditInfo\":false,\"canManageMembers\":true,\"canManagePosts\":false}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/blogs/open-blog/member-stats").cookie(member)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/blogs/open-blog/members/" + memberId() + "/comments").cookie(member))
+                .andExpect(status().isForbidden());
+    }
+
     private int notifications(String email, String type) {
         return jdbc.queryForObject("SELECT COUNT(*) FROM notifications n JOIN users u ON u.id = n.user_id "
                 + "WHERE u.email = ? AND n.type = ?", Integer.class, email, type);

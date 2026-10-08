@@ -92,7 +92,7 @@
   }
 
   async function remove(category) {
-    if (!window.confirm('"' + category.name + '" 카테고리를 지울까요? 이 카테고리의 글은 분류 없음이 돼요.')) {
+    if (!await window.dialog.confirm('"' + category.name + '" 카테고리를 지울까요? 이 카테고리의 글은 분류 없음이 돼요.')) {
       return;
     }
     const result = await window.api.delete('/api/categories/' + category.id, { userAction: true });

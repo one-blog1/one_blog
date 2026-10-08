@@ -14,6 +14,9 @@
 
   function requestedView() {
     const q = new URLSearchParams(window.location.search);
+    if (q.get('view') === 'requests') {
+      return 'requests';
+    }
     return q.get('view') === 'feed' || q.has('sort') || q.has('page') ? 'feed' : 'home';
   }
 
@@ -21,16 +24,20 @@
     const target = state.member ? view : 'feed';
     $('home-view').classList.toggle('hidden', target !== 'home');
     $('feed-view').classList.toggle('hidden', target !== 'feed');
+    $('requests-view').classList.toggle('hidden', target !== 'requests');
     document.querySelectorAll('#view-switch [data-view]').forEach(b => {
       b.setAttribute('aria-pressed', String(b.dataset.view === target));
     });
     if (target === 'home' && !state.loaded) {
       loadMyBlogs();
     }
+    if (target === 'requests') {
+      loadRequests();
+    }
   }
 
   function choose(view) {
-    window.history.replaceState(null, '', view === 'feed' ? '/?view=feed' : '/');
+    window.history.replaceState(null, '', view === 'home' ? '/' : '/?view=' + view);
     show(view);
   }
 
@@ -96,6 +103,57 @@
     }
     list.classList.toggle('hidden', blogs.length === 0);
     $('home-empty').classList.toggle('hidden', blogs.length > 0);
+  }
+
+  // 내가 신청하고 기다리는 블로그. 여기서 취소한다 (D-111)
+  async function loadRequests() {
+    const message = $('requests-message');
+    message.className = 'message';
+    message.textContent = '불러오는 중…';
+    const result = await window.api.get('/api/me/join-requests');
+    if (!result.ok || !Array.isArray(result.data)) {
+      message.className = 'message error';
+      message.textContent = '참여 신청을 불러오지 못했어요.';
+      return;
+    }
+    message.textContent = '';
+    const list = $('my-request-list');
+    list.replaceChildren();
+    result.data.forEach(r => {
+      const li = document.createElement('li');
+      li.className = 'my-request';
+      const link = document.createElement('a');
+      link.className = 'my-request-blog';
+      link.href = window.blogCard.blogUrl(r.blogSlug);
+      link.append(window.blogCard.cover({ slug: r.blogSlug, name: r.blogName, coverImageUrl: r.coverImageUrl },
+        'my-request-cover'));
+      const text = document.createElement('span');
+      const name = document.createElement('strong');
+      name.textContent = r.blogName;
+      const when = document.createElement('span');
+      when.className = 'hint';
+      when.textContent = new Date(r.requestedAt).toLocaleDateString('ko-KR') + ' 신청';
+      text.append(name, when);
+      link.append(text);
+      const cancel = document.createElement('button');
+      cancel.type = 'button';
+      cancel.className = 'secondary';
+      cancel.textContent = '신청 취소';
+      cancel.addEventListener('click', async () => {
+        if (!await window.dialog.confirm('「' + r.blogName + '」 참여 신청을 취소할까요?')) {
+          return;
+        }
+        const res = await window.api.delete('/api/me/join-requests/' + encodeURIComponent(r.id), { userAction: true });
+        if (!res.ok) {
+          message.className = 'message error';
+          message.textContent = (res.data && res.data.message) || '취소하지 못했어요.';
+        }
+        loadRequests();
+      });
+      li.append(link, cancel);
+      list.append(li);
+    });
+    $('requests-empty').classList.toggle('hidden', result.data.length > 0);
   }
 
   document.addEventListener('header:user', (event) => {

@@ -120,7 +120,7 @@
   }
 
   async function regenerateShare() {
-    if (!window.confirm('새 링크를 만들면 이전 링크로는 들어올 수 없어요. 계속할까요?')) {
+    if (!await window.dialog.confirm('새 링크를 만들면 이전 링크로는 들어올 수 없어요. 계속할까요?')) {
       return;
     }
     const result = await window.api.post(base() + '/share-link', undefined, { userAction: true });
@@ -151,7 +151,12 @@
     const others = result.data.filter(m => m.role !== 'OWNER');
     $('members-table').classList.toggle('hidden', others.length === 0);
     $('members-empty').classList.toggle('hidden', others.length > 0);
-    result.data.forEach(m => {
+    $('members-count').textContent = others.length > 0 ? String(others.length) + '명' : '';
+    // 블로그장은 여기서 다섯 명까지 보고, 나머지와 글·댓글·경고 수는 더보기 창에서 (D-112)
+    const INLINE = 5;
+    $('members-more').classList.toggle('hidden', !owner || others.length === 0);
+    const shown = owner ? result.data.slice(0, INLINE + 1) : result.data;
+    shown.forEach(m => {
       const tr = el('tr');
       [m.nickname, m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));
       const actions = el('td');
@@ -184,7 +189,7 @@
         transfer.type = 'button';
         transfer.disabled = state.blog.status === 'CLOSING';
         transfer.addEventListener('click', async () => {
-          if (!window.confirm(m.nickname + '님에게 블로그장 위임을 요청할까요? 수락하면 나는 일반 멤버가 돼요.')) {
+          if (!await window.dialog.confirm(m.nickname + '님에게 블로그장 위임을 요청할까요? 수락하면 나는 일반 멤버가 돼요.')) {
             return;
           }
           const r = await window.api.post(base() + '/transfer', { toUserId: m.userId }, { userAction: true });
@@ -203,8 +208,8 @@
   }
 
   // ---- 제재 (BLG-11, BLG-13) ----
-  function askDays() {
-    const raw = window.prompt('정지 기간을 골라 주세요: 3, 14, 30 (일) 또는 영구', '3');
+  async function askDays() {
+    const raw = await window.dialog.prompt('정지 기간을 골라 주세요: 3, 14, 30 (일) 또는 영구', { defaultValue: '3' });
     if (raw === null) {
       return undefined;
     }
@@ -220,16 +225,16 @@
     const labels = { WARNING: '경고', SUSPENSION: '정지', RELEASE: '정지 해제', KICK: '강제 퇴장' };
     let days = null;
     if (type === 'SUSPENSION') {
-      days = askDays();
+      days = await askDays();
       if (days === undefined) {
         return false;
       }
     }
-    const reason = type === 'RELEASE' ? '' : window.prompt(nickname + '님에게 ' + labels[type] + ' 사유를 적어 주세요.');
+    const reason = type === 'RELEASE' ? '' : await window.dialog.prompt(nickname + '님에게 ' + labels[type] + ' 사유를 적어 주세요.');
     if (reason === null || (type !== 'RELEASE' && !reason.trim())) {
       return false;
     }
-    if (type === 'KICK' && !window.confirm(nickname + '님을 강제 퇴장할까요? 블랙리스트에 올라 다시 참여할 수 없어요.')) {
+    if (type === 'KICK' && !await window.dialog.confirm(nickname + '님을 강제 퇴장할까요? 블랙리스트에 올라 다시 참여할 수 없어요.')) {
       return false;
     }
     const result = reportId
@@ -384,7 +389,8 @@
   }
 
   async function closeBlog() {
-    if (!window.confirm('블로그를 폐쇄할까요? 7일 뒤 새벽 4시에 닫히고, 대기 중인 위임 요청은 취소돼요.')) {
+    if (!await window.dialog.confirm('블로그를 폐쇄할까요? 7일 뒤 새벽 4시에 닫히고, 대기 중인 위임 요청은 취소돼요.',
+      { title: '블로그 폐쇄', okLabel: '폐쇄하기', danger: true })) {
       return;
     }
     const result = await window.api.post(base() + '/close', undefined, { userAction: true });
@@ -426,6 +432,12 @@
     fillClose(blog);
     return blog;
   }
+
+  // 더보기 창에서 강제 퇴장하면 표와 블랙리스트를 다시 불러온다
+  document.addEventListener('members:changed', () => {
+    loadMembers();
+    loadBlacklist();
+  });
 
   document.addEventListener('DOMContentLoaded', async () => {
     state.slug = decodeURIComponent(window.location.pathname.split('/')[2] || '');

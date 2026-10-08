@@ -78,7 +78,7 @@
   }
 
   async function act(url, body, done) {
-    const reason = window.prompt('사유를 적어 주세요 (활동 기록에 남습니다).') || '';
+    const reason = await window.dialog.prompt('사유를 적어 주세요 (활동 기록에 남습니다).') || '';
     const result = await window.api.post(url, Object.assign({ reason: reason }, body || {}), { userAction: true });
     message(result.ok ? '처리했습니다.' : ((result.data && result.data.message) || '처리하지 못했습니다.'));
     if (done) {
@@ -144,8 +144,8 @@
         actions.append(button(b.hidden ? '숨김 풀기' : '숨기기',
           () => act('/api/admin/blogs/' + b.id + '/hide', { hidden: !b.hidden }, load)));
         actions.append(button('블로그장 경고', () => act('/api/admin/blogs/' + b.id + '/owner-warning', {}, load)));
-        actions.append(button('블로그장 강퇴', () => {
-          if (window.confirm('블로그장 권한을 박탈할까요? 부블로그장이 있으면 넘어가고, 없으면 7일 뒤 폐쇄돼요.')) {
+        actions.append(button('블로그장 강퇴', async () => {
+          if (await window.dialog.confirm('블로그장 권한을 박탈할까요? 부블로그장이 있으면 넘어가고, 없으면 7일 뒤 폐쇄돼요.')) {
             act('/api/admin/blogs/' + b.id + '/owner-revoke', {}, load);
           }
         }, 'link-button danger'));
@@ -190,7 +190,7 @@
     notices: paged('/api/notices', (items) => table(
       ['제목', '작성일', ''],
       items.map(n => [n.title, date(n.createdAt), button('삭제', async () => {
-        if (!window.confirm('공지를 삭제할까요?')) {
+        if (!await window.dialog.confirm('공지를 삭제할까요?')) {
           return;
         }
         const r = await window.api.delete('/api/admin/notices/' + n.id, { userAction: true });

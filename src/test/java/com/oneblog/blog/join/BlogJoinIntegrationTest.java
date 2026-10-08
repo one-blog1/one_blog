@@ -123,6 +123,21 @@ class BlogJoinIntegrationTest extends BlogTestSupport {
     }
 
     @Test
+    void 내_참여_신청_목록에서_보고_취소한다() throws Exception {
+        apply(alice, "approval-blog").andExpect(status().isAccepted());
+        mvc.perform(get("/api/me/join-requests").cookie(alice))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].blogSlug").value("approval-blog"));
+        Long id = pendingId("approval-blog");
+        // 남의 신청은 취소할 수 없다
+        mvc.perform(delete("/api/me/join-requests/" + id).with(csrf()).cookie(owner)).andExpect(status().isNotFound());
+        mvc.perform(delete("/api/me/join-requests/" + id).with(csrf()).cookie(alice)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/me/join-requests").cookie(alice)).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(delete("/api/me/join-requests/" + id).with(csrf()).cookie(alice)).andExpect(status().isConflict());
+    }
+
+    @Test
     void 멤버_관리_권한이_없으면_신청을_보거나_처리할_수_없다() throws Exception {
         apply(alice, "approval-blog").andExpect(status().isAccepted());
         Long id = pendingId("approval-blog");

@@ -51,7 +51,7 @@
       const actions = h.el('span');
       (RESULTS[r.targetType] || RESULTS.PROFILE).forEach(([result, label]) => {
         actions.append(h.button(label, async () => {
-          const reason = result === 'NO_ISSUE' ? '' : window.prompt('사유를 적어 주세요 (활동 기록과 알림에 남습니다).');
+          const reason = result === 'NO_ISSUE' ? '' : await window.dialog.prompt('사유를 적어 주세요 (활동 기록과 알림에 남습니다).');
           if (reason === null) {
             return;
           }
@@ -61,7 +61,7 @@
           const res = await window.api.post('/api/admin/reports/' + r.id + '/resolve', { result: result, reason: reason },
             { userAction: true });
           if (!res.ok) {
-            window.alert((res.data && res.data.message) || '처리하지 못했습니다.');
+            await window.dialog.alert((res.data && res.data.message) || '처리하지 못했습니다.');
           }
           h.reload();
         }, result === 'NO_ISSUE' ? 'link-button' : 'link-button danger'));

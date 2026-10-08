@@ -69,7 +69,10 @@
       </form>
 
       <section id="members-block" class="manage-block hidden" aria-labelledby="members-title">
-        <h2 id="members-title">멤버</h2>
+        <div class="list-header">
+          <h2 id="members-title">멤버 <span id="members-count" class="count"></span></h2>
+          <button id="members-more" class="link-button hidden" type="button">더보기</button>
+        </div>
         <p id="members-empty" class="hint hidden">아직 다른 멤버가 없어요.</p>
         <div id="members-table" class="table-scroll">
           <table class="admin-table">
@@ -118,6 +121,9 @@
   <script src="/js/api.js"></script>
   <script src="/js/icons.js"></script>
   <script src="/js/header.js"></script>
+  <script src="/js/pager.js"></script>
+  <script src="/js/modal.js"></script>
   <script src="/js/blog-manage.js"></script>
+  <script src="/js/members-modal.js"></script>
 </body>
 </html>

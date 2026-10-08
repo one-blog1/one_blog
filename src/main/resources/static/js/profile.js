@@ -106,7 +106,7 @@
 
   async function toggleBlock() {
     if (!state.profile.blocked
-      && !window.confirm(state.nickname + '님을 차단할까요? 서로의 팔로우가 끊기고 이 회원의 글과 댓글이 가려져요.')) {
+      && !await window.dialog.confirm(state.nickname + '님을 차단할까요? 서로의 팔로우가 끊기고 이 회원의 글과 댓글이 가려져요.')) {
       return;
     }
     const result = await window.api.post('/api/users/' + encodeURIComponent(state.nickname) + '/block', undefined,

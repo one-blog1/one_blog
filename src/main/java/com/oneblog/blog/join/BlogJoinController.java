@@ -46,6 +46,19 @@ public class BlogJoinController {
         return joinService.cancel(slug, key, principal);
     }
 
+    /** 내가 신청하고 기다리는 블로그 목록 (D-111). */
+    @GetMapping("/api/me/join-requests")
+    public List<BlogJoinService.MyJoinRequest> myRequests(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return joinService.myPendingRequests(principal);
+    }
+
+    @DeleteMapping("/api/me/join-requests/{id}")
+    public ResponseEntity<Void> cancelMine(@PathVariable("id") Long id,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        joinService.cancelMine(id, principal);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/api/blogs/{slug}/join-requests")
     public List<JoinRequestItem> pending(@PathVariable("slug") String slug,
             @AuthenticationPrincipal AuthenticatedUser principal) {
