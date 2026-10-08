@@ -72,6 +72,16 @@ public class User {
     @Column(name = "notification_retention_days", nullable = false)
     private int notificationRetentionDays = 30;
 
+    /** 프로필 공개 범위 (SOC-03, D-114). */
+    @Column(name = "show_blogs_on_profile", nullable = false)
+    private boolean showBlogsOnProfile = true;
+
+    @Column(name = "show_follows_on_profile", nullable = false)
+    private boolean showFollowsOnProfile = true;
+
+    @Column(name = "allow_follow", nullable = false)
+    private boolean allowFollow = true;
+
     @Column(name = "terms_agreed_at")
     private LocalDateTime termsAgreedAt;
 
@@ -211,6 +221,24 @@ public class User {
 
     public int getNotificationRetentionDays() {
         return notificationRetentionDays;
+    }
+
+    public void changePrivacy(boolean showBlogs, boolean showFollows, boolean allowFollow) {
+        this.showBlogsOnProfile = showBlogs;
+        this.showFollowsOnProfile = showFollows;
+        this.allowFollow = allowFollow;
+    }
+
+    public boolean isShowBlogsOnProfile() {
+        return showBlogsOnProfile;
+    }
+
+    public boolean isShowFollowsOnProfile() {
+        return showFollowsOnProfile;
+    }
+
+    public boolean isAllowFollow() {
+        return allowFollow;
     }
 
     public String getProfileImageUrl() {

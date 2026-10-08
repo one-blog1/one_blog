@@ -106,7 +106,7 @@
     const li = document.createElement('li');
     const name = document.createElement('span');
     name.className = 'request-name';
-    name.textContent = r.nickname + ' · ' + formatDate(r.requestedAt);
+    name.append(window.userLink(r.nickname), ' · ' + formatDate(r.requestedAt));
     const approve = document.createElement('button');
     approve.type = 'button';
     approve.className = 'secondary';

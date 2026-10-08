@@ -799,7 +799,7 @@ label.inline {
 .blog-hero .cover-initial {
   width: auto;
   height: 64%;
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  background: rgba(255, 255, 255, 0.55);
   font-size: clamp(40px, 7vw, 72px);
 }
 
@@ -2395,4 +2395,180 @@ body.modal-open {
 /* 확인 창은 알림 창보다 위에 */
 .modal-overlay {
   z-index: 90;
+}
+
+/* 메인 "내 블로그" 아래: 참여 중인 블로그의 새 글 (D-113) */
+.home-posts {
+  margin-top: 28px;
+}
+
+.home-posts h2 {
+  margin-top: 0;
+}
+
+/* 블로그 머리 단추 줄: 나가기·신고 아이콘은 맨 오른쪽 */
+.blog-actions-end {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.blog-actions-end:not(:has(.icon-button:not(.hidden))) {
+  display: none;
+}
+
+.blog-head #ops-message:empty {
+  display: none;
+}
+
+/* ── 화면 설정 (D-115): 어둡게, 글자 크기 ─────────────── */
+.setting-label {
+  margin: 18px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.block-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.block-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* 파스텔 이름표와 노랑 위의 글씨는 어떤 화면에서도 짙은 잉크색 */
+:root {
+  --ink: #1f2430;
+}
+
+.blog-card,
+.cover-initial,
+.blog-icon-cover .cover-initial,
+.comment.comment-target,
+.steps li.active,
+.segmented button[aria-pressed="true"],
+.view-switch button[aria-pressed="true"],
+.tabs button[aria-selected="true"],
+#header-user a[aria-current="page"],
+.pagination button[aria-current="page"] {
+  color: var(--ink);
+}
+
+.blog-card .blog-description,
+.blog-card .blog-meta {
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
+}
+
+.blog-card .tag {
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14171c;
+  --surface: #1d2129;
+  --text: #e6e8ed;
+  --muted: #9aa3b2;
+  --line: #2f3541;
+  --sun-soft: #3a3320;
+  --ink-hover: #c9ced8;
+  --error: #ff7b7b;
+  --ok: #5fd39b;
+}
+
+:root[data-theme="dark"] .notification.unread .notification-body {
+  background: #2c2a1f;
+}
+
+:root[data-theme="dark"] .avatar,
+:root[data-theme="dark"] .blog-cover {
+  background: #2a2f39;
+}
+
+:root[data-theme="dark"] .hero-search {
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* 글자 크기: 화면 전체를 비율로 키운다 */
+:root[data-font="large"] body {
+  zoom: 1.1;
+}
+
+:root[data-font="xlarge"] body {
+  zoom: 1.2;
+}
+
+/* 닉네임 링크: 누르면 그 회원 프로필 (팔로우는 프로필에서) */
+a.user-name {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.user-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── 상단 가운데 검색창 (D-116) ───────────────────── */
+.header-search {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  max-width: 440px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 2px 4px 2px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.header-search:focus-within {
+  border-color: var(--text);
+  background: var(--surface);
+}
+
+.header-search input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 0;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+}
+
+.header-search input[type="search"]:focus {
+  box-shadow: none;
+  border: none;
+}
+
+.header-search .icon-button {
+  width: 32px;
+  height: 32px;
+}
+
+@media (max-width: 640px) {
+  .site-header {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .header-search {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
 }

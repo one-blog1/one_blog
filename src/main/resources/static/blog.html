@@ -7,6 +7,7 @@
   <meta name="referrer" content="no-referrer">
   <title>블로그 - One Blog</title>
   <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -42,7 +43,13 @@
           <span id="join-state" class="badge muted hidden"></span>
           <a id="join-requests-link" class="text-link hidden" href="/?view=requests">내 참여 신청 보기</a>
         </div>
+        <!-- 나가기·신고는 같은 줄 맨 오른쪽에 아이콘으로 (D-111) -->
+        <div class="blog-actions-end">
+          <button id="report-blog" class="hidden tip-end" type="button" data-icon="flag">블로그 신고</button>
+          <button id="leave-button" class="danger hidden tip-end" type="button" data-icon="exit">블로그 나가기</button>
+        </div>
       </div>
+      <p id="ops-message" class="message error" role="alert"></p>
       <p id="join-text" class="hint"></p>
       <p id="join-message" class="message" role="status"></p>
       <p id="subscribe-message" class="message error" role="alert"></p>
@@ -100,12 +107,9 @@
       <p id="share-message" class="message ok" role="status"></p>
     </div>
 
-    <!-- 나가기·신고·해제 문의는 맨 아래 작게 (D-111) -->
+    <!-- 블랙리스트 해제 문의는 참여가 막혔을 때만 맨 아래 작게 -->
     <footer id="ops-area" class="blog-footer hidden">
-      <button id="leave-button" class="link-button hidden" type="button">블로그 나가기</button>
-      <button id="report-blog" class="link-button hidden" type="button">블로그 신고</button>
       <button id="inquiry-button" class="link-button hidden" type="button">블랙리스트 해제 문의</button>
-      <p id="ops-message" class="message error" role="alert"></p>
     </footer>
     </div>
   </main>

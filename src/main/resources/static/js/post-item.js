@@ -50,9 +50,15 @@
     if (post.categoryName) {
       meta.push(post.categoryName);
     }
-    meta.push(post.authorName, formatDate(post.createdAt), '조회 ' + post.viewCount, '좋아요 ' + post.likeCount,
-      '댓글 ' + post.commentCount);
-    li.append(el('p', 'post-meta', meta.filter(Boolean).join(' · ')));
+    meta.push(window.userLink ? window.userLink(post.authorName) : post.authorName, formatDate(post.createdAt),
+      '조회 ' + post.viewCount, '좋아요 ' + post.likeCount, '댓글 ' + post.commentCount);
+    const metaLine = el('p', 'post-meta');
+    if (window.joinMeta) {
+      window.joinMeta(metaLine, meta);
+    } else {
+      metaLine.textContent = meta.filter(Boolean).join(' · ');
+    }
+    li.append(metaLine);
     if (Array.isArray(post.tags) && post.tags.length > 0) {
       const tags = el('ul', 'tag-list');
       post.tags.forEach(t => {

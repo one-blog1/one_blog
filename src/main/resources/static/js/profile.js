@@ -157,12 +157,23 @@
     renderFollow();
     if (p.me) {
       $('edit-link').classList.remove('hidden');
-    } else {
+    } else if (p.followAllowed || p.following) {
+      // 팔로우를 받지 않는 회원이면 단추를 숨긴다. 이미 팔로우 중이면 취소는 할 수 있다 (D-114)
       $('follow-button').classList.remove('hidden');
       $('follow-button').addEventListener('click', toggleFollow);
     }
-    $('show-followers').addEventListener('click', () => showList('followers'));
-    $('show-following').addEventListener('click', () => showList('following'));
+    if (p.followsHidden) {
+      // 팔로워·팔로잉 수는 보이지만 목록은 열지 않는다
+      ['show-followers', 'show-following'].forEach(id => {
+        $(id).disabled = true;
+        $(id).title = '이 회원은 팔로워 목록을 공개하지 않아요.';
+      });
+    } else {
+      $('show-followers').addEventListener('click', () => showList('followers'));
+      $('show-following').addEventListener('click', () => showList('following'));
+    }
+    $('blogs-hidden').classList.toggle('hidden', !p.blogsHidden);
+    $('profile-blogs').classList.toggle('hidden', !!p.blogsHidden);
     renderBlogs('owned-list', 'owned-empty', p.ownedBlogs);
     renderBlogs('joined-list', 'joined-empty', p.joinedBlogs);
     $('block-button').addEventListener('click', toggleBlock);

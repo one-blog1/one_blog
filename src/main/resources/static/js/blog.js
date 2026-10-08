@@ -44,13 +44,15 @@
     const meta = [c.VISIBILITY_LABEL[blog.visibility] || blog.visibility,
       blog.joinPolicy === 'APPROVAL' ? '승인제' : '자유 참여'];
     if (blog.ownerNickname) {
-      meta.push('블로그장 ' + blog.ownerNickname);
+      const owner = document.createElement('span');
+      owner.append('블로그장 ', window.userLink(blog.ownerNickname));
+      meta.push(owner);
     }
     meta.push('멤버 ' + blog.memberCount + '명');
     if (blog.myRole) {
       meta.push('나: ' + (c.ROLE_LABEL[blog.myRole] || blog.myRole));
     }
-    $('blog-meta').textContent = meta.join(' · ');
+    window.joinMeta($('blog-meta'), meta);
     $('blog-description').textContent = blog.description || '';
 
     const tags = $('blog-tags');

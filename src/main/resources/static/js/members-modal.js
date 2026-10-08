@@ -73,7 +73,9 @@
     const notice = el('div');
     data.items.forEach(member => {
       const tr = el('tr');
-      tr.append(el('td', 'nick', member.nickname), el('td', null, ROLE[member.role] || member.role));
+      const nick = el('td', 'nick');
+      nick.append(window.userLink(member.nickname));
+      tr.append(nick, el('td', null, ROLE[member.role] || member.role));
       [['posts', member.postCount], ['comments', member.commentCount]].forEach(([kind, count]) => {
         const td = el('td', 'num');
         const b = el('button', 'count-link', count);

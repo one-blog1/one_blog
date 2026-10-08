@@ -13,9 +13,25 @@ import com.oneblog.common.security.AuthenticatedUser;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final PrivacyService privacyService;
 
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileService profileService, PrivacyService privacyService) {
         this.profileService = profileService;
+        this.privacyService = privacyService;
+    }
+
+    /** 설정 > 프로필 공개 범위 (D-114). */
+    @GetMapping("/api/me/privacy")
+    @ResponseBody
+    public PrivacyService.Privacy privacy(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return privacyService.get(principal);
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/api/me/privacy")
+    @ResponseBody
+    public PrivacyService.Privacy updatePrivacy(@AuthenticationPrincipal AuthenticatedUser principal,
+            @org.springframework.web.bind.annotation.RequestBody PrivacyService.Privacy request) {
+        return privacyService.update(principal, request);
     }
 
     @GetMapping("/users/{nickname}")

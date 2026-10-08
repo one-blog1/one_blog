@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -47,6 +48,39 @@ class SocialIntegrationTest extends BlogTestSupport {
         mvc.perform(post("/api/users/밥아저씨/follow").with(csrf()).cookie(alice))
                 .andExpect(jsonPath("$.following").value(false))
                 .andExpect(jsonPath("$.followerCount").value(0));
+    }
+
+    @Test
+    void 프로필_공개_범위를_끄면_남에게_블로그와_팔로워_목록이_숨고_팔로우를_받지_않는다() throws Exception {
+        createBlog(bob, "bob-public", "PUBLIC").andExpect(status().isCreated());
+        mvc.perform(get("/api/me/privacy").cookie(bob))
+                .andExpect(jsonPath("$.showBlogs").value(true))
+                .andExpect(jsonPath("$.allowFollow").value(true));
+        mvc.perform(put("/api/me/privacy").with(csrf()).cookie(bob)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"showBlogs\":false,\"showFollows\":false,\"allowFollow\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.showFollows").value(false));
+
+        mvc.perform(get("/api/users/밥아저씨").cookie(alice))
+                .andExpect(jsonPath("$.ownedBlogs", hasSize(0)))
+                .andExpect(jsonPath("$.blogsHidden").value(true))
+                .andExpect(jsonPath("$.followsHidden").value(true))
+                .andExpect(jsonPath("$.followAllowed").value(false));
+        // 본인에게는 그대로 보인다
+        mvc.perform(get("/api/users/밥아저씨").cookie(bob)).andExpect(jsonPath("$.ownedBlogs", hasSize(1)));
+        mvc.perform(get("/api/users/밥아저씨/followers").cookie(alice)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/users/밥아저씨/followers").cookie(bob)).andExpect(status().isOk());
+        mvc.perform(post("/api/users/밥아저씨/follow").with(csrf()).cookie(alice))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FOLLOW_NOT_ALLOWED"));
+        // 보내지 않은 항목은 그대로
+        mvc.perform(put("/api/me/privacy").with(csrf()).cookie(bob)
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"allowFollow\":true}"))
+                .andExpect(jsonPath("$.showBlogs").value(false))
+                .andExpect(jsonPath("$.allowFollow").value(true));
+        mvc.perform(post("/api/users/밥아저씨/follow").with(csrf()).cookie(alice)).andExpect(status().isOk());
     }
 
     @Test

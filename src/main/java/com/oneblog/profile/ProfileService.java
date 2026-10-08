@@ -38,9 +38,10 @@ public class ProfileService {
             int memberCount) {
     }
 
+    /** blogsHidden·followsHidden: 본인이 숨겨서 남에게 안 보이는 것. followAllowed: 새 팔로우를 받는지 (D-114). */
     public record ProfileResponse(String nickname, String profileImageUrl, String bio, long followerCount,
             long followingCount, boolean following, boolean me, boolean blocked, List<BlogItem> ownedBlogs,
-            List<BlogItem> joinedBlogs) {
+            List<BlogItem> joinedBlogs, boolean blogsHidden, boolean followsHidden, boolean followAllowed) {
     }
 
     @Transactional(readOnly = true)
@@ -49,7 +50,8 @@ public class ProfileService {
         boolean me = user.getId().equals(viewerId);
         List<BlogItem> owned = new ArrayList<>();
         List<BlogItem> joined = new ArrayList<>();
-        for (Object[] row : memberRepository.findMyBlogs(user.getId())) {
+        boolean blogsHidden = !me && !user.isShowBlogsOnProfile();
+        for (Object[] row : blogsHidden ? List.<Object[]>of() : memberRepository.findMyBlogs(user.getId())) {
             Blog blog = (Blog) row[0];
             BlogRole role = (BlogRole) row[1];
             if (!me && (blog.getVisibility() != BlogVisibility.PUBLIC || blog.isHidden())) {
@@ -62,6 +64,6 @@ public class ProfileService {
         return new ProfileResponse(user.getNickname(), user.getProfileImageUrl(), user.getBio(),
                 followRepository.countFollowers(user.getId()), followRepository.countFollowing(user.getId()),
                 followService.isFollowing(viewerId, user.getId()), me, blockRepository.exists(viewerId, user.getId()),
-                owned, joined);
+                owned, joined, blogsHidden, !me && !user.isShowFollowsOnProfile(), user.isAllowFollow());
     }
 }

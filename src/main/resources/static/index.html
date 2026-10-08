@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>One Blog</title>
   <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -46,16 +47,19 @@
           <button id="home-to-feed" class="secondary" type="button">메인 피드에서 둘러보기</button>
         </div>
       </div>
+
+      <section id="home-posts" class="card home-posts hidden" aria-labelledby="home-posts-title">
+        <h2 id="home-posts-title">내 블로그의 새 글</h2>
+        <ul id="home-post-list" class="post-list"></ul>
+        <p id="home-post-empty" class="hint hidden">참여 중인 블로그에 아직 글이 없어요.</p>
+        <nav id="home-post-pagination" class="pagination" aria-label="내 블로그 새 글 페이지"></nav>
+      </section>
     </section>
 
     <div id="feed-view" class="hidden">
     <section class="home-hero" aria-labelledby="hero-title">
       <p id="hero-hello" class="hero-hello">어서 오세요</p>
       <h1 id="hero-title" class="hero-title">오늘은 어떤 이야기를 읽어 볼까요?</h1>
-      <form class="hero-search" action="/search" method="get" role="search">
-        <input name="q" type="search" maxlength="20" placeholder="블로그, 글 제목, 태그, 닉네임" aria-label="검색어">
-        <button class="primary" type="submit">검색</button>
-      </form>
     </section>
 
     <section class="card" aria-labelledby="feed-title">

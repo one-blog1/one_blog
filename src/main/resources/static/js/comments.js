@@ -58,7 +58,9 @@
       li.append(el('p', 'comment-deleted', '삭제된 댓글입니다'));
     } else {
       const head = el('p', 'comment-head');
-      head.append(el('strong', null, c.authorName), el('span', 'comment-date', ' ' + formatDateTime(c.createdAt)));
+      const author = el('strong');
+      author.append(window.userLink(c.authorName));
+      head.append(author, el('span', 'comment-date', ' ' + formatDateTime(c.createdAt)));
       if (c.edited) {
         head.append(el('span', 'comment-edited', ' (수정됨)'));
       }

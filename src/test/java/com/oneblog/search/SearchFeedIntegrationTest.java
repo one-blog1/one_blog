@@ -136,5 +136,10 @@ class SearchFeedIntegrationTest extends PostTestSupport {
         mvc.perform(post("/api/blogs/jeju-trip/subscription").with(csrf()).cookie(bob));
         mvc.perform(get("/api/feed").param("tab", "subscriptions").cookie(bob))
                 .andExpect(jsonPath("$.items[*].id", contains(travelPost.intValue())));
+
+        // 내 블로그 탭: 참여 중인 블로그(만든 블로그 포함)의 새 글 (D-113)
+        mvc.perform(get("/api/feed").param("tab", "myblogs")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/feed").param("tab", "myblogs").cookie(bob))
+                .andExpect(jsonPath("$.items[*].id", containsInAnyOrder(bobPost.intValue(), secretPost.intValue())));
     }
 }

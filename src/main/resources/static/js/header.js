@@ -140,5 +140,62 @@
     document.dispatchEvent(new CustomEvent('header:user', { detail: me }));
   }
 
-  document.addEventListener('DOMContentLoaded', renderHeader);
+  // 닉네임을 그 회원의 프로필 링크로 (글·댓글·멤버 목록 어디서나, SOC-03). 탈퇴한 회원은 링크 없이 글자만
+  const NO_PROFILE = ['탈퇴한 회원', '탈퇴한 계정'];
+  window.userLink = function (nickname, className) {
+    const name = nickname || '';
+    if (!name || NO_PROFILE.includes(name)) {
+      const span = document.createElement('span');
+      span.textContent = name;
+      return span;
+    }
+    const a = document.createElement('a');
+    a.className = 'user-name' + (className ? ' ' + className : '');
+    a.href = '/users/' + encodeURIComponent(name);
+    a.textContent = name;
+    return a;
+  };
+
+  /** 텍스트와 노드를 " · "로 이어 붙인다 (글 정보 줄 등). */
+  window.joinMeta = function (target, parts) {
+    target.replaceChildren();
+    parts.filter(p => p !== null && p !== undefined && p !== ''
+      && !(p instanceof Node && p.textContent.trim() === '')).forEach((part, i) => {
+      if (i > 0) {
+        target.append(document.createTextNode(' · '));
+      }
+      target.append(part instanceof Node ? part : document.createTextNode(String(part)));
+    });
+  };
+
+  // 상단 가운데 검색창 (BRD-08, D-116): 모든 화면에서 블로그·글·태그·닉네임을 찾는다
+  function renderSearch() {
+    const header = document.querySelector('.site-header');
+    if (!header || header.querySelector('.header-search')) {
+      return;
+    }
+    const form = document.createElement('form');
+    form.className = 'header-search';
+    form.action = '/search';
+    form.method = 'get';
+    form.setAttribute('role', 'search');
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.name = 'q';
+    input.maxLength = 20;
+    input.placeholder = '블로그, 글, 태그, 닉네임 검색';
+    input.setAttribute('aria-label', '검색어');
+    if (window.location.pathname === '/search') {
+      input.value = new URLSearchParams(window.location.search).get('q') || '';
+    }
+    const button = window.icons ? window.icons.button('search', '검색', 'tip-end') : document.createElement('button');
+    button.type = 'submit';
+    form.append(input, button);
+    header.insertBefore(form, document.getElementById('header-user'));
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderSearch();
+    renderHeader();
+  });
 })();

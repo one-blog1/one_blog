@@ -16,8 +16,11 @@ public class FollowController {
 
     private final FollowService followService;
 
-    public FollowController(FollowService followService) {
+    private final com.oneblog.profile.PrivacyService privacyService;
+
+    public FollowController(FollowService followService, com.oneblog.profile.PrivacyService privacyService) {
         this.followService = followService;
+        this.privacyService = privacyService;
     }
 
     @PostMapping("/api/users/{nickname}/follow")
@@ -26,17 +29,22 @@ public class FollowController {
         return followService.toggle(principal, nickname);
     }
 
+    /** 팔로워·팔로잉 목록은 본인이 공개로 둔 경우에만 남에게 보인다 (D-114). */
     @GetMapping("/api/users/{nickname}/followers")
     public FollowService.UserPage followers(@PathVariable("nickname") String nickname,
             @RequestParam(name = "page", required = false) String page,
-            @RequestParam(name = "size", required = false) String size) {
+            @RequestParam(name = "size", required = false) String size,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        privacyService.requireFollowsVisible(followService.findMember(nickname), principal == null ? null : principal.id());
         return followService.followers(nickname, PageParams.of(page, size));
     }
 
     @GetMapping("/api/users/{nickname}/following")
     public FollowService.UserPage following(@PathVariable("nickname") String nickname,
             @RequestParam(name = "page", required = false) String page,
-            @RequestParam(name = "size", required = false) String size) {
+            @RequestParam(name = "size", required = false) String size,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        privacyService.requireFollowsVisible(followService.findMember(nickname), principal == null ? null : principal.id());
         return followService.following(nickname, PageParams.of(page, size));
     }
 }

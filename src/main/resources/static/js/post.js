@@ -50,12 +50,13 @@
       $('admin-view').textContent = post.adminViewReason + ' 관리자에게만 보여요. 연 기록은 관리자 활동 기록에 남아요.';
       $('admin-view').classList.remove('hidden');
     }
-    const meta = [post.authorName, formatDateTime(post.createdAt)];
+    // 작성자 닉네임을 누르면 프로필(팔로우)로 간다
+    const meta = [window.userLink(post.authorName), formatDateTime(post.createdAt)];
     if (post.updatedAt && post.updatedAt !== post.createdAt) {
       meta.push('수정 ' + formatDateTime(post.updatedAt));
     }
     meta.push('조회 ' + post.viewCount);
-    $('post-meta').textContent = meta.join(' · ');
+    window.joinMeta($('post-meta'), meta);
     $('post-body').innerHTML = post.contentHtml;
 
     const tags = $('post-tags');

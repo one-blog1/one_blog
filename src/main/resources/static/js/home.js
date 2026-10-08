@@ -103,6 +103,26 @@
     }
     list.classList.toggle('hidden', blogs.length === 0);
     $('home-empty').classList.toggle('hidden', blogs.length > 0);
+    $('home-posts').classList.toggle('hidden', blogs.length === 0);
+    if (blogs.length > 0) {
+      loadHomePosts(1);
+    }
+  }
+
+  // 참여 중인 블로그에 올라온 새 글 (D-113)
+  async function loadHomePosts(page) {
+    const q = new URLSearchParams({ tab: 'myblogs', page: String(page), size: '10' });
+    const result = await window.api.get('/api/feed?' + q.toString());
+    if (!result.ok || !result.data) {
+      return;
+    }
+    const data = result.data;
+    const list = $('home-post-list');
+    list.replaceChildren();
+    data.items.forEach(c => list.append(window.postItem.create(c,
+      '/blog/' + encodeURIComponent(c.blogSlug) + '/posts/' + encodeURIComponent(c.id), { blogName: c.blogName })));
+    $('home-post-empty').classList.toggle('hidden', data.items.length > 0);
+    window.pager.render($('home-post-pagination'), data.page, data.totalPages, loadHomePosts);
   }
 
   // 내가 신청하고 기다리는 블로그. 여기서 취소한다 (D-111)

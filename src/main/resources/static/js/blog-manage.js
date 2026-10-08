@@ -158,7 +158,10 @@
     const shown = owner ? result.data.slice(0, INLINE + 1) : result.data;
     shown.forEach(m => {
       const tr = el('tr');
-      [m.nickname, m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));
+      const nick = el('td');
+      nick.append(window.userLink(m.nickname));
+      tr.append(nick);
+      [m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));
       const actions = el('td');
       if (m.suspensionCount >= 3) {
         actions.append(el('span', 'badge', '정지 ' + m.suspensionCount + '회'));

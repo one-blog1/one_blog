@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>프로필 - One Blog</title>
   <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -38,12 +39,15 @@
         <nav id="follow-pagination" class="pagination" aria-label="목록 페이지"></nav>
       </section>
 
-      <h2>운영하는 블로그</h2>
-      <div id="owned-list" class="blog-grid"></div>
-      <p id="owned-empty" class="hint hidden">운영하는 블로그가 없어요.</p>
-      <h2>참여한 블로그</h2>
-      <div id="joined-list" class="blog-grid"></div>
-      <p id="joined-empty" class="hint hidden">참여한 블로그가 없어요.</p>
+      <p id="blogs-hidden" class="hint hidden">이 회원은 블로그 목록을 공개하지 않아요.</p>
+      <div id="profile-blogs">
+        <h2>운영하는 블로그</h2>
+        <div id="owned-list" class="blog-grid"></div>
+        <p id="owned-empty" class="hint hidden">운영하는 블로그가 없어요.</p>
+        <h2>참여한 블로그</h2>
+        <div id="joined-list" class="blog-grid"></div>
+        <p id="joined-empty" class="hint hidden">참여한 블로그가 없어요.</p>
+      </div>
     </section>
   </main>
   <script src="/js/api.js"></script>

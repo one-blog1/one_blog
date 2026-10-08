@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>설정 - One Blog</title>
   <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -26,6 +27,43 @@
         <p id="settings-message" class="message" role="status"></p>
         <button class="primary" type="submit">알림 설정 저장</button>
       </form>
+    </section>
+
+    <section class="card" aria-labelledby="privacy-title">
+      <h2 id="privacy-title">프로필 공개 범위</h2>
+      <p class="hint">끄면 다른 사람에게만 숨겨지고, 내 프로필에서는 그대로 보여요.</p>
+      <form id="privacy-form" novalidate>
+        <label class="checkbox"><input id="privacy-blogs" type="checkbox"> 프로필에 내가 운영·참여하는 블로그 보이기</label>
+        <label class="checkbox"><input id="privacy-follows" type="checkbox"> 팔로워·팔로잉 목록 보이기 (수는 늘 보여요)</label>
+        <label class="checkbox"><input id="privacy-allow-follow" type="checkbox"> 다른 회원의 팔로우 받기 (이미 한 팔로우는 그대로)</label>
+        <p id="privacy-message" class="message" role="status"></p>
+        <button class="primary" type="submit">공개 범위 저장</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="blocks-title">
+      <h2 id="blocks-title">차단한 회원 <span id="blocks-count" class="count"></span></h2>
+      <p class="hint">차단하면 서로의 팔로우가 끊기고 그 회원의 글과 댓글이 가려져요.</p>
+      <ul id="block-list" class="block-list"></ul>
+      <p id="blocks-empty" class="hint hidden">차단한 회원이 없어요.</p>
+      <p id="blocks-message" class="message" role="status"></p>
+    </section>
+
+    <section class="card" aria-labelledby="display-title">
+      <h2 id="display-title">화면</h2>
+      <p class="hint">이 기기에만 적용돼요. 바로 바뀌어요.</p>
+      <p class="setting-label" id="theme-label">밝기</p>
+      <div class="segmented" role="group" aria-labelledby="theme-label">
+        <button type="button" data-theme-choice="light" aria-pressed="false">밝게</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false">어둡게</button>
+        <button type="button" data-theme-choice="system" aria-pressed="false">기기 설정 따르기</button>
+      </div>
+      <p class="setting-label" id="font-label">글자 크기</p>
+      <div class="segmented" role="group" aria-labelledby="font-label">
+        <button type="button" data-font-choice="normal" aria-pressed="false">보통</button>
+        <button type="button" data-font-choice="large" aria-pressed="false">크게</button>
+        <button type="button" data-font-choice="xlarge" aria-pressed="false">아주 크게</button>
+      </div>
     </section>
   </main>
   <script src="/js/api.js"></script>
