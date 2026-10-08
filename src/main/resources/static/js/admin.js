@@ -29,6 +29,23 @@
     $('admin-message').textContent = text || '';
   }
 
+  // 글·댓글이 있는 화면으로 바로 가는 링크. 관리자 화면(탭·검색어)을 잃지 않게 새 탭으로 연다
+  function goto(text, href) {
+    if (!href) {
+      return text;
+    }
+    const a = el('a', 'goto-link', text);
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    return a;
+  }
+
+  function postHref(blogSlug, postId) {
+    return blogSlug ? '/blog/' + encodeURIComponent(blogSlug) + '/posts/' + encodeURIComponent(postId)
+      : '/notice.html?id=' + encodeURIComponent(postId);
+  }
+
   function button(label, onClick, className) {
     const b = el('button', className || 'link-button', label);
     b.type = 'button';
@@ -145,7 +162,7 @@
             () => act('/api/admin/posts/' + p.id + '/hide', { hidden: !p.hidden }, load)));
           actions.append(button('삭제', () => act('/api/admin/posts/' + p.id + '/delete', {}, load), 'link-button danger'));
         }
-        return [p.title, p.blogName || '메인 공지', p.authorNickname,
+        return [goto(p.title, p.deleted ? null : postHref(p.blogSlug, p.id)), p.blogName || '메인 공지', p.authorNickname,
           p.deleted ? '삭제됨' : (p.hidden ? '숨김' : '보임'), date(p.createdAt), actions];
       }))),
     comments: paged('/api/admin/comments', (items) => table(
@@ -157,7 +174,11 @@
             () => act('/api/admin/comments/' + c.id + '/hide', { hidden: !c.hidden }, load)));
           actions.append(button('삭제', () => act('/api/admin/comments/' + c.id + '/delete', {}, load), 'link-button danger'));
         }
-        return [c.content, c.postTitle, c.authorNickname, c.deleted ? '삭제됨' : (c.hidden ? '숨김' : '보임'),
+        // 댓글은 글 화면의 그 댓글 위치(#comment-번호)로 간다. 메인 공지 댓글은 공지 화면으로
+        const commentHref = c.deleted ? null
+          : postHref(c.blogSlug, c.postId) + (c.blogSlug ? '#comment-' + encodeURIComponent(c.id) : '');
+        return [goto(c.content, commentHref), goto(c.postTitle, postHref(c.blogSlug, c.postId)), c.authorNickname,
+          c.deleted ? '삭제됨' : (c.hidden ? '숨김' : '보임'),
           date(c.createdAt), actions];
       }))),
     reports: paged('/api/admin/reports', (items) => {

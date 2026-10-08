@@ -25,6 +25,27 @@
     }
   }
 
+  // 신고 대상이 있는 화면 주소. 신고할 때 남긴 기록(snapshot)의 블로그 주소·글 번호로 만든다
+  function targetHref(r) {
+    let s = {};
+    try {
+      s = JSON.parse(r.snapshot) || {};
+    } catch (e) {
+      s = {};
+    }
+    const blog = s.blogSlug ? '/blog/' + encodeURIComponent(s.blogSlug) : null;
+    switch (r.targetType) {
+      case 'POST':
+        return blog && blog + '/posts/' + encodeURIComponent(r.targetId);
+      case 'COMMENT':
+        return blog && s.postId && blog + '/posts/' + encodeURIComponent(s.postId) + '#comment-' + encodeURIComponent(r.targetId);
+      case 'BLOG':
+        return blog;
+      default:
+        return r.targetNickname ? '/users/' + encodeURIComponent(r.targetNickname) : null;
+    }
+  }
+
   function render(items, h) {
     return h.table(['신고일', '대상', '작성자', '내용', '사유', '신고한 사람', ''], items.map(r => {
       const actions = h.el('span');
@@ -45,7 +66,16 @@
           h.reload();
         }, result === 'NO_ISSUE' ? 'link-button' : 'link-button danger'));
       });
-      return [h.date(r.createdAt), TYPE[r.targetType] || r.targetType, r.targetNickname || '', snapshotText(r.snapshot),
+      const type = TYPE[r.targetType] || r.targetType;
+      const href = targetHref(r);
+      let target = type;
+      if (href) {
+        target = h.el('a', 'goto-link', type + ' 바로가기');
+        target.href = href;
+        target.target = '_blank';
+        target.rel = 'noopener';
+      }
+      return [h.date(r.createdAt), target, r.targetNickname || '', snapshotText(r.snapshot),
         r.reasonLabel + (r.detail ? ' — ' + r.detail : ''), r.reporterNickname, actions];
     }));
   }

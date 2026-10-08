@@ -206,8 +206,9 @@ public class AdminService {
         }
     }
 
-    public record CommentRow(Long id, Long postId, String postTitle, String content, String authorNickname,
-            boolean hidden, boolean deleted, java.time.OffsetDateTime createdAt) {
+    /** blogSlug는 관리자 화면의 "바로가기" 주소용. 메인 공지에 달린 댓글이면 null. */
+    public record CommentRow(Long id, Long postId, String blogSlug, String postTitle, String content,
+            String authorNickname, boolean hidden, boolean deleted, java.time.OffsetDateTime createdAt) {
     }
 
     @Transactional(readOnly = true)
@@ -216,13 +217,15 @@ public class AdminService {
                 .addValue("limit", params.size()).addValue("offset", (long) params.zeroBasedPage() * params.size());
         String where = """
                  FROM comments c JOIN posts p ON p.id = c.post_id JOIN users u ON u.id = c.user_id
+                 LEFT JOIN blogs b ON b.id = p.blog_id
                  WHERE c.content LIKE :q OR u.nickname LIKE :q
                 """;
         long total = jdbc.queryForObject("SELECT COUNT(*)" + where, p, Long.class);
-        List<CommentRow> rows = jdbc.query("SELECT c.id, c.post_id, p.title, c.content, u.nickname, c.is_hidden,"
-                + " c.deleted_at IS NOT NULL AS deleted, c.created_at" + where
+        List<CommentRow> rows = jdbc.query("SELECT c.id, c.post_id, b.slug, p.title, c.content, u.nickname,"
+                + " c.is_hidden, c.deleted_at IS NOT NULL AS deleted, c.created_at" + where
                 + " ORDER BY c.created_at DESC, c.id DESC LIMIT :limit OFFSET :offset", p,
-                (rs, i) -> new CommentRow(rs.getLong("id"), rs.getLong("post_id"), rs.getString("title"),
+                (rs, i) -> new CommentRow(rs.getLong("id"), rs.getLong("post_id"), rs.getString("slug"),
+                        rs.getString("title"),
                         rs.getString("content"), rs.getString("nickname"), rs.getBoolean("is_hidden"),
                         rs.getBoolean("deleted"), Times.toOffset(rs.getTimestamp("created_at").toLocalDateTime())));
         return AdminPage.of(rows, params.page(), params.size(), total);

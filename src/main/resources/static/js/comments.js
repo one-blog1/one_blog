@@ -163,6 +163,26 @@
     message((result.data && result.data.message) || '댓글을 쓰지 못했어요.');
   }
 
+  // 주소에 #comment-번호가 있으면(관리자 화면·알림의 바로가기) 그 댓글로 내려가 잠시 표시한다. 처음 한 번만
+  let linkedHandled = false;
+  function focusLinkedComment() {
+    const match = /^#comment-(\d+)$/.exec(window.location.hash);
+    if (linkedHandled || !match) {
+      return;
+    }
+    linkedHandled = true;
+    const target = document.getElementById('comment-' + match[1]);
+    if (!target) {
+      message('이 댓글은 숨겨졌거나 삭제돼서 보이지 않아요.');
+      return;
+    }
+    target.classList.add('comment-target');
+    target.setAttribute('tabindex', '-1');
+    target.scrollIntoView({ block: 'center' });
+    target.focus({ preventScroll: true });
+    window.setTimeout(() => target.classList.remove('comment-target'), 4000);
+  }
+
   async function load() {
     const result = await window.api.get('/api/posts/' + encodeURIComponent(post.id) + '/comments' + keyQuery());
     if (!result.ok || !Array.isArray(result.data)) {
@@ -176,6 +196,7 @@
       count += (c.deleted ? 0 : 1) + (c.replies ? c.replies.length : 0);
     });
     $('comment-count').textContent = String(count);
+    focusLinkedComment();
     document.dispatchEvent(new CustomEvent('comments:rendered'));
   }
 

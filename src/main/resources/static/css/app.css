@@ -1869,3 +1869,29 @@ button.secondary.edit-done {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ── 바로가기 (관리자 화면 → 글·댓글 위치) ─────────────── */
+.goto-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.goto-link:hover {
+  background: var(--bg);
+}
+
+/* 바로가기로 온 댓글: 지금 여기 (D-104) */
+.comment.comment-target {
+  margin: 0 -10px;
+  padding-left: 10px;
+  padding-right: 10px;
+  border-radius: var(--radius-field);
+  background: var(--sun-soft);
+  box-shadow: inset 4px 0 0 var(--sun);
+  transition: background-color 0.6s ease;
+}
+
+.comment.comment-target:focus {
+  outline: none;
+}

@@ -142,7 +142,10 @@ class AdminIntegrationTest extends PostTestSupport {
         Long commentId = ((Number) JsonPath.read(body, "$.id")).longValue();
         adminPost("/api/admin/comments/" + commentId + "/hide", "{\"hidden\":true}").andExpect(status().isNoContent());
         mvc.perform(get("/api/posts/" + postId + "/comments")).andExpect(jsonPath("$.length()").value(0));
-        mvc.perform(get("/api/admin/comments").cookie(admin)).andExpect(jsonPath("$.items[0].hidden").value(true));
+        mvc.perform(get("/api/admin/comments").cookie(admin)).andExpect(jsonPath("$.items[0].hidden").value(true))
+                // 관리자 화면 "바로가기" 주소용 (/blog/{slug}/posts/{postId}#comment-{id})
+                .andExpect(jsonPath("$.items[0].blogSlug").value("open-blog"))
+                .andExpect(jsonPath("$.items[0].postId").value(postId.intValue()));
     }
 
     @Test
