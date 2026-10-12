@@ -1685,6 +1685,12 @@ button.primary.inline-button {
   text-decoration: underline;
 }
 
+/* 이 브라우저에서 이미 읽은 글은 제목을 회색으로 (019). 브라우저 방문 기록을 쓰므로 서버에 저장하지 않는다.
+   :visited는 보안상 색만 바꿀 수 있다 */
+.post-link:visited {
+  color: var(--muted);
+}
+
 .badge {
   padding: 1px 8px;
   border-radius: 999px;

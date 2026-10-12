@@ -1,5 +1,5 @@
 // 메인 첫 화면 (BLG-06, BRD-09, D-100, D-111, D-113): [내 블로그][메인 피드][참여 신청] 전환.
-// 내 블로그는 참여 중인 블로그 아이콘과 그 블로그들의 새 글, 참여 신청은 기다리는 신청 목록과 취소.
+// 내 블로그는 참여 중인 블로그 아이콘과 그 블로그들의 새 글([전체]·블로그별 단추, 019), 참여 신청은 기다리는 신청 목록과 취소.
 // - 로그인한 회원: 공지 아래 [내 블로그][메인 피드]. 기본은 "내 블로그"(참여 중인 블로그를 아이콘과 이름으로)
 // - 비회원·관리자: 메인 피드만
 // 주소 /?view=feed 이면 메인 피드로 연다. 로고(/)를 누르면 늘 "내 블로그"로 돌아온다.
@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const state = { member: false, loaded: false };
+  const state = { member: false, loaded: false, homeBlog: '' };
 
   const $ = window.ui.$;
 
@@ -104,23 +104,89 @@
     $('home-empty').classList.toggle('hidden', blogs.length > 0);
     $('home-posts').classList.toggle('hidden', blogs.length === 0);
     if (blogs.length > 0) {
+      renderBlogTabs(blogs);
       loadHomePosts(1);
     }
   }
 
-  // 참여 중인 블로그에 올라온 새 글 (D-113)
+  // [전체] + 블로그마다 단추 (019). 고른 블로그는 이 기기에만 기억한다 (화면 설정처럼, D-115)
+  const BLOG_KEY = 'oneblog.homeBlog';
+
+  function savedBlog(blogs) {
+    try {
+      const slug = window.localStorage.getItem(BLOG_KEY);
+      return blogs.some(b => b.slug === slug) ? slug : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function renderBlogTabs(blogs) {
+    const tabs = $('home-blog-tabs');
+    tabs.replaceChildren();
+    state.homeBlog = savedBlog(blogs);
+    const add = (slug, label) => {
+      const button = window.ui.el('button', null, label);
+      button.type = 'button';
+      button.setAttribute('role', 'tab');
+      button.dataset.blog = slug;
+      button.addEventListener('click', () => selectBlog(slug));
+      tabs.append(button);
+    };
+    add('', '전체');
+    blogs.forEach(b => add(b.slug, b.name));
+    markBlogTab();
+  }
+
+  function markBlogTab() {
+    $('home-blog-tabs').querySelectorAll('button').forEach(button =>
+      button.setAttribute('aria-selected', String(button.dataset.blog === state.homeBlog)));
+  }
+
+  function selectBlog(slug) {
+    state.homeBlog = slug;
+    try {
+      window.localStorage.setItem(BLOG_KEY, slug);
+    } catch (e) {
+      // 저장하지 못해도 이번 화면에서는 고른 대로 보여 준다
+    }
+    markBlogTab();
+    loadHomePosts(1);
+  }
+
+  // 참여 중인 블로그에 올라온 새 글 (D-113). 블로그를 고르면 그 블로그의 글 목록 API로 (019)
   async function loadHomePosts(page) {
-    const q = new URLSearchParams({ tab: 'myblogs', page: String(page), size: '10' });
-    const result = await window.api.get('/api/feed?' + q.toString());
+    const slug = state.homeBlog || '';
+    const q = new URLSearchParams({ page: String(page), size: '10' });
+    let url;
+    if (slug) {
+      url = '/api/blogs/' + encodeURIComponent(slug) + '/posts?' + q.toString();
+    } else {
+      q.set('tab', 'myblogs');
+      url = '/api/feed?' + q.toString();
+    }
+    const result = await window.api.get(url);
+    if (slug !== (state.homeBlog || '')) {
+      return; // 응답을 기다리는 사이에 다른 블로그를 골랐다
+    }
+    const list = $('home-post-list');
+    const message = $('home-post-message');
+    list.replaceChildren();
     if (!result.ok || !result.data) {
+      message.textContent = slug ? '이 블로그의 글을 불러오지 못했어요.' : '새 글을 불러오지 못했어요.';
+      message.classList.remove('hidden');
+      $('home-post-empty').classList.add('hidden');
+      $('home-post-pagination').replaceChildren();
       return;
     }
+    message.classList.add('hidden');
     const data = result.data;
-    const list = $('home-post-list');
-    list.replaceChildren();
-    data.items.forEach(c => list.append(window.postItem.create(c,
-      window.ui.postHref(c.blogSlug, c.id), { blogName: c.blogName })));
-    $('home-post-empty').classList.toggle('hidden', data.items.length > 0);
+    data.items.forEach(c => list.append(slug
+      ? window.postItem.create(c, window.ui.postHref(slug, c.id))
+      : window.postItem.create(c, window.ui.postHref(c.blogSlug, c.id), { blogName: c.blogName })));
+    const empty = $('home-post-empty');
+    empty.textContent = slug ? '이 블로그에는 아직 글이 없어요.' : '참여 중인 블로그에 아직 글이 없어요.';
+    empty.classList.toggle('hidden', data.items.length > 0);
     window.pager.render($('home-post-pagination'), data.page, data.totalPages, loadHomePosts);
   }
 
