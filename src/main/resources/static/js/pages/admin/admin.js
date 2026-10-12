@@ -199,12 +199,32 @@
 
   // ---- 공지 쓰기·고치기 (BRD-10, D-122) ----
   let noticeEditId = null;
+  // 공지 에디터 (020). 공지 탭을 처음 열 때 만든다(숨긴 칸에서 만들면 크기가 어긋남). 못 불러오면 글상자로
+  let noticeEditor = null;
+
+  function ensureNoticeEditor() {
+    if (!noticeEditor && window.postEditor) {
+      noticeEditor = window.postEditor.create($('notice-editor'), $('notice-content'), () => {}, { height: '380px' });
+    }
+  }
+
+  function noticeContent() {
+    return noticeEditor ? noticeEditor.getMarkdown() : $('notice-content').value;
+  }
+
+  function setNoticeContent(text) {
+    if (noticeEditor) {
+      noticeEditor.setMarkdown(text || '');
+    }
+    $('notice-content').value = text || '';
+    window.ui.setError('imageFileIds', '');
+  }
 
   function resetNoticeForm() {
     noticeEditId = null;
     $('notice-category').value = 'GENERAL';
     $('notice-title').value = '';
-    $('notice-content').value = '';
+    setNoticeContent('');
     $('notice-submit').textContent = '공지 올리기';
     $('notice-cancel').classList.add('hidden');
     $('notice-editing').classList.add('hidden');
@@ -221,7 +241,7 @@
     noticeEditId = n.id;
     $('notice-category').value = n.category;
     $('notice-title').value = n.title;
-    $('notice-content').value = n.content;
+    setNoticeContent(n.content);
     $('notice-submit').textContent = '수정 저장';
     $('notice-cancel').classList.remove('hidden');
     $('notice-editing').textContent = '"' + n.title + '" 공지를 고치는 중이에요.';
@@ -235,6 +255,9 @@
     const searchable = ['users', 'blogs', 'posts', 'comments'].includes(state.tab);
     $('search-form').classList.toggle('hidden', !searchable);
     $('notice-form').classList.toggle('hidden', state.tab !== 'notices');
+    if (state.tab === 'notices') {
+      ensureNoticeEditor();
+    }
     views[state.tab]();
   }
 
@@ -261,7 +284,7 @@
       e.preventDefault();
       const body = {
         title: $('notice-title').value.trim(),
-        content: $('notice-content').value,
+        content: noticeContent(),
         category: $('notice-category').value
       };
       const editing = noticeEditId !== null;

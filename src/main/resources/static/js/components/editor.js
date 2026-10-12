@@ -1,4 +1,5 @@
 // 글 본문 에디터 (D-74 Toast UI Editor, 마크다운). 이미지를 붙이면 바로 올리고 본문에 넣는다 (BRD-05, 6.3).
+// 블로그 글쓰기와 관리자 메인 공지(020)가 함께 쓴다.
 // Toast UI를 불러오지 못하면(네트워크 등) post-edit.js가 글상자로 대신 쓴다.
 (function () {
   'use strict';
@@ -24,16 +25,18 @@
    * @param {HTMLElement} container 에디터를 그릴 곳
    * @param {HTMLTextAreaElement} fallback 에디터가 없을 때 쓰는 글상자 (에디터가 뜨면 숨긴다)
    * @param {() => void} onChange 내용이 바뀔 때
+   * @param {object} [options] { height } 기본 520px. 메인 공지는 더 낮게 (020)
    * @returns 에디터 또는 null
    */
-  function create(container, fallback, onChange) {
+  function create(container, fallback, onChange, options) {
+    const opts = options || {};
     if (!window.toastui || !window.toastui.Editor) {
       return null;
     }
     fallback.classList.add('hidden');
     const editor = new window.toastui.Editor({
       el: container,
-      height: '520px',
+      height: opts.height || '520px',
       initialEditType: 'markdown',
       previewStyle: window.matchMedia('(max-width: 768px)').matches ? 'tab' : 'vertical',
       language: 'ko-KR',

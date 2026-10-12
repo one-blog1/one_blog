@@ -24,6 +24,7 @@ import com.oneblog.post.dto.PostRequest;
 /**
  * 글 이미지 연결 (BRD-05, 6.3, specs/005-post-images).
  * 본문 마크다운에 들어 있는 /files/{저장 이름}을 읽어, 작성자가 올린 글 이미지를 그 글에 연결한다.
+ * 메인 공지(020)도 NoticeService가 attachImages·detachAll·validateCount를 불러 같은 규칙을 쓴다.
  * - 글 하나에 10장까지 (6.3)
  * - 남이 올린 이미지나 다른 글에 이미 연결된 이미지는 연결하지 않는다 (본문에 주소가 남아 있어도 이 글의 것이 아님)
  * - 고칠 때 본문에서 빠진 이미지는 지운 것으로 표시한다 (4.5 30일 보관, 012 배치가 완전 삭제)
@@ -56,7 +57,12 @@ public class PostImageExtension implements PostExtension {
 
     @Override
     public void validate(Blog blog, PostRequest request) {
-        if (storedNames(request.content()).size() > MAX_IMAGES) {
+        validateCount(request.content());
+    }
+
+    /** 본문의 이미지가 10장을 넘으면 400. 메인 공지도 같은 규칙을 쓴다 (020). */
+    public void validateCount(String markdown) {
+        if (storedNames(markdown).size() > MAX_IMAGES) {
             throw new ValidationFailedException(List.of(
                     new ErrorResponse.FieldError("content", "이미지는 글 하나에 " + MAX_IMAGES + "장까지 넣을 수 있습니다.")));
         }
@@ -64,6 +70,14 @@ public class PostImageExtension implements PostExtension {
 
     @Override
     public void afterSave(Blog blog, Post post, PostRequest request, AuthenticatedUser principal) {
+        attachImages(post, Set.of(post.getUserId()));
+    }
+
+    /**
+     * 본문에 있는 이미지를 이 글에 연결하고, 본문에서 빠진 이미지는 지운 것으로 표시한다.
+     * uploaders: 연결해도 되는 이미지를 올린 사람. 블로그 글은 작성자만, 메인 공지는 작성자와 고친 관리자 (020).
+     */
+    public void attachImages(Post post, Set<Long> uploaders) {
         List<String> names = storedNames(post.getContent());
         Map<String, StoredFile> files = new HashMap<>();
         for (StoredFile f : fileRepository.findByStoredNameIn(names)) {
@@ -73,7 +87,7 @@ public class PostImageExtension implements PostExtension {
         int order = 0;
         for (String name : names) {
             StoredFile f = files.get(name);
-            if (f == null || f.isDeleted() || f.getPurpose() != FilePurpose.POST || !post.getUserId().equals(f.getUserId())
+            if (f == null || f.isDeleted() || f.getPurpose() != FilePurpose.POST || !uploaders.contains(f.getUserId())
                     || (f.getPostId() != null && !f.getPostId().equals(post.getId()))) {
                 continue;
             }
@@ -89,7 +103,11 @@ public class PostImageExtension implements PostExtension {
 
     @Override
     public void afterDelete(Blog blog, Post post, AuthenticatedUser principal) {
-        // 글을 지우면 이미지도 30일 보관 대상이 된다 (4.5)
+        detachAll(post);
+    }
+
+    /** 글을 지우면 이미지도 30일 보관 대상이 된다 (4.5). 메인 공지도 같다 (020). */
+    public void detachAll(Post post) {
         fileRepository.findAttached(post.getId()).forEach(StoredFile::markDeleted);
     }
 

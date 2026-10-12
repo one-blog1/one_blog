@@ -5,6 +5,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>관리자 - One Blog</title>
+  <!-- 공지 에디터: 글쓰기와 같은 Toast UI Editor (D-74, 020) -->
+  <link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css">
   <link rel="stylesheet" href="/css/app.css">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
@@ -45,8 +47,11 @@
         </select>
         <label for="notice-title">공지 제목</label>
         <input id="notice-title" type="text" maxlength="30">
-        <label for="notice-content">공지 내용 (마크다운)</label>
-        <textarea id="notice-content" rows="6"></textarea>
+        <label for="notice-content">공지 내용</label>
+        <!-- 사진은 에디터에 붙이거나 끌어다 놓으면 올라간다. 공지를 저장할 때 그 공지에 연결된다 (020) -->
+        <div id="notice-editor" class="editor notice-editor"></div>
+        <textarea id="notice-content" rows="6" class="editor-fallback"></textarea>
+        <p class="message error" data-error-for="imageFileIds" role="alert"></p>
         <div class="row notice-form-actions">
           <button id="notice-submit" class="primary inline-button" type="submit">공지 올리기</button>
           <button id="notice-cancel" class="secondary inline-button hidden" type="button">취소</button>
@@ -63,6 +68,9 @@
   <script src="/js/lib/modal.js"></script>
   <script src="/js/lib/header.js"></script>
   <script src="/js/components/pager.js"></script>
+  <script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"></script>
+  <script src="https://uicdn.toast.com/editor/3.2.2/i18n/ko-kr.min.js"></script>
+  <script src="/js/components/editor.js"></script>
   <script src="/js/pages/admin/admin-reports.js"></script>
   <script src="/js/pages/admin/admin.js"></script>
 </body>

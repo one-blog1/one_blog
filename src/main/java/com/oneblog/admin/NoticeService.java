@@ -1,8 +1,10 @@
 package com.oneblog.admin;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +22,7 @@ import com.oneblog.common.web.Times;
 import com.oneblog.member.ValidationFailedException;
 import com.oneblog.post.DeletedBy;
 import com.oneblog.post.Post;
+import com.oneblog.post.PostImageExtension;
 import com.oneblog.post.PostPolicy;
 import com.oneblog.post.PostType;
 
@@ -40,14 +43,16 @@ public class NoticeService {
     private final MarkdownRenderer markdown;
     private final AdminActionLogger actionLogger;
     private final List<NoticeListener> listeners;
+    private final PostImageExtension images;
 
     public NoticeService(NoticeRepository noticeRepository, PostPolicy policy, MarkdownRenderer markdown,
-            AdminActionLogger actionLogger, List<NoticeListener> listeners) {
+            AdminActionLogger actionLogger, List<NoticeListener> listeners, PostImageExtension images) {
         this.noticeRepository = noticeRepository;
         this.policy = policy;
         this.markdown = markdown;
         this.actionLogger = actionLogger;
         this.listeners = listeners;
+        this.images = images;
     }
 
     public record NoticeItem(Long id, String title, String category, String categoryLabel, String authorName,
@@ -71,9 +76,12 @@ public class NoticeService {
         NoticeCategory category = category(rawCategory);
         String title = policy.normalizeTitle(rawTitle);
         policy.validate(title, content);
+        images.validateCount(content);
         Post draft = Post.create(null, admin.id(), PostType.MAIN_NOTICE, title, content);
         draft.setNoticeCategory(category.name());
         Post notice = noticeRepository.saveAndFlush(draft);
+        // 본문의 사진을 이 공지에 연결해 30일 정리 배치에서 빼낸다 (020)
+        images.attachImages(notice, Set.of(admin.id()));
         actionLogger.log(admin, "NOTICE_CREATE", "POST", notice.getId(), title, request);
         for (NoticeListener listener : listeners) {
             listener.noticePublished(notice);
@@ -89,8 +97,11 @@ public class NoticeService {
         NoticeCategory category = category(rawCategory);
         String title = policy.normalizeTitle(rawTitle);
         policy.validate(title, content);
+        images.validateCount(content);
         notice.edit(title, content);
         notice.setNoticeCategory(category.name());
+        // 처음 쓴 관리자와 지금 고치는 관리자가 올린 사진만 연결한다. 빠진 사진은 지운 것으로 (020)
+        images.attachImages(notice, new HashSet<>(List.of(notice.getUserId(), admin.id())));
         actionLogger.log(admin, "NOTICE_UPDATE", "POST", id, title, request);
     }
 
@@ -104,6 +115,7 @@ public class NoticeService {
     public void delete(Long id, AuthenticatedUser admin, HttpServletRequest request) {
         Post notice = find(id);
         notice.delete(DeletedBy.ADMIN);
+        images.detachAll(notice);
         actionLogger.log(admin, "NOTICE_DELETE", "POST", id, notice.getTitle(), request);
     }
 
