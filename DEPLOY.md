@@ -7,7 +7,7 @@
 ## 0. 자동 배포
 
 ```
-build.gradle.kts의 version을 올려(예: 0.2 → 0.21, 번호 규칙은 문서 저장소 releases/README.md, D-121) main에 push / PR merge
+build.gradle.kts의 version을 올려(배포마다 0.01씩, 예: 0.21 → 0.22. 규칙은 문서 저장소 releases/README.md, D-121) main에 push / PR merge
   → CI (.github/workflows/ci.yml): 테스트, jar 실행 확인, Docker 실행 확인
   → CI가 성공하면 Deploy (.github/workflows/deploy.yml)
       0) 버전 확인: 태그 v0.21이 아직 없을 때만 배포 (버전이 그대로면 CI만 돌고 끝)
