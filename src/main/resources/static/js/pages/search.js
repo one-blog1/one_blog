@@ -16,10 +16,6 @@
     $(barId).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset[attr] === value)));
   }
 
-  function postHref(card) {
-    return '/blog/' + encodeURIComponent(card.blogSlug) + '/posts/' + encodeURIComponent(card.id);
-  }
-
   function url(type, page, size) {
     const q = new URLSearchParams({ q: state.q, sort: state.sort, page: String(page), size: String(size) });
     if (type === 'post') {
@@ -47,7 +43,7 @@
     posts.classList.toggle('hidden', state.type !== 'post');
     blogs.classList.toggle('hidden', state.type !== 'blog');
     if (state.type === 'post') {
-      data.items.forEach(c => posts.append(window.postItem.create(c, postHref(c), { blogName: c.blogName })));
+      data.items.forEach(c => posts.append(window.postItem.create(c, window.ui.postHref(c.blogSlug, c.id), { blogName: c.blogName })));
     } else {
       data.items.forEach(b => blogs.append(window.blogCard.create(b)));
     }

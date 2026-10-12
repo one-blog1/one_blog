@@ -6,10 +6,6 @@
 
   const $ = window.ui.$;
 
-  function postHref(card) {
-    return '/blog/' + encodeURIComponent(card.blogSlug) + '/posts/' + encodeURIComponent(card.id);
-  }
-
   async function load() {
     const q = new URLSearchParams({ page: String(state.page), size: String(state.size) });
     const result = await window.api.get('/api/tags/' + encodeURIComponent(state.tag) + '/posts?' + q.toString());
@@ -20,7 +16,7 @@
     state.page = data.page;
     const list = $('tag-posts');
     list.replaceChildren();
-    data.items.forEach(card => list.append(window.postItem.create(card, postHref(card), { blogName: card.blogName })));
+    data.items.forEach(card => list.append(window.postItem.create(card, window.ui.postHref(card.blogSlug, card.id), { blogName: card.blogName })));
     $('tag-empty').classList.toggle('hidden', data.items.length > 0);
     window.pager.render($('tag-pagination'), data.page, data.totalPages, (page) => {
       state.page = page;

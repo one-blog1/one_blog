@@ -48,7 +48,7 @@
       const body = el('button', 'notification-body');
       body.type = 'button';
       body.append(el('span', 'notification-message', n.message),
-        el('span', 'notification-date', new Date(n.createdAt).toLocaleString('ko-KR')));
+        el('span', 'notification-date', window.ui.formatDateTime(n.createdAt)));
       body.addEventListener('click', () => openDetail(n.id));
       li.append(body);
       list.append(li);
@@ -83,7 +83,7 @@
     const n = result.data;
     box.append(el('p', 'notification-type', n.typeLabel),
       el('p', 'notification-detail-message', n.message),
-      el('p', 'notification-date', new Date(n.createdAt).toLocaleString('ko-KR')));
+      el('p', 'notification-date', window.ui.formatDateTime(n.createdAt)));
     if (n.detail) {
       box.append(el('p', 'notification-reason', n.detail));
     }

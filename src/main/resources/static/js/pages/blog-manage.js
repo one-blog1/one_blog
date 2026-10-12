@@ -38,9 +38,7 @@
     });
   }
 
-  function formatTime(iso) {
-    return new Date(iso).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric' });
-  }
+  const formatTime = window.ui.formatDayHour;
 
   // ---- 정보 ----
   function fillInfo(blog) {

@@ -14,13 +14,10 @@
   }
 
   function postUrl(postId) {
-    return '/blog/' + encodeURIComponent(slug) + '/posts/' + encodeURIComponent(postId);
+    return window.ui.postHref(slug, postId);
   }
 
-  function day(iso) {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ko-KR');
-  }
+  const day = window.ui.formatDate;
 
   function loading(body) {
     body.replaceChildren(el('p', 'hint', '불러오는 중…'));

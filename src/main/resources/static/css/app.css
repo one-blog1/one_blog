@@ -5,6 +5,14 @@
  * - 블로그마다 정해진 파스텔 색(tile-0~5)은 블로그 이름표로만 쓴다
  * - 제목은 둥근 손글씨 느낌의 Jua, 본문은 IBM Plex Sans KR
  * - 모양: 버튼·탭·태그는 알약, 블로그 표지는 크게 둥근 사각, 입력칸은 살짝 둥근 사각. 그림자는 쓰지 않는다
+ *
+ * 구성 (위에서 아래로, 뒤가 앞을 덮어쓴다):
+ *  1. 바탕: 색·폭·글꼴 변수, body, 링크, 초점
+ *  2. 공통 부품: 상단, 틀, 입력, 버튼, 안내 글, 창(모달), 약관
+ *  3. 화면별: 메인 → 블로그(002) → 참여 신청(003) → 글(004) → 댓글(006) → 관리자·공지(007) → 카테고리(008)
+ *     → 프로필·내 정보(009) → 검색·피드(010) → 알림(011) → 블로그 관리(012) → 설정
+ *  4. 가로지르는 규칙: 아이콘 단추(D-108), 닉네임 링크, 휴대폰 보정, 테마(어둡게·글자 크기)
+ * 새 화면의 규칙은 3부의 그 화면 자리에 넣는다. 파일 끝에 덧붙이지 않는다.
  */
 @import url("/css/fonts.css");
 
@@ -21,6 +29,8 @@
   --accent-text: #ffffff;
   --link: var(--text);
   --ink-hover: #3a4252;
+  /* 잉크색: 노랑·파스텔 위의 글씨. 다크 모드에서도 바뀌지 않는다 (맨 뒤 테마 부분) */
+  --ink: #1f2430;
   --error: #c43d3d;
   --ok: #1d7f55;
   --tile-0: #ffe7a3;
@@ -83,10 +93,15 @@ a {
 }
 
 .tile-0 { --tile: var(--tile-0); }
+
 .tile-1 { --tile: var(--tile-1); }
+
 .tile-2 { --tile: var(--tile-2); }
+
 .tile-3 { --tile: var(--tile-3); }
+
 .tile-4 { --tile: var(--tile-4); }
+
 .tile-5 { --tile: var(--tile-5); }
 
 /* ── 상단 ─────────────────────────────────────────── */
@@ -127,7 +142,9 @@ a {
 
 #header-user {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
   min-width: 0;
   font-size: 14px;
@@ -183,6 +200,161 @@ a {
   font-weight: 600;
   color: var(--text);
   text-decoration: none;
+}
+
+/* 좁은 화면에서 상단 메뉴가 글자 단위로 끊기지 않게 */
+.site-header .logo,
+#header-user a,
+#header-user .nickname,
+#header-user .link-button {
+  white-space: nowrap;
+}
+
+/* 닉네임이 길면 줄여서 보여 주고, 아주 좁은 화면에서는 사진 메뉴만 */
+#header-user .nickname {
+  max-width: 9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 420px) {
+  #header-user .nickname {
+    display: none;
+  }
+}
+
+/* 상단 메뉴: 알림·닉네임·프로필 사진 (D-101) */
+
+.bell {
+  position: relative; /* 읽지 않은 수 표시(.bell-badge)의 기준 */
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 999px;
+}
+
+.bell:hover {
+  background: var(--bg);
+}
+
+.bell-icon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.avatar-button {
+  display: inline-flex;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.avatar-button:hover,
+.avatar-button.open {
+  border-color: var(--text);
+}
+
+.avatar-button .avatar {
+  width: 34px;
+  height: 34px;
+  background: var(--bg);
+}
+
+.profile-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 45;
+  min-width: 160px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1.5px solid var(--text);
+  border-radius: var(--radius-field);
+}
+
+.profile-menu-list.hidden {
+  display: none;
+}
+
+#header-user .profile-menu-list a,
+#header-user .profile-menu-list .link-button {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 15px;
+}
+
+/* 로그아웃은 메뉴 맨 아래, 선 하나로 나눈다 */
+.profile-menu-list li:last-child {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+/* 상단 가운데 검색창 (D-116) */
+.header-search {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  max-width: 440px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 2px 4px 2px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.header-search:focus-within {
+  border-color: var(--text);
+  background: var(--surface);
+}
+
+.header-search input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 0;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+}
+
+.header-search input[type="search"]:focus {
+  box-shadow: none;
+  border: none;
+}
+
+.header-search .icon-button {
+  width: 32px;
+  height: 32px;
+}
+
+@media (max-width: 640px) {
+  .site-header {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .header-search {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
 }
 
 /* ── 틀 ───────────────────────────────────────────── */
@@ -319,7 +491,7 @@ select:focus {
 
 .checkbox {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* 라디오·체크 옆 긴 설명은 단추 옆에서 줄을 맞춘다 */
   gap: 8px;
   margin: 10px 0;
   font-weight: 400;
@@ -356,13 +528,19 @@ input[type="file"]::file-selector-button {
   cursor: pointer;
 }
 
-/* 라디오·체크 옆 긴 설명은 단추 옆에서 줄을 맞춘다 */
-.checkbox {
-  align-items: flex-start;
-}
-
 .checkbox input {
   margin-top: 5px;
+}
+
+input[readonly] {
+  background: var(--bg);
+  color: var(--muted);
+  cursor: default;
+}
+
+input[readonly]:focus {
+  border-color: var(--line);
+  box-shadow: none;
 }
 
 /* ── 버튼: 누르는 일은 노란 알약, 그다음 일은 테두리 알약 ── */
@@ -422,6 +600,11 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.text-link {
+  font-size: 14px;
+  color: var(--text);
+}
+
 /* ── 안내 글 ──────────────────────────────────────── */
 
 .hint {
@@ -460,6 +643,81 @@ button:disabled {
   font-size: 14px;
   text-align: center;
 }
+
+/* ── 창(모달): 신고 창(013)·가운데 창(D-112)·확인 창 ──── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--text) 40%, transparent);
+  z-index: 90; /* 상단(40)·알림 창(50)·이름표(80)보다 위 */
+}
+
+.modal {
+  width: min(440px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal textarea {
+  width: 100%;
+}
+
+.modal.card {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: min(84vh, 760px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal.modal-wide {
+  width: min(760px, 100%);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.modal-body {
+  padding: 16px 24px 24px;
+  overflow-y: auto;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.dialog-message {
+  margin: 0 0 12px;
+  white-space: pre-line;
+}
+
+.dialog-actions {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.dialog-actions button.primary.inline-button {
+  margin-top: 0;
+}
+
+/* ── 약관·처리방침 (4.6): 하단 링크, 전문 화면, 가입 동의 ──── */
 
 /* 모든 화면 아래 약관·처리방침 링크 (4.6). header.js가 붙인다 */
 .site-footer {
@@ -616,6 +874,290 @@ button:disabled {
   h2 {
     font-size: 20px;
   }
+}
+
+/* ── 메인: 첫 화면·내 블로그·메인 피드·참여 신청 (D-100, D-111, D-113) ──── */
+
+/* 첫 화면: 카드 없이 바탕 위에 인사와 검색창만 */
+.home-hero {
+  padding: 28px 4px 32px;
+}
+
+.hero-hello {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.hero-title {
+  max-width: 16em;
+  margin: 0 0 22px;
+  font-size: clamp(32px, 5.2vw, 52px);
+  line-height: 1.18;
+  word-break: keep-all;
+}
+
+.home-blogs {
+  margin-top: 36px;
+}
+
+.home-blogs .list-header h2 {
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .home-hero {
+    padding: 12px 0 24px;
+  }
+
+}
+
+.view-switch {
+  display: flex;
+  width: fit-content;
+  gap: 4px;
+  margin: 0 auto 24px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.view-switch.hidden {
+  display: none;
+}
+
+.view-switch button {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.view-switch button:hover {
+  background: var(--bg);
+}
+
+.view-switch button[aria-pressed="true"] {
+  background: var(--here);
+  font-weight: 600;
+}
+
+.home-view .list-header {
+  margin-bottom: 18px;
+}
+
+.home-view .list-header h1 {
+  margin: 0;
+}
+
+.blog-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 22px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blog-icons.hidden {
+  display: none;
+}
+
+.blog-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: var(--radius-field);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+}
+
+.blog-icon-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 24px;
+  border: 2px solid transparent;
+  background: var(--surface);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.blog-icon-cover.cover-tile {
+  background: var(--tile);
+}
+
+.blog-icon-cover .cover-initial {
+  width: auto;
+  aspect-ratio: auto;
+  background: none;
+  font-size: 38px;
+}
+
+.blog-icon:hover .blog-icon-cover,
+.blog-icon:focus-visible .blog-icon-cover {
+  border-color: var(--text);
+  transform: translateY(-2px);
+}
+
+.blog-icon-name {
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-icon-role {
+  margin-top: -4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.blog-icon-plus {
+  border: 2px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 36px;
+  line-height: 1;
+}
+
+.blog-icon.create .blog-icon-name {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.home-empty {
+  padding: 28px;
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.home-empty p {
+  margin: 0 0 16px;
+}
+
+.home-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .blog-icons {
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  }
+
+  .blog-icon-cover {
+    width: 68px;
+    height: 68px;
+    border-radius: 20px;
+  }
+
+  .view-switch:not(.hidden) {
+    display: flex;
+  }
+
+  .view-switch button {
+    flex: 1;
+  }
+}
+
+/* 메인 "참여 신청" 탭 (D-111) */
+.requests-view h1 {
+  margin-bottom: 4px;
+}
+
+.my-request-list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+.my-request-list:empty {
+  display: none;
+}
+
+.my-request {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.my-request + .my-request {
+  border-top: 1px solid var(--line);
+}
+
+.my-request-blog {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.my-request-blog > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.my-request-blog strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-request-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.my-request-cover.cover-tile {
+  background: var(--tile);
+}
+
+.my-request-cover .cover-initial {
+  width: auto;
+  aspect-ratio: auto;
+  background: none;
+  font-size: 24px;
+}
+
+/* 메인 "내 블로그" 아래: 참여 중인 블로그의 새 글 (D-113) */
+.home-posts {
+  margin-top: 28px;
+}
+
+.home-posts h2 {
+  margin-top: 0;
 }
 
 /* ── 블로그 (002) ───────────────────────────────────── */
@@ -985,30 +1527,80 @@ label.inline {
   }
 }
 
-/* 좁은 화면에서 상단 메뉴가 글자 단위로 끊기지 않게 */
-.site-header .logo,
-#header-user a,
-#header-user .nickname,
-#header-user .link-button {
-  white-space: nowrap;
+/* 블로그 첫 화면 구성 (D-111): 짧은 머리 → 글 → (블로그장) 참여 신청 → 맨 아래 문의·나가기 */
+#blog-home > .card + .card,
+#blog-home > .card + .share-area {
+  margin-top: 20px;
 }
 
-#header-user {
-  flex-wrap: nowrap;
-  justify-content: flex-end;
+.blog-head .blog-hero {
+  height: clamp(96px, 16vw, 168px);
+  margin-bottom: 18px;
 }
 
-/* 닉네임이 길면 줄여서 보여 주고, 아주 좁은 화면에서는 사진 메뉴만 */
-#header-user .nickname {
-  max-width: 9em;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.blog-head h1 {
+  margin-bottom: 4px;
 }
 
-@media (max-width: 420px) {
-  #header-user .nickname {
-    display: none;
-  }
+.blog-head .blog-description-full {
+  margin: 10px 0 0;
+}
+
+.blog-head .blog-actions {
+  margin-top: 18px;
+}
+
+.blog-head #join-text:empty {
+  display: none;
+}
+
+.blog-head #join-text {
+  margin-top: 10px;
+}
+
+.post-area .list-header h2 {
+  margin: 0;
+}
+
+.blog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 18px;
+  margin: 32px 0 8px;
+}
+
+.blog-footer .link-button {
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.blog-footer #leave-button {
+  color: var(--error);
+}
+
+.blog-footer .message {
+  flex-basis: 100%;
+  text-align: center;
+}
+
+/* 블로그 머리 단추 줄: 나가기·신고 아이콘은 맨 오른쪽 */
+.blog-actions-end {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.blog-actions-end:not(:has(.icon-button:not(.hidden))) {
+  display: none;
+}
+
+.blog-head #ops-message:empty {
+  display: none;
 }
 
 /* ── 참여 신청 (003) ───────────────────────────────── */
@@ -1063,6 +1655,9 @@ button.primary.inline-button {
 }
 
 .post-item {
+  display: flex; /* 왼쪽 글 정보, 오른쪽 사진 미리보기 */
+  align-items: center;
+  gap: 16px;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
@@ -1179,6 +1774,36 @@ button.primary.inline-button {
   color: var(--text);
 }
 
+/* 글 목록: 오른쪽 사진 미리보기 */
+.post-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-item-thumb {
+  flex-shrink: 0;
+  display: block;
+  width: 112px;
+  height: 80px;
+  border-radius: var(--radius-field);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.post-item-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 600px) {
+  .post-item-thumb {
+    width: 80px;
+    height: 64px;
+  }
+}
+
 /* ── 댓글 (006) ────────────────────────────────────── */
 
 .comment-form {
@@ -1230,8 +1855,36 @@ button.primary.inline-button {
 
 .comment-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 2px;
   font-size: 13px;
+}
+
+.comment-actions .icon-button {
+  width: 32px;
+  height: 32px;
+}
+
+.comment-actions .icon-button .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* 바로가기로 온 댓글: 형광 노랑 배경과 테두리로 강조 (D-104, D-108) */
+.comment.comment-target {
+  margin: 4px -12px;
+  padding: 10px 12px;
+  border: 2px solid #f5c400;
+  border-radius: var(--radius-field);
+  background: #fff68f;
+}
+
+.comment.comment-target:focus {
+  outline: none;
+}
+
+.comment.is-hidden .comment-body {
+  color: var(--muted);
 }
 
 /* ── 관리자·공지 (007) ─────────────────────────────── */
@@ -1322,7 +1975,34 @@ button.primary.inline-button {
   color: var(--text);
 }
 
-/* 008 카테고리 */
+/* 바로가기 (관리자 화면 → 글·댓글 위치) */
+.goto-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.goto-link:hover {
+  background: var(--bg);
+}
+
+/* 관리자 열람 안내 (D-106) */
+.admin-view {
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border: 1.5px dashed var(--text);
+  border-radius: var(--radius-field);
+  font-size: 14px;
+}
+
+.badge.muted {
+  margin-left: 6px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+/* ── 카테고리 (008) ────────────────────────────────── */
+
 .category-area {
   display: flex;
   flex-wrap: wrap;
@@ -1347,7 +2027,8 @@ button.primary.inline-button {
   min-width: 0;
 }
 
-/* 009 프로필·내 정보 */
+/* ── 프로필·내 정보 (009) ────────────────────────── */
+
 .avatar {
   width: 32px;
   height: 32px;
@@ -1396,424 +2077,7 @@ button.primary.inline-button {
   margin-top: 24px;
 }
 
-/* 010 검색·피드 */
-form.search-row {
-  margin-bottom: 16px;
-}
-
-form.search-row input {
-  flex: 1 1 200px;
-  min-width: 0;
-}
-
-.recent-area {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0;
-}
-
-.tabs button.hidden {
-  display: none;
-}
-
-/* 011 알림 */
-.bell {
-  position: relative;
-}
-
-.bell-badge {
-  position: absolute;
-  top: 0;
-  right: -2px;
-  min-width: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
-  background: var(--error);
-  color: #fff;
-  font-size: 11px;
-  line-height: 18px;
-  text-align: center;
-}
-
-.notification-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(380px, 100vw);
-  overflow-y: auto;
-  padding: 16px;
-  background: var(--surface);
-  border-left: 1.5px solid var(--text);
-  z-index: 50;
-}
-
-.notification-panel.hidden {
-  display: none;
-}
-
-.notification-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.notification-head strong {
-  margin-right: auto;
-}
-
-.notification-list {
-  list-style: none;
-  margin: 8px 0;
-  padding: 0;
-}
-
-.notification {
-  border-bottom: 1px solid var(--line);
-}
-
-.notification-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 6px;
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.notification.unread .notification-body {
-  color: inherit;
-  background: var(--sun-soft);
-  font-weight: 600;
-}
-
-.notification-date {
-  font-size: 12px;
-  font-weight: 400;
-}
-
-#notification-settings {
-  margin-top: 24px;
-}
-
-/* 012 블로그 관리 */
-.manage-block {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.danger-button {
-  color: var(--error);
-  border-color: var(--error);
-}
-
-#withdraw-form {
-  margin-top: 24px;
-}
-
-/* 013 신고 창 */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: color-mix(in srgb, var(--text) 40%, transparent);
-  z-index: 60;
-}
-
-.modal {
-  width: min(440px, 100%);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal textarea {
-  width: 100%;
-}
-
-/* ── 메인 (UI 1단계) ───────────────────────────────── */
-
-/* 첫 화면: 카드 없이 바탕 위에 인사와 검색창만 */
-.home-hero {
-  padding: 28px 4px 32px;
-}
-
-.hero-hello {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.hero-title {
-  max-width: 16em;
-  margin: 0 0 22px;
-  font-size: clamp(32px, 5.2vw, 52px);
-  line-height: 1.18;
-  word-break: keep-all;
-}
-
-.home-blogs {
-  margin-top: 36px;
-}
-
-.home-blogs .list-header h2 {
-  margin: 0;
-}
-
-@media (max-width: 560px) {
-  .home-hero {
-    padding: 12px 0 24px;
-  }
-
-}
-
-/* ── 상단 메뉴: 알림·닉네임·프로필 사진 (D-101) ───────── */
-
-.bell {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 8px;
-  border-radius: 999px;
-}
-
-.bell:hover {
-  background: var(--bg);
-}
-
-.bell-icon {
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: var(--text);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.profile-menu {
-  position: relative;
-}
-
-.avatar-button {
-  display: inline-flex;
-  padding: 2px;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-}
-
-.avatar-button:hover,
-.avatar-button.open {
-  border-color: var(--text);
-}
-
-.avatar-button .avatar {
-  width: 34px;
-  height: 34px;
-  background: var(--bg);
-}
-
-.profile-menu-list {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 45;
-  min-width: 160px;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  background: var(--surface);
-  border: 1.5px solid var(--text);
-  border-radius: var(--radius-field);
-}
-
-.profile-menu-list.hidden {
-  display: none;
-}
-
-#header-user .profile-menu-list a,
-#header-user .profile-menu-list .link-button {
-  display: block;
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: 8px;
-  text-align: left;
-  font-size: 15px;
-}
-
-/* 로그아웃은 메뉴 맨 아래, 선 하나로 나눈다 */
-.profile-menu-list li:last-child {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--line);
-}
-
-/* ── 메인 전환과 내 블로그 (D-100) ─────────────────── */
-
-.view-switch {
-  display: flex;
-  width: fit-content;
-  gap: 4px;
-  margin: 0 auto 24px;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
-
-.view-switch.hidden {
-  display: none;
-}
-
-.view-switch button {
-  padding: 9px 20px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.view-switch button:hover {
-  background: var(--bg);
-}
-
-.view-switch button[aria-pressed="true"] {
-  background: var(--here);
-  font-weight: 600;
-}
-
-.text-link {
-  font-size: 14px;
-  color: var(--text);
-}
-
-.home-view .list-header {
-  margin-bottom: 18px;
-}
-
-.home-view .list-header h1 {
-  margin: 0;
-}
-
-.blog-icons {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: 22px 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.blog-icons.hidden {
-  display: none;
-}
-
-.blog-icon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 4px;
-  border-radius: var(--radius-field);
-  color: var(--text);
-  text-align: center;
-  text-decoration: none;
-}
-
-.blog-icon-cover {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 84px;
-  height: 84px;
-  object-fit: cover;
-  border-radius: 24px;
-  border: 2px solid transparent;
-  background: var(--surface);
-  transition: border-color 0.15s ease, transform 0.15s ease;
-}
-
-.blog-icon-cover.cover-tile {
-  background: var(--tile);
-}
-
-.blog-icon-cover .cover-initial {
-  width: auto;
-  aspect-ratio: auto;
-  background: none;
-  font-size: 38px;
-}
-
-.blog-icon:hover .blog-icon-cover,
-.blog-icon:focus-visible .blog-icon-cover {
-  border-color: var(--text);
-  transform: translateY(-2px);
-}
-
-.blog-icon-name {
-  max-width: 100%;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.blog-icon-role {
-  margin-top: -4px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.blog-icon-plus {
-  border: 2px dashed var(--line);
-  background: transparent;
-  color: var(--muted);
-  font-size: 36px;
-  line-height: 1;
-}
-
-.blog-icon.create .blog-icon-name {
-  color: var(--muted);
-  font-weight: 400;
-}
-
-.home-empty {
-  padding: 28px;
-  border: 1.5px dashed var(--line);
-  border-radius: var(--radius-panel);
-  background: var(--surface);
-}
-
-.home-empty p {
-  margin: 0 0 16px;
-}
-
-.home-empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* ── 내 정보·탈퇴 (D-102, D-103) ───────────────────── */
+/* 내 정보·탈퇴 (D-102, D-103) */
 
 .profile-summary {
   display: flex;
@@ -1885,62 +2149,6 @@ button.secondary.edit-done {
   margin: 0 0 6px;
 }
 
-@media (max-width: 560px) {
-  .blog-icons {
-    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-  }
-
-  .blog-icon-cover {
-    width: 68px;
-    height: 68px;
-    border-radius: 20px;
-  }
-
-  .view-switch:not(.hidden) {
-    display: flex;
-  }
-
-  .view-switch button {
-    flex: 1;
-  }
-}
-
-/* ── 휴대폰 화면 다듬기 ───────────────────────────── */
-@media (max-width: 600px) {
-  /* 탭이 많으면 줄을 바꾸지 않고 옆으로 밀어서 본다 (커뮤니티 앱의 탭 줄처럼) */
-  .tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    margin-left: -2px;
-    padding: 2px;
-    scrollbar-width: none;
-  }
-
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tabs button {
-    flex-shrink: 0;
-  }
-
-  .blog-name {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .home-hero {
-    padding-top: 4px;
-  }
-
-  .list-header .button-link {
-    padding: 8px 14px;
-    font-size: 14px;
-  }
-}
-
 #profile-remove {
   margin-top: 6px;
   font-size: 14px;
@@ -1948,152 +2156,89 @@ button.secondary.edit-done {
   text-underline-offset: 3px;
 }
 
-/* ── 바로가기 (관리자 화면 → 글·댓글 위치) ─────────────── */
-.goto-link {
-  color: var(--text);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+/* ── 검색·피드 (010) ──────────────────────────────── */
+
+form.search-row {
+  margin-bottom: 16px;
 }
 
-.goto-link:hover {
-  background: var(--bg);
+form.search-row input {
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
-/* 바로가기로 온 댓글: 형광 노랑 배경과 테두리로 강조 (D-104, D-108) */
-.comment.comment-target {
-  margin: 4px -12px;
-  padding: 10px 12px;
-  border: 2px solid #f5c400;
-  border-radius: var(--radius-field);
-  background: #fff68f;
-}
-
-.comment.comment-target:focus {
-  outline: none;
-}
-
-/* 관리자 열람 안내 (D-106) */
-.admin-view {
-  margin: 0 0 16px;
-  padding: 10px 16px;
-  border: 1.5px dashed var(--text);
-  border-radius: var(--radius-field);
-  font-size: 14px;
-}
-
-.badge.muted {
-  margin-left: 6px;
-  background: var(--bg);
-  color: var(--muted);
-}
-
-.comment.is-hidden .comment-body {
-  color: var(--muted);
-}
-
-/* ── 아이콘 단추와 이름표 (D-108) ─────────────────── */
-button.icon-button,
-a.icon-button {
-  display: inline-flex;
+.recent-area {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  flex-shrink: 0;
+  gap: 8px;
+  margin: 8px 0;
 }
 
-button.icon-button:hover,
-a.icon-button:hover {
-  background: var(--bg);
+.tabs button.hidden {
+  display: none;
 }
 
-.icon-button.danger {
-  color: var(--error);
-}
+/* ── 알림 (011) ────────────────────────────────────── */
 
-.icon-button .icon {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* 마우스를 올리거나 키보드로 가면 이름이 뜬다 */
-[data-tip] {
-  position: relative;
-}
-
-[data-tip]:hover::after,
-[data-tip]:focus-visible::after {
-  content: attr(data-tip);
+.bell-badge {
   position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 80;
-  padding: 4px 9px;
-  border-radius: 6px;
-  background: var(--text);
-  color: var(--surface);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.4;
-  white-space: nowrap;
-  pointer-events: none;
+  top: 0;
+  right: -2px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--error);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
 }
 
-/* 창 오른쪽 끝·왼쪽 끝의 단추는 이름표가 창 밖으로 나가지 않게 */
-.tip-end[data-tip]:hover::after,
-.tip-end[data-tip]:focus-visible::after {
-  left: auto;
+.notification-panel {
+  position: fixed;
+  top: 0;
   right: 0;
-  transform: none;
+  bottom: 0;
+  width: min(380px, 100vw);
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--surface);
+  border-left: 1.5px solid var(--text);
+  z-index: 50;
 }
 
-.tip-start[data-tip]:hover::after,
-.tip-start[data-tip]:focus-visible::after {
-  left: 0;
-  transform: none;
+.notification-panel.hidden {
+  display: none;
 }
 
-.comment-actions {
+.notification-head {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
-}
-
-.comment-actions .icon-button {
-  width: 32px;
-  height: 32px;
-}
-
-.comment-actions .icon-button .icon {
-  width: 18px;
-  height: 18px;
-}
-
-/* ── 알림 창: 목록과 자세히 보기 (D-107) ─────────────── */
-.notification-head .icon-button {
-  width: 34px;
-  height: 34px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .notification-head strong {
+  margin-right: auto;
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 400;
 }
 
+.notification-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+}
+
+.notification {
+  border-bottom: 1px solid var(--line);
+}
+
 .notification-body {
+  /* 단추(button)라서 기본 단추 모양을 지운다 (D-107) */
   width: 100%;
   border: none;
   background: none;
@@ -2101,6 +2246,33 @@ a.icon-button:hover {
   text-align: left;
   cursor: pointer;
   border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 6px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.notification.unread .notification-body {
+  color: inherit;
+  background: var(--sun-soft);
+  font-weight: 600;
+}
+
+.notification-date {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+#notification-settings {
+  margin-top: 24px;
+}
+
+/* 알림 창: 목록과 자세히 보기 (D-107) */
+.notification-head .icon-button {
+  width: 34px;
+  height: 34px;
 }
 
 .notification-body:hover {
@@ -2141,203 +2313,25 @@ a.icon-button:hover {
   margin-top: 6px;
 }
 
-input[readonly] {
-  background: var(--bg);
-  color: var(--muted);
-  cursor: default;
-}
+/* ── 블로그 관리 (012) ────────────────────────────── */
 
-input[readonly]:focus {
-  border-color: var(--line);
-  box-shadow: none;
-}
-
-/* 설정: 알림 종류는 두 줄(2열)로, 그 아래 보관 기간 */
-#notification-types {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 20px;
-  margin-top: 12px;
-}
-
-#notification-types .checkbox {
-  margin: 6px 0;
-}
-
-@media (max-width: 380px) {
-  #notification-types {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ── 블로그 첫 화면 구성 (D-111): 짧은 머리 → 글 → (블로그장) 참여 신청 → 맨 아래 작은 운영 링크 ── */
-#blog-home > .card + .card,
-#blog-home > .card + .share-area {
-  margin-top: 20px;
-}
-
-.blog-head .blog-hero {
-  height: clamp(96px, 16vw, 168px);
-  margin-bottom: 18px;
-}
-
-.blog-head h1 {
-  margin-bottom: 4px;
-}
-
-.blog-head .blog-description-full {
-  margin: 10px 0 0;
-}
-
-.blog-head .blog-actions {
-  margin-top: 18px;
-}
-
-.blog-head #join-text:empty {
-  display: none;
-}
-
-.blog-head #join-text {
-  margin-top: 10px;
-}
-
-.post-area .list-header h2 {
-  margin: 0;
-}
-
-.blog-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 4px 18px;
-  margin: 32px 0 8px;
-}
-
-.blog-footer .link-button {
-  color: var(--muted);
-  font-size: 13px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.blog-footer #leave-button {
-  color: var(--error);
-}
-
-.blog-footer .message {
-  flex-basis: 100%;
-  text-align: center;
-}
-
-/* 메인 "참여 신청" 탭 (D-111) */
-.requests-view h1 {
-  margin-bottom: 4px;
-}
-
-.my-request-list {
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
-}
-
-.my-request-list:empty {
-  display: none;
-}
-
-.my-request {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-}
-
-.my-request + .my-request {
+.manage-block {
+  margin-top: 24px;
+  padding-top: 16px;
   border-top: 1px solid var(--line);
 }
 
-.my-request-blog {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-  color: var(--text);
-  text-decoration: none;
+.table-scroll {
+  overflow-x: auto;
 }
 
-.my-request-blog > span {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+.danger-button {
+  color: var(--error);
+  border-color: var(--error);
 }
 
-.my-request-blog strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.my-request-cover {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  border-radius: 16px;
-  object-fit: cover;
-}
-
-.my-request-cover.cover-tile {
-  background: var(--tile);
-}
-
-.my-request-cover .cover-initial {
-  width: auto;
-  aspect-ratio: auto;
-  background: none;
-  font-size: 24px;
-}
-
-/* ── 가운데 창 (D-112) ─────────────────────────────── */
-.modal.card {
-  display: flex;
-  flex-direction: column;
-  width: min(520px, 100%);
-  max-height: min(84vh, 760px);
-  padding: 0;
-  overflow: hidden;
-}
-
-.modal.modal-wide {
-  width: min(760px, 100%);
-}
-
-.modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 16px 12px 24px;
-  border-bottom: 1px solid var(--line);
-}
-
-.modal-head h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.modal-body {
-  padding: 16px 24px 24px;
-  overflow-y: auto;
-}
-
-body.modal-open {
-  overflow: hidden;
+#withdraw-form {
+  margin-top: 24px;
 }
 
 .member-stats {
@@ -2455,51 +2449,26 @@ body.modal-open {
   margin-bottom: 8px;
 }
 
-.dialog-message {
-  margin: 0 0 12px;
-  white-space: pre-line;
+/* ── 설정 화면 (D-114, D-115): 알림 종류·공개 범위·차단 목록·화면 ──── */
+
+/* 설정: 알림 종류는 두 줄(2열)로, 그 아래 보관 기간 */
+#notification-types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 20px;
+  margin-top: 12px;
 }
 
-.dialog-actions {
-  justify-content: flex-end;
-  margin-top: 16px;
+#notification-types .checkbox {
+  margin: 6px 0;
 }
 
-.dialog-actions button.primary.inline-button {
-  margin-top: 0;
+@media (max-width: 380px) {
+  #notification-types {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* 확인 창은 알림 창보다 위에 */
-.modal-overlay {
-  z-index: 90;
-}
-
-/* 메인 "내 블로그" 아래: 참여 중인 블로그의 새 글 (D-113) */
-.home-posts {
-  margin-top: 28px;
-}
-
-.home-posts h2 {
-  margin-top: 0;
-}
-
-/* 블로그 머리 단추 줄: 나가기·신고 아이콘은 맨 오른쪽 */
-.blog-actions-end {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: auto;
-}
-
-.blog-actions-end:not(:has(.icon-button:not(.hidden))) {
-  display: none;
-}
-
-.blog-head #ops-message:empty {
-  display: none;
-}
-
-/* ── 화면 설정 (D-115): 어둡게, 글자 크기 ─────────────── */
 .setting-label {
   margin: 18px 0 8px;
   font-size: 14px;
@@ -2521,11 +2490,134 @@ body.modal-open {
   border-bottom: 1px solid var(--line);
 }
 
-/* 파스텔 이름표와 노랑 위의 글씨는 어떤 화면에서도 짙은 잉크색 */
-:root {
-  --ink: #1f2430;
+/* ── 아이콘 단추와 이름표 (D-108): 어느 화면의 단추든 덮어쓴다 ──── */
+
+button.icon-button,
+a.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
+button.icon-button:hover,
+a.icon-button:hover {
+  background: var(--bg);
+}
+
+.icon-button.danger {
+  color: var(--error);
+}
+
+.icon-button .icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 마우스를 올리거나 키보드로 가면 이름이 뜬다 */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 창 오른쪽 끝·왼쪽 끝의 단추는 이름표가 창 밖으로 나가지 않게 */
+.tip-end[data-tip]:hover::after,
+.tip-end[data-tip]:focus-visible::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.tip-start[data-tip]:hover::after,
+.tip-start[data-tip]:focus-visible::after {
+  left: 0;
+  transform: none;
+}
+
+/* ── 닉네임 링크: 어디서나 누르면 그 회원 프로필 (D-116) ──── */
+
+a.user-name {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.user-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── 휴대폰 화면 다듬기 ───────────────────────────── */
+@media (max-width: 600px) {
+  /* 탭이 많으면 줄을 바꾸지 않고 옆으로 밀어서 본다 (커뮤니티 앱의 탭 줄처럼) */
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-left: -2px;
+    padding: 2px;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabs button {
+    flex-shrink: 0;
+  }
+
+  .blog-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .home-hero {
+    padding-top: 4px;
+  }
+
+  .list-header .button-link {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+}
+
+/* ── 테마: 어둡게·글자 크기 (D-115), 노랑·파스텔 위 글씨는 늘 잉크색 — 맨 뒤에서 색만 덮어쓴다 ──── */
+
+/* 파스텔 이름표와 노랑 위의 글씨는 어떤 화면에서도 짙은 잉크색(--ink) */
 .blog-card,
 .cover-initial,
 .blog-icon-cover .cover-initial,
@@ -2581,103 +2673,4 @@ body.modal-open {
 
 :root[data-font="xlarge"] body {
   zoom: 1.2;
-}
-
-/* 닉네임 링크: 누르면 그 회원 프로필 (팔로우는 프로필에서) */
-a.user-name {
-  color: inherit;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-a.user-name:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* ── 상단 가운데 검색창 (D-116) ───────────────────── */
-.header-search {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  max-width: 440px;
-  min-width: 0;
-  margin: 0 auto;
-  padding: 2px 4px 2px 16px;
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  background: var(--bg);
-}
-
-.header-search:focus-within {
-  border-color: var(--text);
-  background: var(--surface);
-}
-
-.header-search input[type="search"] {
-  flex: 1;
-  min-width: 0;
-  padding: 7px 0;
-  border: none;
-  background: transparent;
-  font-size: 14px;
-}
-
-.header-search input[type="search"]:focus {
-  box-shadow: none;
-  border: none;
-}
-
-.header-search .icon-button {
-  width: 32px;
-  height: 32px;
-}
-
-@media (max-width: 640px) {
-  .site-header {
-    flex-wrap: wrap;
-    row-gap: 8px;
-  }
-
-  .header-search {
-    order: 3;
-    flex-basis: 100%;
-    max-width: none;
-  }
-}
-
-/* 글 목록: 오른쪽 사진 미리보기 */
-.post-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.post-item-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.post-item-thumb {
-  flex-shrink: 0;
-  display: block;
-  width: 112px;
-  height: 80px;
-  border-radius: var(--radius-field);
-  overflow: hidden;
-  background: var(--bg);
-}
-
-.post-item-thumb img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-@media (max-width: 600px) {
-  .post-item-thumb {
-    width: 80px;
-    height: 64px;
-  }
 }

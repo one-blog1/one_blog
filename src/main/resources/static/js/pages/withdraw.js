@@ -6,13 +6,7 @@
   const state = { blocked: false };
 
   const $ = window.ui.$;
-
-  function setError(field, text) {
-    const node = document.querySelector('[data-error-for="' + field + '"]');
-    if (node) {
-      node.textContent = text || '';
-    }
-  }
+  const setError = window.ui.setError;
 
   function refreshButton() {
     $('withdraw-submit').disabled = state.blocked || !$('withdraw-agree').checked;

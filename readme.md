@@ -31,6 +31,12 @@
 
 Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 HTML + JS · Toast UI Editor (자세한 내용은 요구사항 7장)
 
+### 코드 위치
+
+- 서버(`src/main/java/com/oneblog/`): 기능별 패키지(auth, member, blog, post, comment, notification, admin, sanction …). 공통은 `common/`. 뒤에 붙는 기능은 앞 기능이 열어 둔 자리(`PostExtension`, `JoinGate`, `FollowGate`, `SearchFilter`, `*Listener`)를 구현해 끼어들고, 앞 기능의 코드는 고치지 않습니다.
+- 화면(`src/main/resources/static/`): HTML은 화면마다 하나. 스크립트는 `js/lib/`(모든 화면이 싣는 공통: api, ui, header, modal, theme, icons), `js/components/`(여러 화면이 같이 쓰는 부품: blog-card, post-item, pager, report …), `js/pages/`(화면 하나에만 쓰는 것. 파일이 여럿이면 `pages/blog/`처럼 폴더). 날짜 표시·글 주소 같은 공통 도우미는 `js/lib/ui.js`에만 둡니다.
+- 스타일(`css/app.css`): 파일 맨 위 주석의 구성(바탕 → 공통 부품 → 화면별 → 가로지르는 규칙) 순서를 지킵니다. 새 화면의 규칙은 그 화면 자리에 넣고 파일 끝에 덧붙이지 않습니다.
+
 ## 로컬 실행
 
 필요한 것: JDK 21, MySQL 8.4(테스트용). Spring Boot와 Gradle은 `./gradlew`가 처음 실행할 때 자동으로 받습니다.

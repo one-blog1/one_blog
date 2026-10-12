@@ -134,7 +134,7 @@
       area.append(name, profileMenu(me));
       // 알림 종(011): 일반 회원에게만. 모든 화면에 따로 넣지 않도록 여기서 불러온다
       const script = document.createElement('script');
-      script.src = '/js/notifications.js';
+      script.src = '/js/components/notifications.js';
       document.body.append(script);
     }
     document.dispatchEvent(new CustomEvent('header:user', { detail: me }));

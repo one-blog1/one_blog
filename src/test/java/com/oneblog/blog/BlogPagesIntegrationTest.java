@@ -13,7 +13,8 @@ class BlogPagesIntegrationTest extends IntegrationTestSupport {
     @Test
     void 화면과_스크립트를_받을_수_있다() throws Exception {
         for (String path : new String[] {"/", "/index.html", "/blog-new.html", "/my-blogs.html", "/blog.html",
-                "/js/blog-card.js", "/js/blog-list.js", "/js/blog-new.js", "/js/my-blogs.js", "/js/blog.js",
+                "/js/components/blog-card.js", "/js/pages/home/blog-list.js", "/js/pages/blog-new.js", "/js/pages/my-blogs.js",
+                "/js/pages/blog/blog.js",
                 "/images/blog-default.svg", "/css/app.css"}) {
             mvc.perform(get(path)).andExpect(status().isOk());
         }

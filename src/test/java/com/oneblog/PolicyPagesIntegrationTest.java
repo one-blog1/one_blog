@@ -22,7 +22,7 @@ class PolicyPagesIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 공통_스크립트에_하단_링크가_있다() throws Exception {
-        mvc.perform(get("/js/header.js"))
+        mvc.perform(get("/js/lib/header.js"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(Matchers.containsString("/privacy.html")))
                 .andExpect(content().string(Matchers.containsString("/terms.html")));

@@ -36,9 +36,9 @@
     const blog = s.blogSlug ? '/blog/' + encodeURIComponent(s.blogSlug) : null;
     switch (r.targetType) {
       case 'POST':
-        return blog && blog + '/posts/' + encodeURIComponent(r.targetId);
+        return blog && window.ui.postHref(s.blogSlug, r.targetId);
       case 'COMMENT':
-        return blog && s.postId && blog + '/posts/' + encodeURIComponent(s.postId) + '#comment-' + encodeURIComponent(r.targetId);
+        return blog && s.postId && window.ui.postHref(s.blogSlug, s.postId, '#comment-' + encodeURIComponent(r.targetId));
       case 'BLOG':
         return blog;
       default:

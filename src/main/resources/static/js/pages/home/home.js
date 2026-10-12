@@ -119,7 +119,7 @@
     const list = $('home-post-list');
     list.replaceChildren();
     data.items.forEach(c => list.append(window.postItem.create(c,
-      '/blog/' + encodeURIComponent(c.blogSlug) + '/posts/' + encodeURIComponent(c.id), { blogName: c.blogName })));
+      window.ui.postHref(c.blogSlug, c.id), { blogName: c.blogName })));
     $('home-post-empty').classList.toggle('hidden', data.items.length > 0);
     window.pager.render($('home-post-pagination'), data.page, data.totalPages, loadHomePosts);
   }
@@ -151,7 +151,7 @@
       name.textContent = r.blogName;
       const when = document.createElement('span');
       when.className = 'hint';
-      when.textContent = new Date(r.requestedAt).toLocaleDateString('ko-KR') + ' 신청';
+      when.textContent = window.ui.formatDate(r.requestedAt) + ' 신청';
       text.append(name, when);
       link.append(text);
       const cancel = document.createElement('button');

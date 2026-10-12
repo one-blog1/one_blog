@@ -27,7 +27,7 @@
     const list = $('feed-list');
     list.replaceChildren();
     data.items.forEach(c => list.append(window.postItem.create(c,
-      '/blog/' + encodeURIComponent(c.blogSlug) + '/posts/' + encodeURIComponent(c.id), { blogName: c.blogName })));
+      window.ui.postHref(c.blogSlug, c.id), { blogName: c.blogName })));
     $('feed-empty').textContent = EMPTY[state.tab];
     $('feed-empty').classList.toggle('hidden', data.items.length > 0);
     window.pager.render($('feed-pagination'), data.page, data.totalPages, (page) => {

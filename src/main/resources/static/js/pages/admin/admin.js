@@ -9,10 +9,7 @@
 
   const el = window.ui.el;
 
-  function date(iso) {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ko-KR');
-  }
+  const date = window.ui.formatDateTime;
 
   function message(text) {
     $('admin-message').textContent = text || '';
@@ -31,8 +28,7 @@
   }
 
   function postHref(blogSlug, postId) {
-    return blogSlug ? '/blog/' + encodeURIComponent(blogSlug) + '/posts/' + encodeURIComponent(postId)
-      : '/notice.html?id=' + encodeURIComponent(postId);
+    return blogSlug ? window.ui.postHref(blogSlug, postId) : '/notice.html?id=' + encodeURIComponent(postId);
   }
 
   function button(label, onClick, className) {

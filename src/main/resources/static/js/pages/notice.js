@@ -10,7 +10,7 @@
   const n = result.data;
   document.title = n.title + ' - One Blog';
   document.getElementById('notice-title').textContent = n.title;
-  document.getElementById('notice-meta').textContent = n.authorName + ' · ' + new Date(n.createdAt).toLocaleString('ko-KR');
+  document.getElementById('notice-meta').textContent = n.authorName + ' · ' + window.ui.formatDateTime(n.createdAt);
   document.getElementById('notice-body').innerHTML = n.contentHtml;
   document.getElementById('notice').classList.remove('hidden');
 })();

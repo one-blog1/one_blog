@@ -40,7 +40,7 @@
     loadedBlog = blog;
     showReport();
     if (blog.status === 'CLOSING' && blog.closeScheduledAt) {
-      const when = new Date(blog.closeScheduledAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric' });
+      const when = window.ui.formatDayHour(blog.closeScheduledAt);
       $('closing-banner').textContent = '이 블로그는 ' + when + '에 폐쇄될 예정이에요. 필요한 글은 미리 챙겨 주세요.';
       $('closing-banner').classList.remove('hidden');
     }

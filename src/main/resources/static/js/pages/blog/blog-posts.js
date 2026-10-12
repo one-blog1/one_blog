@@ -12,9 +12,7 @@
   }
 
   function postHref(id) {
-    const key = keyParam();
-    return '/blog/' + encodeURIComponent(blog.slug) + '/posts/' + encodeURIComponent(id)
-      + (key ? '?key=' + encodeURIComponent(key) : '');
+    return window.ui.postHref(blog.slug, id, window.ui.keyQuery());
   }
 
   async function load() {

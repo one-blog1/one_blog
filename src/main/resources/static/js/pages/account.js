@@ -6,13 +6,7 @@
   const state = { fileId: null, remove: false };
 
   const $ = window.ui.$;
-
-  function setError(field, text) {
-    const node = document.querySelector('[data-error-for="' + field + '"]');
-    if (node) {
-      node.textContent = text || '';
-    }
-  }
+  const setError = window.ui.setError;
 
   function clearErrors(form) {
     form.querySelectorAll('[data-error-for]').forEach(n => { n.textContent = ''; });

@@ -10,6 +10,7 @@
   const $ = window.ui.$;
 
   const keyQuery = window.ui.keyQuery;
+  const setError = window.ui.setError;
 
   function draftKey() {
     return 'oneblog.draft.' + state.slug + '.' + (state.postId || 'new');
@@ -106,13 +107,6 @@
     return true;
   }
 
-  function setError(field, text) {
-    const node = document.querySelector('[data-error-for="' + field + '"]');
-    if (node) {
-      node.textContent = text || '';
-    }
-  }
-
   async function loadBlog() {
     const result = await window.api.get('/api/blogs/' + encodeURIComponent(state.slug) + keyQuery(), { userAction: true });
     if (!result.ok || !result.data) {
@@ -184,7 +178,7 @@
       if (result.ok && result.data) {
         clearDraft();
         const id = result.data.id;
-        window.location.href = '/blog/' + encodeURIComponent(state.slug) + '/posts/' + id + keyQuery();
+        window.location.href = window.ui.postHref(state.slug, id, keyQuery());
         return;
       }
       const data = result.data || {};

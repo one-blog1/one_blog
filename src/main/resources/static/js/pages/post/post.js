@@ -64,7 +64,7 @@
     });
 
     if (post.canEdit) {
-      $('edit-link').href = '/blog/' + encodeURIComponent(post.blogSlug) + '/posts/' + post.id + '/edit' + keyQuery();
+      $('edit-link').href = window.ui.postHref(post.blogSlug, post.id) + '/edit' + keyQuery();
       $('edit-link').classList.remove('hidden');
     }
     if (post.canDelete) {

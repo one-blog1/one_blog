@@ -32,7 +32,7 @@ check /api/health 200
 check / 200
 check /login.html 200
 check /css/app.css 200
-check /js/api.js 200
+check /js/lib/api.js 200
 check "/api/feed?page=1" 200
 check /api/blogs 200
 check /api/notices 200
