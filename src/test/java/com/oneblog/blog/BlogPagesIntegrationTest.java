@@ -15,7 +15,8 @@ class BlogPagesIntegrationTest extends IntegrationTestSupport {
         for (String path : new String[] {"/", "/index.html", "/blog-new.html", "/my-blogs.html", "/blog.html",
                 "/js/components/blog-card.js", "/js/pages/home/blog-list.js", "/js/pages/blog-new.js", "/js/pages/my-blogs.js",
                 "/js/pages/blog/blog.js",
-                "/images/blog-default.svg", "/css/app.css"}) {
+                "/images/blog-default.svg", "/css/app.css", "/favicon.ico", "/images/favicon.svg",
+                "/images/apple-touch-icon.png"}) {
             mvc.perform(get(path)).andExpect(status().isOk());
         }
     }
