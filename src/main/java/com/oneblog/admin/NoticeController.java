@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.oneblog.common.web.PageParams;
 
-/** 메인 공지 읽기 (BRD-10). 누구나. */
+/** 메인 공지 목록·내용 읽기 (BRD-10, D-122). 누구나. */
 @RestController
 public class NoticeController {
 
@@ -19,10 +19,12 @@ public class NoticeController {
         this.noticeService = noticeService;
     }
 
+    /** category(GENERAL·UPDATE·FIX·MAINTENANCE)를 주면 그 종류만 (D-122). */
     @GetMapping("/api/notices")
     public Map<String, Object> list(@RequestParam(name = "page", required = false) String page,
-            @RequestParam(name = "size", required = false) String size) {
-        return noticeService.list(PageParams.of(page, size));
+            @RequestParam(name = "size", required = false) String size,
+            @RequestParam(name = "category", required = false) String category) {
+        return noticeService.list(PageParams.of(page, size), category);
     }
 
     @GetMapping("/api/notices/{id}")

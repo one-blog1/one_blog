@@ -65,10 +65,10 @@
   async function act(url, body, done) {
     const reason = await window.dialog.prompt('사유를 적어 주세요 (활동 기록에 남습니다).') || '';
     const result = await window.api.post(url, Object.assign({ reason: reason }, body || {}), { userAction: true });
-    message(result.ok ? '처리했습니다.' : ((result.data && result.data.message) || '처리하지 못했습니다.'));
     if (done) {
-      done();
+      done(); // 다시 불러오면 안내가 지워지므로 안내는 그 뒤에
     }
+    message(result.ok ? '처리했습니다.' : ((result.data && result.data.message) || '처리하지 못했습니다.'));
   }
 
   function paged(path, render) {
@@ -173,20 +173,62 @@
       return el('p', 'hint', '신고 처리는 013에서 붙습니다.');
     }),
     notices: paged('/api/notices', (items) => table(
-      ['제목', '작성일', ''],
-      items.map(n => [n.title, date(n.createdAt), button('삭제', async () => {
-        if (!await window.dialog.confirm('공지를 삭제할까요?')) {
-          return;
-        }
-        const r = await window.api.delete('/api/admin/notices/' + n.id, { userAction: true });
-        message(r.ok ? '삭제했습니다.' : '삭제하지 못했습니다.');
-        load();
-      }, 'link-button danger')]))),
+      ['종류', '제목', '작성일', ''],
+      items.map(n => {
+        // 수정이 삭제 왼쪽 (018)
+        const actions = el('span');
+        actions.append(button('수정', () => startNoticeEdit(n.id)), button('삭제', async () => {
+          if (!await window.dialog.confirm('공지를 삭제할까요?')) {
+            return;
+          }
+          const r = await window.api.delete('/api/admin/notices/' + n.id, { userAction: true });
+          if (r.ok && noticeEditId === n.id) {
+            resetNoticeForm();
+          }
+          load();
+          message(r.ok ? '삭제했습니다.' : '삭제하지 못했습니다.');
+        }, 'link-button danger'));
+        return [n.categoryLabel || '일반', goto(n.title, '/notice.html?id=' + encodeURIComponent(n.id)),
+          date(n.createdAt), actions];
+      }))),
     actions: paged('/api/admin/actions', (items) => table(
       ['시각', '관리자', '조치', '대상', '내용', 'IP'],
       items.map(a => [date(a.createdAt), a.adminLoginId, a.actionType, a.targetType + ' #' + a.targetId, a.detail,
         a.ipAddress])))
   };
+
+  // ---- 공지 쓰기·고치기 (BRD-10, D-122) ----
+  let noticeEditId = null;
+
+  function resetNoticeForm() {
+    noticeEditId = null;
+    $('notice-category').value = 'GENERAL';
+    $('notice-title').value = '';
+    $('notice-content').value = '';
+    $('notice-submit').textContent = '공지 올리기';
+    $('notice-cancel').classList.add('hidden');
+    $('notice-editing').classList.add('hidden');
+  }
+
+  /** [수정]: 원문(마크다운)을 받아 위 칸에 채운다. */
+  async function startNoticeEdit(id) {
+    const result = await window.api.get('/api/admin/notices/' + encodeURIComponent(id), { userAction: true });
+    if (!result.ok || !result.data) {
+      message('공지를 불러오지 못했습니다.');
+      return;
+    }
+    const n = result.data;
+    noticeEditId = n.id;
+    $('notice-category').value = n.category;
+    $('notice-title').value = n.title;
+    $('notice-content').value = n.content;
+    $('notice-submit').textContent = '수정 저장';
+    $('notice-cancel').classList.remove('hidden');
+    $('notice-editing').textContent = '"' + n.title + '" 공지를 고치는 중이에요.';
+    $('notice-editing').classList.remove('hidden');
+    $('notice-form').scrollIntoView({ block: 'start' });
+    $('notice-title').focus();
+  }
 
   function load() {
     message('');
@@ -205,6 +247,7 @@
         state.page = 1;
         state.q = '';
         $('search-input').value = '';
+        resetNoticeForm();
         load();
       });
     });
@@ -216,18 +259,26 @@
     });
     $('notice-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const result = await window.api.post('/api/admin/notices', {
+      const body = {
         title: $('notice-title').value.trim(),
-        content: $('notice-content').value
-      }, { userAction: true });
+        content: $('notice-content').value,
+        category: $('notice-category').value
+      };
+      const editing = noticeEditId !== null;
+      const result = editing
+        ? await window.api.put('/api/admin/notices/' + encodeURIComponent(noticeEditId), body, { userAction: true })
+        : await window.api.post('/api/admin/notices', body, { userAction: true });
       if (result.ok) {
-        $('notice-title').value = '';
-        $('notice-content').value = '';
-        message('공지를 올렸습니다.');
-        load();
+        resetNoticeForm();
+        load(); // load()가 안내를 비우므로 안내는 그 뒤에
+        message(editing ? '공지를 고쳤습니다.' : '공지를 올렸습니다.');
       } else {
-        message((result.data && result.data.message) || '올리지 못했습니다.');
+        message((result.data && result.data.message) || (editing ? '고치지 못했습니다.' : '올리지 못했습니다.'));
       }
+    });
+    $('notice-cancel').addEventListener('click', () => {
+      resetNoticeForm();
+      message('');
     });
     load();
   });

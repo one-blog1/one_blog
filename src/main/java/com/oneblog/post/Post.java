@@ -39,6 +39,10 @@ public class Post {
     @Column(name = "post_type", length = 20, nullable = false)
     private PostType postType;
 
+    /** 메인 공지 종류 (D-122). MAIN_NOTICE만 값이 있다 (ck_posts_notice_category). 이름(GENERAL 등)으로 저장 */
+    @Column(name = "notice_category", length = 20)
+    private String noticeCategory;
+
     @Column(name = "title", length = 30, nullable = false)
     private String title;
 
@@ -102,6 +106,15 @@ public class Post {
     public void edit(String title, String content) {
         this.title = title;
         this.content = content;
+    }
+
+    /** 메인 공지 종류를 정한다 (D-122). 공지 패키지의 NoticeCategory 이름을 받는다 (글 패키지가 공지 패키지를 모르게). */
+    public void setNoticeCategory(String noticeCategory) {
+        this.noticeCategory = noticeCategory;
+    }
+
+    public String getNoticeCategory() {
+        return noticeCategory;
     }
 
     /** 소프트 삭제 (4.5: 30일 동안 안 보이고, 04:00 배치가 완전 삭제). */

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,7 +39,8 @@ public class AdminController {
     public record ActionRequest(Boolean hidden, String reason) {
     }
 
-    public record NoticeRequest(String title, String content) {
+    /** category: GENERAL·UPDATE·FIX·MAINTENANCE, 생략하면 GENERAL (D-122). */
+    public record NoticeRequest(String title, String content, String category) {
     }
 
     @GetMapping("/api/admin/users")
@@ -129,8 +131,21 @@ public class AdminController {
     @PostMapping("/api/admin/notices")
     public ResponseEntity<Map<String, Object>> createNotice(@RequestBody NoticeRequest body,
             @AuthenticationPrincipal AuthenticatedUser admin, HttpServletRequest request) {
-        Post notice = noticeService.create(body.title(), body.content(), admin, request);
+        Post notice = noticeService.create(body.title(), body.content(), body.category(), admin, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", notice.getId()));
+    }
+
+    /** 수정 칸에 채울 원문(마크다운). */
+    @GetMapping("/api/admin/notices/{id}")
+    public NoticeService.NoticeSource noticeSource(@PathVariable("id") Long id) {
+        return noticeService.source(id);
+    }
+
+    @PutMapping("/api/admin/notices/{id}")
+    public ResponseEntity<Void> updateNotice(@PathVariable("id") Long id, @RequestBody NoticeRequest body,
+            @AuthenticationPrincipal AuthenticatedUser admin, HttpServletRequest request) {
+        noticeService.update(id, body.title(), body.content(), body.category(), admin, request);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/api/admin/notices/{id}")

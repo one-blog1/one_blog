@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.oneblog.post.Post;
 
@@ -19,4 +20,17 @@ public interface NoticeRepository extends JpaRepository<Post, Long> {
             where p.postType = com.oneblog.post.PostType.MAIN_NOTICE and p.deletedAt is null and p.hidden = false
             """)
     Page<Post> findMainNotices(Pageable pageable);
+
+    /** 종류로 거른 메인 공지 (D-122). category는 NoticeCategory 이름. */
+    @Query(value = """
+            select p from Post p
+            where p.postType = com.oneblog.post.PostType.MAIN_NOTICE and p.deletedAt is null and p.hidden = false
+              and p.noticeCategory = :category
+            """,
+            countQuery = """
+            select count(p) from Post p
+            where p.postType = com.oneblog.post.PostType.MAIN_NOTICE and p.deletedAt is null and p.hidden = false
+              and p.noticeCategory = :category
+            """)
+    Page<Post> findMainNoticesByCategory(@Param("category") String category, Pageable pageable);
 }

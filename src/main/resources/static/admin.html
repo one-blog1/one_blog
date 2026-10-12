@@ -30,12 +30,24 @@
         <input id="search-input" type="text" placeholder="검색어">
         <button class="secondary" type="submit">찾기</button>
       </form>
+      <!-- 공지 쓰기·고치기 (BRD-10, D-122). 목록의 [수정]을 누르면 이 칸에 채워지고 "수정 저장"으로 바뀐다 -->
       <form id="notice-form" class="notice-form hidden" novalidate>
+        <p id="notice-editing" class="hint hidden" role="status"></p>
+        <label for="notice-category">공지 종류</label>
+        <select id="notice-category">
+          <option value="GENERAL">일반</option>
+          <option value="UPDATE">업데이트</option>
+          <option value="FIX">수정</option>
+          <option value="MAINTENANCE">점검</option>
+        </select>
         <label for="notice-title">공지 제목</label>
         <input id="notice-title" type="text" maxlength="30">
         <label for="notice-content">공지 내용 (마크다운)</label>
         <textarea id="notice-content" rows="6"></textarea>
-        <button class="primary inline-button" type="submit">공지 올리기</button>
+        <div class="row notice-form-actions">
+          <button id="notice-submit" class="primary inline-button" type="submit">공지 올리기</button>
+          <button id="notice-cancel" class="secondary inline-button hidden" type="button">취소</button>
+        </div>
       </form>
       <p id="admin-message" class="message" role="status"></p>
       <div id="admin-content" class="admin-content"></div>

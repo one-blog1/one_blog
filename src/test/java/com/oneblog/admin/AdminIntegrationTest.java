@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -198,6 +199,72 @@ class AdminIntegrationTest extends PostTestSupport {
                 .andExpect(status().isForbidden());
         mvc.perform(delete("/api/admin/notices/" + id).with(csrf()).cookie(admin)).andExpect(status().isNoContent());
         mvc.perform(get("/api/notices/" + id)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void 공지는_종류가_있고_종류로_거른다() throws Exception {
+        adminPost("/api/admin/notices", "{\"title\":\"0.22 업데이트\",\"content\":\"새 기능\",\"category\":\"UPDATE\"}")
+                .andExpect(status().isCreated());
+        adminPost("/api/admin/notices", "{\"title\":\"안내\",\"content\":\"종류 없이\"}").andExpect(status().isCreated());
+        mvc.perform(get("/api/notices"))
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].category").value("GENERAL"))
+                .andExpect(jsonPath("$.items[0].categoryLabel").value("일반"))
+                .andExpect(jsonPath("$.items[1].categoryLabel").value("업데이트"));
+        mvc.perform(get("/api/notices").param("category", "UPDATE"))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("0.22 업데이트"));
+        mvc.perform(get("/api/notices").param("category", "WRONG")).andExpect(status().isBadRequest());
+        adminPost("/api/admin/notices", "{\"title\":\"x\",\"content\":\"x\",\"category\":\"WRONG\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        // 블로그 글에는 종류가 없다 (ck_posts_notice_category)
+        assertThat(jdbc.queryForObject("SELECT notice_category FROM posts WHERE id = ?", String.class, postId)).isNull();
+    }
+
+    @Test
+    void 관리자는_공지를_고치고_알림은_다시_보내지_않는다() throws Exception {
+        String body = adminPost("/api/admin/notices", "{\"title\":\"점검 안내\",\"content\":\"내일 점검\"}")
+                .andReturn().getResponse().getContentAsString();
+        Long id = ((Number) JsonPath.read(body, "$.id")).longValue();
+        long notificationsBefore = jdbc.queryForObject("SELECT COUNT(*) FROM notifications", Long.class);
+
+        mvc.perform(get("/api/admin/notices/" + id).cookie(admin))
+                .andExpect(jsonPath("$.content").value("내일 점검"))
+                .andExpect(jsonPath("$.category").value("GENERAL"));
+        mvc.perform(put("/api/admin/notices/" + id).with(csrf()).cookie(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"점검 시간 변경\",\"content\":\"**모레** 점검\",\"category\":\"MAINTENANCE\"}"))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/notices/" + id))
+                .andExpect(jsonPath("$.title").value("점검 시간 변경"))
+                .andExpect(jsonPath("$.categoryLabel").value("점검"))
+                .andExpect(jsonPath("$.contentHtml").value(org.hamcrest.Matchers.containsString("<strong>모레</strong>")));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_actions WHERE action_type = 'NOTICE_UPDATE' AND target_id = ?",
+                Long.class, id)).isEqualTo(1L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM notifications", Long.class)).isEqualTo(notificationsBefore);
+
+        // 고친 지 1분이 넘은 것처럼 만들면 "수정됨"
+        jdbc.update("UPDATE posts SET created_at = created_at - INTERVAL 2 HOUR WHERE id = ?", id);
+        mvc.perform(get("/api/notices/" + id)).andExpect(jsonPath("$.edited").value(true));
+    }
+
+    @Test
+    void 관리자가_아니면_공지를_고칠_수_없다() throws Exception {
+        String body = adminPost("/api/admin/notices", "{\"title\":\"원래 제목\",\"content\":\"x\"}")
+                .andReturn().getResponse().getContentAsString();
+        Long id = ((Number) JsonPath.read(body, "$.id")).longValue();
+        String json = "{\"title\":\"바꾼 제목\",\"content\":\"x\"}";
+        mvc.perform(put("/api/admin/notices/" + id).with(csrf()).cookie(owner).contentType(MediaType.APPLICATION_JSON)
+                .content(json)).andExpect(status().isForbidden());
+        mvc.perform(put("/api/admin/notices/" + id).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/admin/notices/" + id).cookie(owner)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/notices/" + id)).andExpect(jsonPath("$.title").value("원래 제목"));
+        // 지운 공지는 고칠 수 없다
+        mvc.perform(delete("/api/admin/notices/" + id).with(csrf()).cookie(admin)).andExpect(status().isNoContent());
+        mvc.perform(put("/api/admin/notices/" + id).with(csrf()).cookie(admin).contentType(MediaType.APPLICATION_JSON)
+                .content(json)).andExpect(status().isNotFound());
     }
 
     @Test
