@@ -20,8 +20,9 @@ class HealthIntegrationTest extends IntegrationTestSupport {
         mvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"))
-                // build.gradle.kts의 version이 빌드 정보로 들어갔는지 (없으면 unknown이 나와 실패)
-                .andExpect(jsonPath("$.version").value(matchesPattern("\\d+\\.\\d+\\.\\d+")));
+                // build.gradle.kts의 version이 빌드 정보로 들어갔는지 (없으면 unknown이 나와 실패).
+                // 버전은 점 뒤 두 자리(0.21, D-121). 이전 형식 0.2.0도 받는다
+                .andExpect(jsonPath("$.version").value(matchesPattern("\\d+\\.\\d{2}|\\d+\\.\\d+\\.\\d+")));
     }
 
     @Test
