@@ -80,13 +80,16 @@
           <div class="checkbox">
             <input id="agree-terms" name="agreeTerms" type="checkbox">
             <label for="agree-terms">[필수] 이용약관에 동의합니다</label>
-            <a class="agree-view" href="/terms.html" target="_blank" rel="noopener">보기</a>
+            <a class="agree-view" href="/terms.html" target="_blank" rel="noopener">새 창으로</a>
           </div>
+          <!-- 전문은 terms.html·privacy.html을 그대로 불러와 작은 상자에 스크롤로 보여 준다 (signup.js loadPolicy) -->
+          <div id="terms-box" class="agree-scroll post-body" tabindex="0" role="region" aria-label="이용약관 전문">불러오는 중…</div>
           <div class="checkbox">
             <input id="agree-privacy" name="agreePrivacy" type="checkbox">
             <label for="agree-privacy">[필수] 개인정보 수집·이용에 동의합니다</label>
-            <a class="agree-view" href="/privacy.html" target="_blank" rel="noopener">보기</a>
+            <a class="agree-view" href="/privacy.html" target="_blank" rel="noopener">새 창으로</a>
           </div>
+          <div id="privacy-box" class="agree-scroll post-body" tabindex="0" role="region" aria-label="개인정보 처리방침 전문">불러오는 중…</div>
         </fieldset>
 
         <p id="signup-message" class="message error" role="alert"></p>

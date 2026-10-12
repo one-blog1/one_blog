@@ -187,6 +187,26 @@
     }
   }
 
+  // 약관·처리방침 전문을 그 화면에서 그대로 가져와 작은 상자에 넣는다. 우리 서버의 정적 화면이지만
+  // innerHTML 대신 DOMParser로 읽어 노드를 옮긴다 (SEC-06: innerHTML은 서버가 거른 글 본문에만)
+  async function loadPolicy(url, boxId) {
+    const box = $(boxId);
+    try {
+      const response = await fetch(url, { credentials: 'same-origin' });
+      if (!response.ok) {
+        throw new Error(String(response.status));
+      }
+      const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const body = doc.querySelector('.post-body');
+      if (!body) {
+        throw new Error('no body');
+      }
+      box.replaceChildren(...Array.from(body.childNodes, node => document.importNode(node, true)));
+    } catch (e) {
+      box.textContent = '내용을 불러오지 못했어요. "새 창으로"를 눌러 확인해 주세요.';
+    }
+  }
+
   function toggleAll(event) {
     $('agree-terms').checked = event.target.checked;
     $('agree-privacy').checked = event.target.checked;
@@ -198,6 +218,8 @@
     $('agree-terms').addEventListener('change', updateAgree);
     $('agree-privacy').addEventListener('change', updateAgree);
     updateAgree();
+    loadPolicy('/terms.html', 'terms-box');
+    loadPolicy('/privacy.html', 'privacy-box');
     $('send-code').addEventListener('click', sendCode);
     $('step-1').addEventListener('submit', verifyCode);
     $('step-2').addEventListener('submit', submitPassword);

@@ -543,6 +543,55 @@ button:disabled {
   font-weight: 700;
 }
 
+/* 약관 전문 작은 상자: 높이를 묶고 안에서 스크롤 */
+.agree-box .agree-scroll {
+  max-height: 140px;
+  margin: 2px 0 12px 28px;
+  padding: 10px 12px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.agree-box .agree-scroll:focus-visible {
+  outline: 2px solid var(--sun-strong);
+  outline-offset: 2px;
+}
+
+.agree-box .agree-scroll h2 {
+  margin: 14px 0 4px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.agree-box .agree-scroll h2:first-child {
+  margin-top: 0;
+}
+
+.agree-box .agree-scroll p,
+.agree-box .agree-scroll ul {
+  margin: 4px 0;
+}
+
+.agree-box .agree-scroll ul {
+  padding-left: 18px;
+}
+
+.agree-box .agree-scroll table {
+  display: block;
+  overflow-x: auto;
+  font-size: 12px;
+}
+
+.agree-box .agree-scroll th,
+.agree-box .agree-scroll td {
+  padding: 4px 6px;
+}
+
 .agree-box .agree-view {
   margin-left: auto;
   font-size: 13px;
