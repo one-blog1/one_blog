@@ -107,10 +107,12 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
         assertThat(cookie).isNotNull();
         assertThat(cookie.isHttpOnly()).isTrue();
         assertThat(cookie.getPath()).isEqualTo("/login/oauth2");
-        // 세션에 아무것도 담지 않는다 (MockMvc는 테스트 도구가 빈 세션을 만들 수 있어 내용으로 본다)
+        // 로그인 요청·저장한 요청을 세션에 두지 않는다. 테스트 도구의 csrf()가 CSRF 저장소를 세션용으로 바꿔 두므로
+        // 세션 유무가 아니라 OAuth2·요청 저장 값이 없는지 본다 (운영은 쿠키 CSRF 저장소)
         var session = result.getRequest().getSession(false);
         if (session != null) {
-            assertThat(java.util.Collections.list(session.getAttributeNames())).isEmpty();
+            assertThat(java.util.Collections.list(session.getAttributeNames()))
+                    .noneMatch(name -> name.contains("OAuth2") || name.contains("SAVED_REQUEST"));
         }
 
         // 꺼진 사이트(네이버)로는 보내지 않는다
