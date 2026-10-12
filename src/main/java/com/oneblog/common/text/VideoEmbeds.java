@@ -27,13 +27,13 @@ public final class VideoEmbeds {
                     "^https?://(?:(?:www|m|music)\\.)?(?:youtube\\.com/(?:watch\\?(?:[^#\\s]*&)?v=|shorts/|live/|embed/)"
                             + "|youtu\\.be/)([A-Za-z0-9_-]{11})(?:[?&#][^\\s]*)?$"),
                     m -> "https://www.youtube-nocookie.com/embed/" + m.group(1)),
-            // 치지직 클립: /clips/{id} 또는 /embed/clip/{id}
+            // 치지직 클립: /clips/{id} 또는 /embed/clip/{id}. 휴대폰 주소(m.chzzk.naver.com)도 받는다
             new Rule("chzzk", "치지직 클립", Pattern.compile(
-                    "^https?://chzzk\\.naver\\.com/(?:clips|embed/clip)/([A-Za-z0-9_-]{1,40})(?:[?#][^\\s]*)?$"),
+                    "^https?://(?:m\\.)?chzzk\\.naver\\.com/(?:clips|embed/clip)/([A-Za-z0-9_-]{1,40})(?:[?#][^\\s]*)?$"),
                     m -> "https://chzzk.naver.com/embed/clip/" + m.group(1)),
-            // 치지직 다시보기: /video/{번호} 또는 /embed/vod/{번호}
+            // 치지직 다시보기: /video/{번호} 또는 /embed/vod/{번호}. 휴대폰 주소도
             new Rule("chzzk", "치지직 다시보기", Pattern.compile(
-                    "^https?://chzzk\\.naver\\.com/(?:video|embed/vod)/(\\d{1,15})(?:[?#][^\\s]*)?$"),
+                    "^https?://(?:m\\.)?chzzk\\.naver\\.com/(?:video|embed/vod)/(\\d{1,15})(?:[?#][^\\s]*)?$"),
                     m -> "https://chzzk.naver.com/embed/vod/" + m.group(1)),
             // SOOP 다시보기: vod.sooplive.com(2026-03 도메인 변경), 예전 vod.sooplive.co.kr·vod.afreecatv.com·v.afree.ca도 받는다
             new Rule("soop", "SOOP 다시보기", Pattern.compile(

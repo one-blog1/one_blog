@@ -34,6 +34,9 @@ class VideoEmbedTest {
             "https://chzzk.naver.com/clips/AbC123xyz, https://chzzk.naver.com/embed/clip/AbC123xyz",
             "https://chzzk.naver.com/embed/clip/12341234, https://chzzk.naver.com/embed/clip/12341234",
             "https://chzzk.naver.com/video/4567890, https://chzzk.naver.com/embed/vod/4567890",
+            // 휴대폰에서 복사한 치지직 주소
+            "https://m.chzzk.naver.com/video/15513352, https://chzzk.naver.com/embed/vod/15513352",
+            "https://m.chzzk.naver.com/clips/AbC123xyz, https://chzzk.naver.com/embed/clip/AbC123xyz",
             // SOOP 다시보기: 새 도메인과 예전 도메인 모두
             "https://vod.sooplive.com/player/139470149, https://vod.sooplive.com/player/139470149/embed?showChat=false&autoPlay=false&mutePlay=false",
             "https://vod.sooplive.co.kr/player/139470149?change_second=10, https://vod.sooplive.com/player/139470149/embed?showChat=false&autoPlay=false&mutePlay=false",
