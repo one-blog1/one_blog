@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 회원 로그인 화면. 로그인 유지, 사람 확인, 비밀번호·이메일 찾기와 회원가입 링크 (USR-03). -->
+<!-- 회원 로그인 화면. 로그인 유지, 사람 확인, 소셜 로그인(D-126), 비밀번호·이메일 찾기와 회원가입 링크 (USR-03). -->
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -22,6 +22,7 @@
       <h1>로그인</h1>
       <p id="signup-done" class="message ok hidden">가입이 완료되었습니다. 로그인해 주세요.</p>
       <p id="reset-done" class="message ok hidden">비밀번호를 바꿨습니다. 새 비밀번호로 로그인해 주세요.</p>
+      <p id="social-error" class="message error" role="alert"></p>
 
       <form id="login-form" novalidate>
         <label for="email">이메일</label>
@@ -40,6 +41,7 @@
         <p id="login-message" class="message error" role="alert"></p>
         <button class="primary" type="submit">로그인</button>
       </form>
+      <div data-social-login data-verb="로그인"></div>
       <p class="footer-links"><a href="/find-account.html">비밀번호 찾기</a> · <a href="/find-account.html#email">이메일 찾기</a></p>
 
       <p class="footer-links">아직 회원이 아니신가요? <a href="/signup.html">회원가입</a></p>
@@ -52,6 +54,7 @@
   <script src="/js/lib/modal.js"></script>
   <script src="/js/lib/header.js"></script>
   <script src="/js/components/captcha.js"></script>
+  <script src="/js/components/social-login.js"></script>
   <script src="/js/pages/login.js"></script>
 </body>
 </html>

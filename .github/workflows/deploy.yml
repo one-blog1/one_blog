@@ -11,7 +11,9 @@
 #   (선택) MAIL_USERNAME, MAIL_PASSWORD   넣으면 인증 메일을 실제로 보냄. 없으면 인증번호가 서버 로그에 찍힘
 #   (선택) ADMIN_LOGIN_ID, ADMIN_PASSWORD 넣으면 처음 시작할 때 관리자 계정을 만듦
 #   (선택) COOKIE_SECURE                  HTTPS를 붙인 뒤 true. 없으면 false(http에서 로그인되도록)
-#   (선택) PUBLIC_BASE_URL                SNS 미리보기에 쓸 사이트 주소
+#   (선택) PUBLIC_BASE_URL                SNS 미리보기·소셜 로그인 돌아오는 주소에 쓸 사이트 주소 (비우면 https://one-blog.java21.net)
+#   (선택) KAKAO_CLIENT_ID / KAKAO_CLIENT_SECRET, NAVER_CLIENT_ID / NAVER_CLIENT_SECRET,
+#          GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET   소셜 로그인 키 (D-126). 넣은 사이트만 켜진다
 #   (선택) CODE_PEPPER, PRIVACY_HASH_PEPPER, JWT_SECRET
 #          넣으면 서버의 ~/one-blog/secrets.env 값 대신 이 값을 쓴다. 로컬과 같은 DB를 쓰는 동안에는
 #          CODE_PEPPER(와 PRIVACY_HASH_PEPPER)를 로컬 .env와 같게 둬야 블랙리스트 해시가 맞는다
@@ -106,6 +108,12 @@ jobs:
           CODE_PEPPER: ${{ secrets.CODE_PEPPER }}
           PRIVACY_HASH_PEPPER: ${{ secrets.PRIVACY_HASH_PEPPER }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           for name in DB_ADDRESS DB_PORT DB_NAME DB_USERNAME DB_PASSWORD; do
             [ -n "${!name}" ] || { echo "GitHub Secret $name 가 비어 있습니다."; exit 1; }
@@ -129,9 +137,14 @@ jobs:
               echo "ADMIN_LOGIN_ID=$ADMIN_LOGIN_ID"
               echo "ADMIN_PASSWORD=$ADMIN_PASSWORD"
             fi
-            if [ -n "$PUBLIC_BASE_URL" ]; then
-              echo "PUBLIC_BASE_URL=$PUBLIC_BASE_URL"
-            fi
+            # 소셜 로그인 돌아오는 주소(D-126)와 SNS 미리보기에 쓴다. 비우면 운영 주소
+            echo "PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-https://one-blog.java21.net}"
+            # 소셜 로그인 키 (D-126). 넣은 사이트만 켜진다
+            for name in KAKAO_CLIENT_ID KAKAO_CLIENT_SECRET NAVER_CLIENT_ID NAVER_CLIENT_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET; do
+              if [ -n "${!name}" ]; then
+                echo "$name=${!name}"
+              fi
+            done
             # 있으면 서버 secrets.env보다 우선 (deploy.env를 나중에 읽음)
             for name in CODE_PEPPER PRIVACY_HASH_PEPPER JWT_SECRET; do
               if [ -n "${!name}" ]; then

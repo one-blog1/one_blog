@@ -10,6 +10,12 @@
       document.getElementById('reset-done').classList.remove('hidden');
     }
 
+    // 소셜 로그인에서 돌아왔는데 실패한 경우 (D-126)
+    const socialError = new URLSearchParams(window.location.search).get('social_error');
+    if (socialError && window.socialLogin) {
+      document.getElementById('social-error').textContent = window.socialLogin.errorMessage(socialError);
+    }
+
     const form = document.getElementById('login-form');
     const message = document.getElementById('login-message');
 

@@ -26,3 +26,14 @@ app:
   # 통합 테스트는 같은 IP(127.0.0.1)로 수백 번 로그인하므로 요청 제한을 끈다. 제한 규칙은 RateLimiterTest가 따로 본다
   rate-limit:
     enabled: false
+  # 소셜 로그인 테스트용 가짜 키 (실제 사이트에 접속하지 않는다). 카카오·구글만 켜고 네이버는 꺼 둔다(.env 값을 덮는다)
+  social:
+    naver:
+      client-id: ""
+      client-secret: ""
+    kakao:
+      client-id: test-kakao-id
+      client-secret: test-kakao-secret
+    google:
+      client-id: test-google-id
+      client-secret: test-google-secret

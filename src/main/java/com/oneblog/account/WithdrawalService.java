@@ -26,7 +26,7 @@ import com.oneblog.member.ValidationFailedException;
 
 /**
  * 회원탈퇴 (USR-05, 4.5).
- * - 비밀번호를 다시 확인한다
+ * - 비밀번호를 다시 확인한다 (소셜 로그인만 쓰는 회원은 비밀번호 찾기로 먼저 만든다, D-126)
  * - 블로그장인 블로그가 하나라도 있으면(폐쇄 예정 7일 포함) 탈퇴할 수 없다. 위임하거나 폐쇄가 끝나야 한다
  * - 탈퇴하면 로그인용 이메일은 바로 비우고(같은 이메일로 다시 가입 가능), 모든 로그인을 끝내고, 참여한 블로그에서 빠진다
  * - 쓴 글은 "탈퇴한 회원"으로 남는다(작성자 연결은 끊지 않는다). 나머지 개인정보는 30일 뒤 04:00 배치가 지운다
@@ -72,6 +72,7 @@ public class WithdrawalService {
         }
         User user = userRepository.findForUpdateById(principal.id()).filter(User::isActive)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "로그인이 필요합니다."));
+        ReauthService.requirePassword(user);
         if (password == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new ValidationFailedException(List.of(
                     new ErrorResponse.FieldError("password", "비밀번호가 맞지 않습니다.")));
@@ -90,6 +91,8 @@ public class WithdrawalService {
         jdbc.update("DELETE FROM blog_subscriptions WHERE user_id = :userId", me);
         jdbc.update("UPDATE blog_join_requests SET status = 'CANCELED' WHERE user_id = :userId AND status = 'PENDING'", me);
         jdbc.update("DELETE FROM recent_searches WHERE user_id = :userId", me);
+        // 소셜 계정 연결을 끊어 같은 소셜 계정으로 다시 가입할 수 있게 한다 (D-126)
+        jdbc.update("DELETE FROM social_accounts WHERE user_id = :userId", me);
         refreshTokenRepository.revokeAll(user.getId(), now);
 
         User fresh = userRepository.findById(user.getId()).orElseThrow();

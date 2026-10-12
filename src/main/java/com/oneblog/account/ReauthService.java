@@ -46,11 +46,20 @@ public class ReauthService {
     public String verify(AuthenticatedUser principal, String password) {
         User user = accountService.member(principal);
         rateLimiter.check("reauth", String.valueOf(user.getId()), ATTEMPTS, ATTEMPT_WINDOW);
+        requirePassword(user);
         if (password == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new ValidationFailedException(List.of(
                     new ErrorResponse.FieldError("password", "비밀번호가 맞지 않습니다.")));
         }
         return tokenService.issueReauthTicket(principal.id(), principal.sessionId());
+    }
+
+    /** 소셜 로그인으로만 가입해 비밀번호가 없는 회원 (D-126). 비밀번호 찾기로 먼저 만들게 한다. */
+    static void requirePassword(User user) {
+        if (!user.hasPassword()) {
+            throw new ApiException(HttpStatus.CONFLICT, "PASSWORD_NOT_SET",
+                    "비밀번호가 없는 계정입니다. 로그인 화면의 비밀번호 찾기로 비밀번호를 먼저 만들어 주세요.");
+        }
     }
 
     public Optional<Instant> expiresAt(AuthenticatedUser principal, String ticket) {

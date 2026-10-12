@@ -34,6 +34,14 @@
       </dl>
       <p id="account-message" class="message" role="status"></p>
       <button id="edit-start" class="primary" type="button">프로필 수정</button>
+
+      <!-- 소셜 로그인 연결 (022, D-126). 켜진 사이트가 없으면 숨긴다 (js/pages/account/social.js) -->
+      <div id="social-accounts" class="social-accounts hidden">
+        <h2>소셜 로그인</h2>
+        <p id="social-no-password" class="hint hidden">비밀번호 없이 가입한 계정이에요. 비밀번호가 필요하면 <a href="/find-account.html">비밀번호 찾기</a>로 만들 수 있어요.</p>
+        <ul id="social-list" class="social-account-list"></ul>
+        <p id="social-message" class="message" role="status"></p>
+      </div>
     </section>
 
     <section id="reauth-view" class="card hidden" aria-labelledby="reauth-title">
@@ -104,6 +112,7 @@
   <script src="/js/lib/icons.js"></script>
   <script src="/js/lib/modal.js"></script>
   <script src="/js/lib/header.js"></script>
-  <script src="/js/pages/account.js"></script>
+  <script src="/js/pages/account/account.js"></script>
+  <script src="/js/pages/account/social.js"></script>
 </body>
 </html>

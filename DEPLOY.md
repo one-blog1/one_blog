@@ -37,7 +37,10 @@ CI가 실패하면 배포하지 않습니다. 수동 배포는 Actions 탭의 De
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | 선택 | Gmail과 앱 비밀번호. 없으면 인증번호가 메일 대신 서버 로그에 찍힘 (`docker logs one-blog`) |
 | `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD` | 선택 | 처음 시작할 때 관리자 계정을 만듦 |
 | `COOKIE_SECURE` | 선택 | HTTPS를 붙인 뒤 `true`. 없으면 `false`(http에서도 로그인되도록) |
-| `PUBLIC_BASE_URL` | 선택 | SNS 미리보기에 쓸 사이트 주소 |
+| `PUBLIC_BASE_URL` | 선택 | SNS 미리보기·소셜 로그인 돌아오는 주소에 쓸 사이트 주소. 없으면 `https://one-blog.java21.net` |
+| `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET` | 선택 | 카카오 로그인 (D-126). REST API 키와 Client Secret. 시크릿을 끈 앱이면 ID만 |
+| `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` | 선택 | 네이버 로그인 (D-126) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | 선택 | 구글 로그인 (D-126) |
 | `CODE_PEPPER`, `PRIVACY_HASH_PEPPER`, `JWT_SECRET` | 선택 | 넣으면 서버 `secrets.env` 대신 이 값을 씀. 로컬과 같은 DB를 쓰는 동안 `CODE_PEPPER`(`.env`에 있으면 `PRIVACY_HASH_PEPPER`도)는 로컬 `.env`와 같은 값이어야 함: 블랙리스트(이름·이메일·전화번호)를 이 값으로 해시해 DB에 저장하므로, 다르면 로컬에서 등록한 블랙리스트를 서버가 알아보지 못함 |
 
 `JWT_SECRET`, `CODE_PEPPER`를 Secrets에 넣지 않으면 처음 배포할 때 서버가 만들어 `~/one-blog/secrets.env`에 두고 이후 계속 같은 값을 씁니다. 이 파일을 지우면 모든 로그인이 풀리고, 이메일 인증 중이던 코드와 블랙리스트 확인이 맞지 않게 됩니다.
@@ -115,6 +118,7 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 | `FILE_STORAGE_DIR` | 서버를 바꿔도 남는 폴더 (EBS, 볼륨) | ./uploads |
 | `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD` | 처음 한 번 관리자 계정을 만들 때만 | 관리자를 만들지 않음 |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare에서 받은 키 | 사람 확인 꺼짐 |
+| `KAKAO_CLIENT_ID`·`NAVER_CLIENT_ID`·`GOOGLE_CLIENT_ID`와 각 `_CLIENT_SECRET` | 각 사이트 개발자 화면에서 받은 키. 돌아오는 주소는 `{PUBLIC_BASE_URL}/login/oauth2/code/{kakao\|naver\|google}` | 그 사이트 로그인 단추가 안 보임 |
 
 ## 4. 배포 전 확인
 

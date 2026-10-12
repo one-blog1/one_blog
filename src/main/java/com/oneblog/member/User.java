@@ -101,6 +101,9 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    /** 비밀번호 없이 소셜 로그인만 하는 회원의 password_hash 값 (D-126). bcrypt 해시는 "$"로 시작한다. */
+    public static final String NO_PASSWORD = "!SOCIAL";
+
     protected User() {
     }
 
@@ -118,6 +121,15 @@ public class User {
         user.termsAgreedAt = agreedAt;
         user.privacyAgreedAt = agreedAt;
         return user;
+    }
+
+    /**
+     * 소셜 로그인으로 가입한 회원 (USR-09, D-126). 비밀번호가 없으므로 bcrypt가 아닌 표시값을 넣는다.
+     * 이 값은 어떤 비밀번호와도 맞지 않아 비밀번호 로그인이 되지 않고, 비밀번호 찾기로 비밀번호를 만들 수 있다.
+     */
+    public static User createSocialMember(String email, String name, String nickname, String phone,
+            LocalDateTime agreedAt) {
+        return createMember(email, NO_PASSWORD, name, nickname, phone, agreedAt);
     }
 
     /**
@@ -154,6 +166,11 @@ public class User {
 
     public void changeProfileImage(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    /** 비밀번호를 만든 회원인지. 소셜 로그인으로만 가입하면 false (D-126). */
+    public boolean hasPassword() {
+        return passwordHash != null && passwordHash.startsWith("$");
     }
 
     public void changePassword(String passwordHash) {

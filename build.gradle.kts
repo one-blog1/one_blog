@@ -27,6 +27,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     // JWT 인코딩·검증(Nimbus). Resource Server 설정은 Bearer 요청의 CSRF 검사를 끄므로 쓰지 않고 직접 필터를 둔다 (research R2)
     implementation("org.springframework.security:spring-security-oauth2-jose")
+    // 소셜 로그인(카카오·네이버·구글, D-126). 스프링 부트 자동 설정 없이 라이브러리만 쓰고 SocialClientRegistrations에서 직접 설정한다
+    implementation("org.springframework.security:spring-security-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-mail")

@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 회원가입 화면. 이메일 인증 → 비밀번호 → 정보 입력 순서 (USR-01, USR-02). -->
+<!-- 회원가입 화면. 이메일 인증 → 비밀번호 → 정보 입력 순서 (USR-01, USR-02). 첫 단계 아래에 소셜 가입 단추 (D-126). -->
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -42,6 +42,7 @@
           <p id="code-message" class="message error" role="alert"></p>
           <button class="primary" type="submit">인증하기</button>
         </div>
+        <div data-social-login data-verb="시작하기"></div>
       </form>
 
       <!-- ② 비밀번호 (SEC-02) -->
@@ -107,6 +108,7 @@
   <script src="/js/lib/icons.js"></script>
   <script src="/js/lib/modal.js"></script>
   <script src="/js/lib/header.js"></script>
+  <script src="/js/components/social-login.js"></script>
   <script src="/js/pages/signup.js"></script>
 </body>
 </html>

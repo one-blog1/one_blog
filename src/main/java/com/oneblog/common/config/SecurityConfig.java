@@ -18,6 +18,10 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.oneblog.auth.SessionService;
+import com.oneblog.auth.social.NoTokenStorage;
+import com.oneblog.auth.social.SocialAuthorizationRequestCookies;
+import com.oneblog.auth.social.SocialClientRegistrations;
+import com.oneblog.auth.social.SocialLoginHandlers;
 import com.oneblog.common.security.AuthCookies;
 import com.oneblog.common.security.JwtCookieAuthenticationFilter;
 
@@ -53,7 +57,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder,
-            SessionService sessionService, AuthCookies authCookies) throws Exception {
+            SessionService sessionService, AuthCookies authCookies, SocialClientRegistrations socialRegistrations,
+            SocialAuthorizationRequestCookies socialRequestCookies, SocialLoginHandlers socialHandlers)
+            throws Exception {
         http
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // XSRF-TOKEN 쿠키(JS가 읽음) + X-XSRF-TOKEN 헤더 (SEC-10)
@@ -67,12 +73,22 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
                 .requestCache(cache -> cache.disable())
+                // 소셜 로그인 (D-126): /oauth2/authorization/{kakao|naver|google}로 보내고 /login/oauth2/code/{id}로 받는다.
+                // 세션 없이 요청은 서명한 쿠키에 두고, 사이트 토큰은 저장하지 않는다. 키가 없는 사이트는 꺼진다
+                .oauth2Login(oauth -> oauth
+                        .loginPage("/login.html")
+                        .clientRegistrationRepository(socialRegistrations)
+                        .authorizedClientRepository(new NoTokenStorage())
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .authorizationRequestRepository(socialRequestCookies))
+                        .successHandler(socialHandlers)
+                        .failureHandler(socialHandlers))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/", "/index.html", "/signup.html", "/login.html",
                                 "/blog-new.html", "/my-blogs.html", "/blog.html", "/post.html", "/post-edit.html",
                                 "/admin.html", "/admin-login.html", "/notice.html", "/tag.html",
                                 "/profile.html", "/account.html", "/settings.html", "/withdraw.html", "/search.html",
-                                "/blog-manage.html", "/find-account.html", "/privacy.html", "/terms.html",
+                                "/blog-manage.html", "/find-account.html", "/privacy.html", "/terms.html", "/social-signup.html",
                                 "/css/**", "/js/**", "/images/**", "/fonts/**", "/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
                         // 블로그 첫 화면과 업로드 이미지, 블로그 목록·첫 화면 정보는 비회원도 본다.
@@ -88,7 +104,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/signup/nickname-availability",
-                                "/api/auth/captcha-config").permitAll()
+                                "/api/auth/captcha-config", "/api/auth/social/providers", "/api/auth/social/pending",
+                                "/oauth2/authorization/*", "/login/oauth2/code/*").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedEntryPoint()))

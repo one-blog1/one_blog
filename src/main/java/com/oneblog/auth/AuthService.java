@@ -65,12 +65,27 @@ public class AuthService {
      */
     @Transactional(noRollbackFor = ApiException.class)
     public LoginResult login(String rawEmail, String password, boolean rememberMe, String ip, String captchaToken) {
+        return issue(authenticateMember(rawEmail, password, ip, captchaToken), rememberMe);
+    }
+
+    /**
+     * 이메일·비밀번호가 맞는 회원을 돌려준다. 로그인과 같은 잠금·요청 제한·사람 확인을 쓴다.
+     * 소셜 계정을 기존 회원에 연결할 때도 쓴다 (D-126).
+     */
+    @Transactional(noRollbackFor = ApiException.class)
+    public User authenticateMember(String rawEmail, String password, String ip, String captchaToken) {
         rateLimiter.check("login", String.valueOf(ip), LOGIN_PER_IP, LOGIN_WINDOW);
         String email = signupPolicy.normalizeEmail(rawEmail);
         User user = userRepository.findByEmail(email).orElse(null);
         // 관리자 계정은 회원 로그인 화면으로 들어올 수 없다 (SEC-09, D-98)
         authenticate(user != null && user.getRole() == UserRole.ADMIN ? null : user, password, ip, captchaToken,
                 LOGIN_FAILED_MESSAGE);
+        return user;
+    }
+
+    /** 확인을 마친 회원에게 로그인(Refresh Token 행 + Access Token)을 만든다. 소셜 로그인도 쓴다 (D-126). */
+    @Transactional
+    public LoginResult issueLogin(User user, boolean rememberMe) {
         return issue(user, rememberMe);
     }
 
