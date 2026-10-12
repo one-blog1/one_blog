@@ -107,7 +107,11 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
         assertThat(cookie).isNotNull();
         assertThat(cookie.isHttpOnly()).isTrue();
         assertThat(cookie.getPath()).isEqualTo("/login/oauth2");
-        assertThat(result.getRequest().getSession(false)).isNull();
+        // 세션에 아무것도 담지 않는다 (MockMvc는 테스트 도구가 빈 세션을 만들 수 있어 내용으로 본다)
+        var session = result.getRequest().getSession(false);
+        if (session != null) {
+            assertThat(java.util.Collections.list(session.getAttributeNames())).isEmpty();
+        }
 
         // 꺼진 사이트(네이버)로는 보내지 않는다
         mvc.perform(get("/oauth2/authorization/naver"))
