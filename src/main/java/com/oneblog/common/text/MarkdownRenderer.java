@@ -9,6 +9,7 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.safety.Safelist;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Component;
  * 글 본문 마크다운을 HTML로 바꾸고 위험한 태그·속성·주소를 지운다 (SEC-06, D-64, 6.6 에디터).
  * 1) 마크다운 안의 HTML은 글자로 바꾸고(escapeHtml) javascript: 같은 주소를 지운다(sanitizeUrls).
  * 2) 그 결과를 jsoup 허용 목록으로 한 번 더 거른다. 화면은 이 결과에만 innerHTML을 쓴다 (constitution III).
+ * 3) 거른 뒤에, 한 줄에 영상 링크만 있는 문단은 서버가 만든 플레이어(iframe)로 바꾼다 (021, VideoEmbeds).
+ *    사용자가 쓴 iframe은 2)에서 이미 지워졌고, 여기서 넣는 iframe은 허용한 사이트 주소로만 만든다.
  */
 @Component
 public class MarkdownRenderer {
@@ -60,7 +63,39 @@ public class MarkdownRenderer {
                 img.attr("loading", "lazy");
             }
         });
+        embedVideos(document);
         return document.body().html();
+    }
+
+    /** 한 줄에 영상 링크만 있는 문단(글자 그대로 또는 링크 하나)을 플레이어로 바꾼다. 문장 중간의 링크는 그대로 둔다. */
+    private static void embedVideos(Document document) {
+        for (Element paragraph : document.select("p")) {
+            String url = null;
+            if (paragraph.childrenSize() == 0) {
+                url = paragraph.text();
+            } else if (paragraph.childrenSize() == 1 && paragraph.child(0).is("a[href]")) {
+                // 링크 하나만 있고 그 글자가 주소 그대로일 때만 (<주소>, [주소](주소)). [여기](주소)처럼 이름을 붙인 링크는 링크로 둔다
+                Element link = paragraph.child(0);
+                String href = link.attr("href");
+                if (paragraph.text().trim().equals(href) && link.text().trim().equals(href)) {
+                    url = href;
+                }
+            }
+            VideoEmbeds.from(url).ifPresent(embed -> paragraph.replaceWith(player(embed)));
+        }
+    }
+
+    private static Element player(VideoEmbeds.Embed embed) {
+        Element frame = new Element("iframe")
+                .attr("src", embed.src())
+                .attr("title", embed.title())
+                .attr("loading", "lazy")
+                .attr("allow", "autoplay; encrypted-media; picture-in-picture; fullscreen")
+                .attr("allowfullscreen", "")
+                .attr("referrerpolicy", "strict-origin-when-cross-origin")
+                // 플레이어가 이 페이지를 다른 곳으로 옮기거나 폼을 보내지 못하게 (재생·전체 화면·새 창 열기만)
+                .attr("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox");
+        return new Element("div").addClass("video-embed").addClass("video-embed-" + embed.provider()).appendChild(frame);
     }
 
     /** 목록·미리보기용 글자만 뽑기 (태그 없이). */

@@ -43,7 +43,9 @@ public class SecurityConfig {
             "img-src 'self' data: blob:",
             "font-src 'self' data:",
             "connect-src 'self'",
-            "frame-src https://challenges.cloudflare.com",
+            // 사람 확인(Turnstile)과 글 안 영상 플레이어(021, VideoEmbeds.FRAME_ORIGINS와 같게)
+            "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://chzzk.naver.com"
+                    + " https://vod.sooplive.com",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
