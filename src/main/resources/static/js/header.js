@@ -194,8 +194,27 @@
     header.insertBefore(form, document.getElementById('header-user'));
   }
 
+  // 모든 화면 아래의 약관·처리방침 링크 (4.6 "모든 화면 아래에 개인정보 처리방침 링크"). 화면마다 넣지 않고 여기서 한 번에 붙인다
+  function renderFooter() {
+    if (document.querySelector('.site-footer')) {
+      return;
+    }
+    const footer = document.createElement('footer');
+    footer.className = 'site-footer';
+    const nav = document.createElement('nav');
+    nav.setAttribute('aria-label', '서비스 정책');
+    const privacy = link('/privacy.html', '개인정보 처리방침', 'site-footer-strong');
+    const terms = link('/terms.html', '이용약관');
+    nav.append(terms, privacy);
+    const copy = document.createElement('p');
+    copy.textContent = '© One Blog';
+    footer.append(nav, copy);
+    document.body.append(footer);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     renderSearch();
     renderHeader();
+    renderFooter();
   });
 })();

@@ -461,6 +461,95 @@ button:disabled {
   text-align: center;
 }
 
+/* 모든 화면 아래 약관·처리방침 링크 (4.6). header.js가 붙인다 */
+.site-footer {
+  margin: 0 auto;
+  padding: 24px var(--gutter) 40px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+}
+
+.site-footer a {
+  color: var(--muted);
+}
+
+/* 개인정보 처리방침은 눈에 띄게 (작성지침 권고) */
+.site-footer a.site-footer-strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.site-footer p {
+  margin: 10px 0 0;
+}
+
+/* 개인정보 처리방침·이용약관 화면 */
+.policy .post-body h2 {
+  margin-top: 32px;
+  font-size: 18px;
+}
+
+.policy .post-body table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  font-size: 14px;
+}
+
+.policy .post-body th {
+  text-align: left;
+  white-space: nowrap;
+  background: var(--bg);
+}
+
+/* 가입 화면 약관 동의 (USR-01, 4.6) */
+.agree-box {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-field);
+}
+
+.agree-box .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.agree-box label {
+  display: inline;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.agree-box .checkbox input {
+  margin-top: 0;
+}
+
+.agree-box .agree-all {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+}
+
+.agree-box .agree-view {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 @media (max-width: 600px) {
   main {
     margin: 16px auto 48px;

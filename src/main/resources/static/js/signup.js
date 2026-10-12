@@ -138,8 +138,9 @@
     event.preventDefault();
     const message = $('signup-message');
     const form = $('step-3');
-    if (!form.agreeTerms.checked || !form.agreePrivacy.checked) {
+    if (!allAgreed()) {
       setMessage(message, '필수 항목에 모두 동의해 주세요.', false);
+      updateAgree();
       return;
     }
     const button = form.querySelector('button[type="submit"]');
@@ -167,11 +168,36 @@
       }
       setMessage(message, fieldErrorText(result.data, '가입하지 못했습니다.'), false);
     } finally {
-      button.disabled = false;
+      button.disabled = !allAgreed();
     }
   }
 
+  // 필수 동의 두 개를 모두 체크해야 가입 버튼이 눌린다 (4.6). "전체 동의"는 두 칸을 한 번에 바꾼다
+  function allAgreed() {
+    return $('agree-terms').checked && $('agree-privacy').checked;
+  }
+
+  function updateAgree() {
+    const agreed = allAgreed();
+    $('agree-all').checked = agreed;
+    $('signup-submit').disabled = !agreed;
+    $('signup-hint').classList.toggle('hidden', agreed);
+    if (agreed) {
+      setMessage($('signup-message'), '', false);
+    }
+  }
+
+  function toggleAll(event) {
+    $('agree-terms').checked = event.target.checked;
+    $('agree-privacy').checked = event.target.checked;
+    updateAgree();
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    $('agree-all').addEventListener('change', toggleAll);
+    $('agree-terms').addEventListener('change', updateAgree);
+    $('agree-privacy').addEventListener('change', updateAgree);
+    updateAgree();
     $('send-code').addEventListener('click', sendCode);
     $('step-1').addEventListener('submit', verifyCode);
     $('step-2').addEventListener('submit', submitPassword);

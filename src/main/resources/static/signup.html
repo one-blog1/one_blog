@@ -71,17 +71,27 @@
         <label for="phone">휴대전화 번호</label>
         <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="010-1234-5678" required>
 
-        <label class="checkbox" for="agree-terms">
-          <input id="agree-terms" name="agreeTerms" type="checkbox">
-          [필수] 이용약관에 동의합니다
-        </label>
-        <label class="checkbox" for="agree-privacy">
-          <input id="agree-privacy" name="agreePrivacy" type="checkbox">
-          [필수] 개인정보 수집·이용에 동의합니다
-        </label>
+        <!-- 두 필수 동의를 모두 체크해야 가입 버튼이 눌린다. 서버도 SignupRequest의 @AssertTrue로 한 번 더 막는다 (4.6) -->
+        <fieldset class="agree-box" aria-label="약관 동의">
+          <label class="checkbox agree-all" for="agree-all">
+            <input id="agree-all" type="checkbox">
+            전체 동의
+          </label>
+          <div class="checkbox">
+            <input id="agree-terms" name="agreeTerms" type="checkbox">
+            <label for="agree-terms">[필수] 이용약관에 동의합니다</label>
+            <a class="agree-view" href="/terms.html" target="_blank" rel="noopener">보기</a>
+          </div>
+          <div class="checkbox">
+            <input id="agree-privacy" name="agreePrivacy" type="checkbox">
+            <label for="agree-privacy">[필수] 개인정보 수집·이용에 동의합니다</label>
+            <a class="agree-view" href="/privacy.html" target="_blank" rel="noopener">보기</a>
+          </div>
+        </fieldset>
 
         <p id="signup-message" class="message error" role="alert"></p>
-        <button class="primary" type="submit">가입하기</button>
+        <button id="signup-submit" class="primary" type="submit" disabled>가입하기</button>
+        <p id="signup-hint" class="hint">필수 항목에 모두 동의하면 가입할 수 있어요.</p>
       </form>
     </section>
   </main>

@@ -111,6 +111,17 @@ class SignupIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void 이용약관_동의가_없어도_400이고_가입되지_않는다() throws Exception {
+        Cookie ticket = verifiedTicket();
+        String body = signupBody("길동이").replace("\"agreeTerms\":true", "\"agreeTerms\":false");
+        mvc.perform(post("/api/auth/signup").with(csrf()).cookie(ticket)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users", Integer.class)).isZero();
+    }
+
+    @Test
     void 닉네임_중복_확인() throws Exception {
         signUp(EMAIL, "길동이");
         mvc.perform(get("/api/auth/signup/nickname-availability").param("nickname", "길동이"))
