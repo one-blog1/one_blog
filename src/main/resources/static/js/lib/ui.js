@@ -63,6 +63,38 @@
     }
   }
 
+  // 이 기기에서 읽은 글 번호 (019, D-123). 글 화면을 열면 기억하고, 글 목록이 회색으로 표시한다.
+  // 서버에 저장하지 않는다. 오래된 것부터 지워 최근 1000개만 둔다. 저장소를 못 쓰면 표시만 하지 않는다
+  const READ_KEY = 'oneblog.readPosts';
+  const READ_MAX = 1000;
+
+  function readIds() {
+    try {
+      const ids = JSON.parse(window.localStorage.getItem(READ_KEY) || '[]');
+      return Array.isArray(ids) ? ids.map(String) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function isRead(postId) {
+    return postId != null && readIds().includes(String(postId));
+  }
+
+  function markRead(postId) {
+    if (postId == null) {
+      return;
+    }
+    const ids = readIds().filter(id => id !== String(postId));
+    ids.push(String(postId));
+    try {
+      window.localStorage.setItem(READ_KEY, JSON.stringify(ids.slice(-READ_MAX)));
+    } catch (e) {
+      // 저장하지 못하면 읽음 표시만 빠진다
+    }
+  }
+
   window.ui = { $: $, el: el, formatDate: formatDate, formatDateTime: formatDateTime, formatDayHour: formatDayHour,
-    avatarSrc: avatarSrc, keyQuery: keyQuery, postHref: postHref, setError: setError };
+    avatarSrc: avatarSrc, keyQuery: keyQuery, postHref: postHref, setError: setError,
+    isRead: isRead, markRead: markRead };
 })();

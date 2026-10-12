@@ -186,10 +186,15 @@
     document.dispatchEvent(new CustomEvent('comments:rendered'));
   }
 
+  // 하트와 숫자만 보인다. 누른 상태(aria-pressed)면 CSS가 하트를 빨갛게 채운다 (019)
   function renderLike(liked, count) {
     const button = $('like-button');
     button.setAttribute('aria-pressed', String(liked));
-    button.textContent = (liked ? '♥ 좋아요 ' : '♡ 좋아요 ') + count;
+    button.setAttribute('aria-label', (liked ? '좋아요 취소' : '좋아요') + ', ' + count + '개');
+    const number = document.createElement('span');
+    number.className = 'like-count';
+    number.textContent = String(count);
+    button.replaceChildren(window.icons.svg('heart'), number);
   }
 
   async function toggleLike() {

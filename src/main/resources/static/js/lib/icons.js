@@ -20,7 +20,8 @@
     link: ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1'],
     more: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
     search: ['M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'M20 20l-4-4'],
-    exit: ['M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4', 'M10 16l-4-4 4-4', 'M6 12h10']
+    exit: ['M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4', 'M10 16l-4-4 4-4', 'M6 12h10'],
+    heart: ['M12 20.3l-1.3-1.2C6.1 15 3 12.2 3 8.7 3 5.9 5.2 3.7 8 3.7c1.6 0 3.1.8 4 2 .9-1.2 2.4-2 4-2 2.8 0 5 2.2 5 5 0 3.5-3.1 6.3-7.7 10.4L12 20.3z']
   };
 
   function svg(name) {
@@ -68,6 +69,6 @@
     (root || document).querySelectorAll('[data-icon]').forEach(apply);
   }
 
-  window.icons = { apply: apply, button: button, decorate: decorate };
+  window.icons = { apply: apply, button: button, decorate: decorate, svg: svg };
   document.addEventListener('DOMContentLoaded', () => decorate(document));
 })();

@@ -23,6 +23,11 @@
       link.append(el('span', 'badge', '공지'));
     }
     link.append(el('span', 'post-title', post.title));
+    // 이 기기에서 이미 읽은 글은 흐리게 하고 "읽음"을 붙인다 (019, D-123)
+    if (window.ui.isRead && window.ui.isRead(post.id)) {
+      li.classList.add('is-read');
+      link.append(el('span', 'read-mark', '읽음'));
+    }
     main.append(link);
 
     const meta = [];

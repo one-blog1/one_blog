@@ -73,6 +73,8 @@
     }
     $('share-button').addEventListener('click', () => copyLink());
     $('post').classList.remove('hidden');
+    // 글 목록에서 "읽음"으로 보이게 이 기기에 기억한다 (019, D-123)
+    window.ui.markRead(post.id);
     // 댓글·좋아요·신고(006, 013)가 이 정보를 이어서 쓴다
     document.dispatchEvent(new CustomEvent('post:loaded', { detail: post }));
   }
