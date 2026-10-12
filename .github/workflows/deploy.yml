@@ -44,7 +44,7 @@ jobs:
       version: ${{ steps.check.outputs.version }}
       deploy: ${{ steps.check.outputs.deploy }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -77,7 +77,7 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
       REMOTE_DIR: one-blog
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.SHA }}
 
