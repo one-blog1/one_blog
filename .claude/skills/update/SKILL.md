@@ -1,7 +1,7 @@
 ---
 name: "update"
 description: "One Blog 버전 올리기. 사용자가 채팅에 'update <버전>'(예: update 0.21) 또는 '/update 0.21'이라고 하면 쓴다. 버전을 올려 배포하고, 문서 저장소에 릴리즈 노트를 올리고, 블로그 공지 문구까지 만든다."
-argument-hint: "새 버전 (예: 0.21, 0.3)"
+argument-hint: "새 버전 (예: 0.21, 0.30)"
 user-invocable: true
 disable-model-invocation: false
 ---
