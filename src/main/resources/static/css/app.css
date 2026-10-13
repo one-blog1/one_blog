@@ -1767,6 +1767,10 @@ button.primary.inline-button {
   font-weight: 400;
 }
 
+.post-item.post-card.is-read .post-link {
+  font-weight: 500;
+}
+
 .post-item.is-read .post-item-thumb img {
   opacity: 0.45;
 }
@@ -1975,13 +1979,92 @@ button.like-button[aria-pressed="true"] .icon {
   color: var(--text);
 }
 
-/* 글 목록: 오른쪽 사진 미리보기 */
+/* 글 목록 (D-128): 왼쪽 작성자·날짜 → 굵은 제목 → 본문 2줄 → 좋아요·댓글·조회, 오른쪽 정사각형 썸네일.
+   블로그 공지 줄(.notices)은 제목과 정보 한 줄 그대로 */
 .post-item-main {
   flex: 1;
   min-width: 0;
 }
 
+.post-item.post-card {
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.post-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.avatar.small {
+  width: 28px;
+  height: 28px;
+}
+
+.post-item-head .author {
+  flex-shrink: 0;
+  max-width: 45%;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-item-head .post-date {
+  flex: none;
+}
+
+.post-item-head .post-where {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  padding-left: 8px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-card .post-link {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.post-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.post-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.post-card .tag-list {
+  margin-top: 8px;
+}
+
 .post-item-thumb {
+  position: relative;
   flex-shrink: 0;
   display: block;
   width: 112px;
@@ -1991,6 +2074,11 @@ button.like-button[aria-pressed="true"] .icon {
   background: var(--bg);
 }
 
+.post-card .post-item-thumb {
+  width: 120px;
+  height: 120px;
+}
+
 .post-item-thumb img {
   display: block;
   width: 100%;
@@ -1998,10 +2086,54 @@ button.like-button[aria-pressed="true"] .icon {
   object-fit: cover;
 }
 
+/* 영상 썸네일 표시: 왼쪽 아래 "▶ YouTube" */
+.post-item-thumb .thumb-play {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.post-item-thumb .thumb-play::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 7px solid #fff;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+}
+
 @media (max-width: 600px) {
   .post-item-thumb {
     width: 80px;
     height: 64px;
+  }
+
+  .post-item.post-card {
+    gap: 14px;
+    padding: 18px 0;
+  }
+
+  .post-card .post-link {
+    font-size: 16px;
+  }
+
+  .post-card .post-item-thumb {
+    width: 88px;
+    height: 88px;
+  }
+
+  .post-excerpt {
+    font-size: 14px;
   }
 }
 

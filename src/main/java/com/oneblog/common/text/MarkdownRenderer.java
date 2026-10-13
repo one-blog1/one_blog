@@ -1,6 +1,7 @@
 package com.oneblog.common.text;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.commonmark.Extension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
@@ -70,19 +71,50 @@ public class MarkdownRenderer {
     /** 한 줄에 영상 링크만 있는 문단(글자 그대로 또는 링크 하나)을 플레이어로 바꾼다. 문장 중간의 링크는 그대로 둔다. */
     private static void embedVideos(Document document) {
         for (Element paragraph : document.select("p")) {
-            String url = null;
-            if (paragraph.childrenSize() == 0) {
-                url = paragraph.text();
-            } else if (paragraph.childrenSize() == 1 && paragraph.child(0).is("a[href]")) {
-                // 링크 하나만 있고 그 글자가 주소 그대로일 때만 (<주소>, [주소](주소)). [여기](주소)처럼 이름을 붙인 링크는 링크로 둔다
-                Element link = paragraph.child(0);
-                String href = link.attr("href");
-                if (paragraph.text().trim().equals(href) && link.text().trim().equals(href)) {
-                    url = href;
-                }
-            }
-            VideoEmbeds.from(url).ifPresent(embed -> paragraph.replaceWith(player(embed)));
+            videoOf(paragraph).ifPresent(embed -> paragraph.replaceWith(player(embed)));
         }
+    }
+
+    /** 문단이 영상 링크 한 줄이면 그 영상. 링크 하나만 있고 그 글자가 주소 그대로일 때만 (<주소>, [주소](주소)). */
+    private static Optional<VideoEmbeds.Embed> videoOf(Element paragraph) {
+        String url = null;
+        if (paragraph.childrenSize() == 0) {
+            url = paragraph.text();
+        } else if (paragraph.childrenSize() == 1 && paragraph.child(0).is("a[href]")) {
+            // [여기](주소)처럼 이름을 붙인 링크는 링크로 둔다
+            Element link = paragraph.child(0);
+            String href = link.attr("href");
+            if (paragraph.text().trim().equals(href) && link.text().trim().equals(href)) {
+                url = href;
+            }
+        }
+        return VideoEmbeds.from(url);
+    }
+
+    /**
+     * 본문에서 처음 나오는 사진·영상 중 첫 번째가 영상 링크 한 줄이면 그 영상 (목록 썸네일, D-128).
+     * 이 사이트에 올린 사진(/files/...)이 먼저 나오면 빈 값(사진이 썸네일).
+     */
+    public Optional<VideoEmbeds.Embed> leadingVideo(String markdown) {
+        if (markdown == null || markdown.isEmpty()) {
+            return Optional.empty();
+        }
+        String cleaned = Jsoup.clean(renderer.render(parser.parse(markdown)), BASE_URI, safelist);
+        Document document = Jsoup.parseBodyFragment(cleaned, BASE_URI);
+        // select는 문서 순서대로 돌려준다. 문단이 그 안의 사진보다 먼저 온다
+        for (Element element : document.select("p, img")) {
+            if (element.is("img")) {
+                if (element.attr("src").startsWith("/files/")) {
+                    return Optional.empty();
+                }
+                continue;
+            }
+            Optional<VideoEmbeds.Embed> video = videoOf(element);
+            if (video.isPresent()) {
+                return video;
+            }
+        }
+        return Optional.empty();
     }
 
     private static Element player(VideoEmbeds.Embed embed) {

@@ -42,9 +42,10 @@ public class PostController {
             @RequestParam(name = "page", required = false) String page,
             @RequestParam(name = "size", required = false) String size,
             @RequestParam(name = "category", required = false) Long category,
+            @RequestParam(name = "sort", required = false) String sort,
             @AuthenticationPrincipal AuthenticatedUser principal) {
         return postService.list(slug, key, principal == null ? null : principal.id(), PageParams.of(page, size),
-                category);
+                category, PostSort.from(sort));
     }
 
     @PostMapping("/api/blogs/{slug}/posts")

@@ -119,6 +119,10 @@ public class StoredFile {
         return storedName;
     }
 
+    public String getOriginalName() {
+        return originalName;
+    }
+
     public String getContentType() {
         return contentType;
     }

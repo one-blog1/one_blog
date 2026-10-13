@@ -116,6 +116,7 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 | `PUBLIC_BASE_URL` | `https://실제-도메인` | 요청의 Host 헤더를 씀 |
 | `FORWARD_HEADERS_STRATEGY` | 로드밸런서나 Nginx 뒤에 두면 `framework` | none |
 | `FILE_STORAGE_DIR` | 서버를 바꿔도 남는 폴더 (EBS, 볼륨) | ./uploads |
+| `VIDEO_THUMBNAIL_ENABLED` | 보통 그대로. 서버가 바깥(유튜브·치지직·SOOP)으로 요청을 못 보내면 `false` | true (글 첫 영상 링크의 목록 썸네일을 받아 둠, D-128) |
 | `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD` | 처음 한 번 관리자 계정을 만들 때만 | 관리자를 만들지 않음 |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare에서 받은 키 | 사람 확인 꺼짐 |
 | `KAKAO_CLIENT_ID`·`NAVER_CLIENT_ID`·`GOOGLE_CLIENT_ID`와 각 `_CLIENT_SECRET` | 각 사이트 개발자 화면에서 받은 키. 돌아오는 주소는 `{PUBLIC_BASE_URL}/login/oauth2/code/{kakao\|naver\|google}` | 그 사이트 로그인 단추가 안 보임 |

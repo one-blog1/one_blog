@@ -19,6 +19,18 @@ public interface StoredFileRepository extends JpaRepository<StoredFile, Long> {
     @Query("select f from StoredFile f where f.postId = :postId and f.deletedAt is null")
     List<StoredFile> findAttached(@Param("postId") Long postId);
 
+    /** 글에 연결된, 지워지지 않은 파일 중 이 용도만 (영상 썸네일 VIDEO_THUMB, D-128). */
+    @Query("select f from StoredFile f where f.postId = :postId and f.deletedAt is null and f.purpose = :purpose")
+    List<StoredFile> findAttached(@Param("postId") Long postId, @Param("purpose") FilePurpose purpose);
+
+    /** 글별 영상 썸네일. 결과 행은 [postId, storedName, originalName(영상 구분 youtube:번호 등)] (D-128). */
+    @Query("""
+            select f.postId, f.storedName, f.originalName from StoredFile f
+            where f.postId in :postIds and f.deletedAt is null and f.purpose = com.oneblog.file.FilePurpose.VIDEO_THUMB
+            order by f.id desc
+            """)
+    List<Object[]> findVideoThumbRows(@Param("postIds") Collection<Long> postIds);
+
     /** 글별 이미지(목록 썸네일은 첫 장). 결과 행은 [postId, storedName], 글·순서대로. */
     @Query("""
             select f.postId, f.storedName from StoredFile f

@@ -3,11 +3,38 @@
 // - 로그인한 회원: 공지 아래 [내 블로그][메인 피드]. 기본은 "내 블로그"(참여 중인 블로그를 아이콘과 이름으로)
 // - 비회원·관리자: 메인 피드만
 // 주소 /?view=feed 이면 메인 피드로 연다. 로고(/)를 누르면 늘 "내 블로그"로 돌아온다.
+// "내 블로그의 새 글"에서 글을 읽고 뒤로 오면 같은 블로그 단추·같은 페이지·같은 스크롤 위치로 돌아온다(이 탭에만 기억).
 // 블로그 이름은 textContent로만 넣는다 (SEC-06).
 (function () {
   'use strict';
 
-  const state = { member: false, loaded: false, homeBlog: '' };
+  const state = { member: false, loaded: false, homeBlog: '', homePage: 1 };
+  const BACK_KEY = 'oneblog.homeBack';
+
+  /** 뒤로 왔을 때 돌아갈 자리. 한 번 쓰면 지운다 */
+  function takeBackPosition() {
+    try {
+      const raw = window.sessionStorage.getItem(BACK_KEY);
+      window.sessionStorage.removeItem(BACK_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 다른 화면으로 갈 때 "내 블로그" 화면이었으면 자리를 남긴다
+  window.addEventListener('pagehide', () => {
+    if ($('home-view').classList.contains('hidden')) {
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(BACK_KEY, JSON.stringify({
+        blog: state.homeBlog || '', page: state.homePage, y: Math.round(window.scrollY)
+      }));
+    } catch (e) {
+      // 저장하지 못하면 맨 위에서 다시 보여 준다
+    }
+  });
 
   const $ = window.ui.$;
 
@@ -105,7 +132,9 @@
     $('home-posts').classList.toggle('hidden', blogs.length === 0);
     if (blogs.length > 0) {
       renderBlogTabs(blogs);
-      loadHomePosts(1);
+      const back = takeBackPosition();
+      const same = back && back.blog === (state.homeBlog || '');
+      loadHomePosts(same ? Math.max(1, parseInt(back.page, 10) || 1) : 1, same ? back.y : null);
     }
   }
 
@@ -155,8 +184,9 @@
   }
 
   // 참여 중인 블로그에 올라온 새 글 (D-113). 블로그를 고르면 그 블로그의 글 목록 API로 (019)
-  async function loadHomePosts(page) {
+  async function loadHomePosts(page, restoreY) {
     const slug = state.homeBlog || '';
+    state.homePage = page;
     const q = new URLSearchParams({ page: String(page), size: '10' });
     let url;
     if (slug) {
@@ -187,7 +217,11 @@
     const empty = $('home-post-empty');
     empty.textContent = slug ? '이 블로그에는 아직 글이 없어요.' : '참여 중인 블로그에 아직 글이 없어요.';
     empty.classList.toggle('hidden', data.items.length > 0);
-    window.pager.render($('home-post-pagination'), data.page, data.totalPages, loadHomePosts);
+    state.homePage = data.page;
+    window.pager.render($('home-post-pagination'), data.page, data.totalPages, p => loadHomePosts(p));
+    if (typeof restoreY === 'number' && restoreY > 0) {
+      window.scrollTo(0, restoreY);
+    }
   }
 
   // 내가 신청하고 기다리는 블로그. 여기서 취소한다 (D-111)

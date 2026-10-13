@@ -1,12 +1,15 @@
 // 메인 블로그 목록 (BLG-02). 최신순·인기순, 한 페이지 10·20·30개, 번호 페이지 (D-06, D-76, D-89).
 // 정렬·페이지는 주소창(?sort=&page=&size=)에도 남겨 새로고침·뒤로 가기에도 유지한다.
+// 단, 이 목록을 직접 만졌거나 이미 메인 피드 주소(?view=feed)로 열었을 때만 주소를 바꾼다.
+// "내 블로그" 화면에서 주소를 바꾸면, 글을 읽고 뒤로 왔을 때 메인 피드로 열리기 때문이다.
 (function () {
   'use strict';
 
-  const state = { sort: 'latest', page: 1, size: 10 };
+  const state = { sort: 'latest', page: 1, size: 10, ownsUrl: false };
 
   function readQuery() {
     const q = new URLSearchParams(window.location.search);
+    state.ownsUrl = q.get('view') === 'feed' || q.has('sort') || q.has('page');
     state.sort = q.get('sort') === 'popular' ? 'popular' : 'latest';
     state.page = Math.max(1, parseInt(q.get('page'), 10) || 1);
     const size = parseInt(q.get('size'), 10);
@@ -14,6 +17,9 @@
   }
 
   function writeQuery() {
+    if (!state.ownsUrl) {
+      return;
+    }
     // 블로그 둘러보기는 메인 피드 화면에 있으므로 view=feed를 함께 남긴다 (D-100)
     const q = new URLSearchParams({ view: 'feed', sort: state.sort, page: String(state.page), size: String(state.size) });
     window.history.replaceState(null, '', '/?' + q.toString());
@@ -78,6 +84,7 @@
   }
 
   function go(page) {
+    state.ownsUrl = true;
     state.page = page;
     load();
     window.scrollTo({ top: 0 });
@@ -88,12 +95,14 @@
     renderControls();
     document.querySelectorAll('[data-sort]').forEach(b => {
       b.addEventListener('click', () => {
+        state.ownsUrl = true;
         state.sort = b.dataset.sort;
         state.page = 1;
         load();
       });
     });
     document.getElementById('page-size').addEventListener('change', (e) => {
+      state.ownsUrl = true;
       state.size = parseInt(e.target.value, 10);
       state.page = 1;
       load();

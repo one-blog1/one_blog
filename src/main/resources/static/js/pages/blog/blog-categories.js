@@ -1,5 +1,6 @@
 // 블로그 카테고리 (BRD-03): 카테고리별로 글 보기와, 글 관리 권한이 있는 사람의 카테고리 관리.
 // 고른 카테고리는 'category:selected' 이벤트로 글 목록(blog-posts.js)에 알린다 (null = 전체).
+// 처음에는 주소의 ?category=를 고른 것으로 보여 준다 (글을 읽고 뒤로 와도 같은 카테고리, D-129).
 (function () {
   'use strict';
 
@@ -125,6 +126,9 @@
       return;
     }
     categories = result.data;
+    if (selected !== null && !categories.some(c => c.id === selected)) {
+      select(null); // 주소의 카테고리가 없어졌으면 전체로
+    }
     renderNav();
     if (canManage()) {
       renderManage();
@@ -149,8 +153,14 @@
     await load();
   }
 
+  function categoryFromUrl() {
+    const value = parseInt(new URLSearchParams(window.location.search).get('category'), 10);
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }
+
   document.addEventListener('blog:loaded', (event) => {
     blog = event.detail;
+    selected = categoryFromUrl();
     if (canManage()) {
       const toggle = $('category-manage-toggle');
       toggle.classList.remove('hidden');

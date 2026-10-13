@@ -164,9 +164,13 @@ public class PostService {
                         ? BlogQueryService.adminViewReason(blog) : null));
     }
 
-    /** 블로그 글 목록: 공지(최근 5개)와 일반 글(최신순, 번호 페이지) (BRD-02, D-06, D-76). */
+    /**
+     * 블로그 글 목록: 공지(최근 5개, 늘 최신순)와 일반 글(번호 페이지) (BRD-02, D-06, D-76).
+     * 일반 글은 고른 카테고리(없으면 전체) 안에서 최신순 또는 인기순(좋아요 많은 순, 같으면 최신순) (D-89, D-129).
+     */
     @Transactional(readOnly = true)
-    public PostPageResponse list(String slug, String key, Long viewerId, PageParams params, Long categoryId) {
+    public PostPageResponse list(String slug, String key, Long viewerId, PageParams params, Long categoryId,
+            PostSort sort) {
         BlogAccessService.Access access = accessService.check(slug, key, viewerId);
         Blog blog = access.blog();
         Sort latest = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
@@ -175,10 +179,13 @@ public class PostService {
 
         // 내가 차단한 회원의 글은 가린다. 이 블로그의 멤버면 그대로 보인다 (SOC-05, D-36)
         Set<Long> hidden = access.isMember() ? Set.of() : hiddenAuthorsOf.of(viewerId);
-        Page<Post> page = fetch(blog, categoryId, params, latest, hidden);
+        Sort order = sort == PostSort.POPULAR
+                ? Sort.by(Sort.Order.desc("likeCount"), Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
+                : latest;
+        Page<Post> page = fetch(blog, categoryId, params, order, hidden);
         if (params.page() > 1 && params.page() > page.getTotalPages()) {
             params = params.firstPage();
-            page = fetch(blog, categoryId, params, latest, hidden);
+            page = fetch(blog, categoryId, params, order, hidden);
         }
 
         List<Post> all = new ArrayList<>(notices);
@@ -189,7 +196,8 @@ public class PostService {
             extension.describeList(blog, context);
         }
         return new PostPageResponse(toItems(notices, names, context), toItems(page.getContent(), names, context),
-                params.page(), params.size(), page.getTotalElements(), Math.max(1, page.getTotalPages()));
+                params.page(), params.size(), page.getTotalElements(), Math.max(1, page.getTotalPages()),
+                sort.value());
     }
 
     private Page<Post> fetch(Blog blog, Long categoryId, PageParams params, Sort sort, Set<Long> hidden) {
@@ -209,9 +217,11 @@ public class PostService {
     private List<PostListItem> toItems(List<Post> posts, Map<Long, String> names, PostListContext context) {
         return posts.stream()
                 .map(p -> new PostListItem(p.getId(), p.getTitle(),
-                        UserDisplayService.authorName(names, p.getUserId(), p.isAuthorDetached()), p.isNotice(),
+                        UserDisplayService.authorName(names, p.getUserId(), p.isAuthorDetached()),
+                        context.authorImages.get(p.getId()), p.isNotice(),
                         context.categoryNames.get(p.getId()), context.tags.getOrDefault(p.getId(), List.of()),
-                        context.thumbnails.get(p.getId()), p.getViewCount(), p.getLikeCount(), p.getCommentCount(),
+                        context.thumbnails.get(p.getId()), context.videoThumbnails.get(p.getId()),
+                        context.excerpts.get(p.getId()), p.getViewCount(), p.getLikeCount(), p.getCommentCount(),
                         Times.toOffset(p.getCreatedAt())))
                 .toList();
     }

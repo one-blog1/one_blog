@@ -34,4 +34,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /** 결과 행은 [id, nickname, status]. 작성자 이름 표시용 (UserDisplayService). */
     @Query("select u.id, u.nickname, u.status from User u where u.id in :ids")
     List<Object[]> findNicknameRows(@Param("ids") Collection<Long> ids);
+
+    /** 결과 행은 [id, profileImageUrl, status]. 목록의 작성자 사진용 (UserDisplayService, D-128). */
+    @Query("select u.id, u.profileImageUrl, u.status from User u where u.id in :ids")
+    List<Object[]> findProfileImageRows(@Param("ids") Collection<Long> ids);
 }

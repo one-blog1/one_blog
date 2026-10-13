@@ -72,8 +72,10 @@ public class PostCardService {
             Blog blog = p.getBlogId() == null ? null : blogs.get(p.getBlogId());
             return new PostCard(p.getId(), blog == null ? null : blog.getSlug(), blog == null ? null : blog.getName(),
                     p.getTitle(), UserDisplayService.authorName(names, p.getUserId(), p.isAuthorDetached()),
+                    context.authorImages.get(p.getId()),
                     context.categoryNames.get(p.getId()), context.tags.getOrDefault(p.getId(), List.of()),
-                    context.thumbnails.get(p.getId()), p.getViewCount(), p.getLikeCount(), p.getCommentCount(),
+                    context.thumbnails.get(p.getId()), context.videoThumbnails.get(p.getId()),
+                    context.excerpts.get(p.getId()), p.getViewCount(), p.getLikeCount(), p.getCommentCount(),
                     Times.toOffset(p.getCreatedAt()));
         }).toList();
     }

@@ -9,6 +9,9 @@ spring:
     clean-disabled: false
 
 app:
+  # 테스트에서는 영상 사이트로 요청을 보내지 않는다. 썸네일 테스트는 가짜 VideoThumbnailFetcher를 쓴다
+  video-thumbnail:
+    enabled: false
   jwt:
     secret: test-only-jwt-secret-0123456789abcdef0123456789abcdef
   verification:

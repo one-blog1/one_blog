@@ -94,7 +94,8 @@ public class PostImageExtension implements PostExtension {
             f.attachTo(post.getId(), order++);
             kept.add(f.getId());
         }
-        for (StoredFile f : fileRepository.findAttached(post.getId())) {
+        // 영상 썸네일(VIDEO_THUMB)은 VideoThumbnailService가 따로 맞춘다 (D-128)
+        for (StoredFile f : fileRepository.findAttached(post.getId(), FilePurpose.POST)) {
             if (!kept.contains(f.getId())) {
                 f.markDeleted();
             }

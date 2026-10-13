@@ -100,7 +100,11 @@ public class PostPageRenderer {
         }
     }
 
+    /** 목록 썸네일과 같은 사진: 본문 첫 미디어가 영상이면 그 썸네일(D-128), 아니면 첫 사진. */
     private String firstImage(Post post) {
+        for (Object[] row : fileRepository.findVideoThumbRows(List.of(post.getId()))) {
+            return "/files/" + row[1];
+        }
         for (Object[] row : fileRepository.findImageRows(List.of(post.getId()), FilePurpose.POST)) {
             return "/files/" + row[1];
         }

@@ -42,6 +42,22 @@ public class UserDisplayService {
         return result;
     }
 
+    /** 회원 ID → 프로필 사진 주소(/files/...). 사진이 없거나 탈퇴한 회원은 넣지 않는다 (목록 작성자 사진, D-128). */
+    @Transactional(readOnly = true)
+    public Map<Long, String> profileImages(Collection<Long> userIds) {
+        Map<Long, String> result = new HashMap<>();
+        if (userIds.isEmpty()) {
+            return result;
+        }
+        for (Object[] row : userRepository.findProfileImageRows(userIds)) {
+            String url = (String) row[1];
+            if (row[2] == UserStatus.ACTIVE && url != null && url.startsWith("/files/")) {
+                result.put((Long) row[0], url);
+            }
+        }
+        return result;
+    }
+
     /** 작성자 표시 이름: 블로그와 연결이 끊긴 작성자는 "탈퇴한 계정". */
     public static String authorName(Map<Long, String> names, Long userId, boolean detached) {
         if (detached) {

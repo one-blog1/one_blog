@@ -66,6 +66,33 @@ class VideoEmbedTest {
         assertThat(renderer.toPlainText("야구\n\n" + link, 100)).isEqualTo("야구");
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ, youtube:dQw4w9WgXcQ",
+            "https://m.chzzk.naver.com/clips/AbC123xyz, chzzk-clip:AbC123xyz",
+            "https://chzzk.naver.com/video/15547963, chzzk-video:15547963",
+            "https://vod.afreecatv.com/ST/139470149, soop:139470149"
+    })
+    void 영상마다_썸네일용_구분이_있다(String link, String key) {
+        assertThat(VideoEmbeds.from(link)).get().extracting(VideoEmbeds.Embed::key).isEqualTo(key);
+    }
+
+    @Test
+    void 본문_첫_미디어가_영상_링크면_그_영상() {
+        assertThat(renderer.leadingVideo("소개 글\n\nhttps://youtu.be/dQw4w9WgXcQ\n\n![](/files/0f8fad5b-d9cb-469f-a165-70867728950e.png)"))
+                .get().extracting(VideoEmbeds.Embed::key).isEqualTo("youtube:dQw4w9WgXcQ");
+        // 사진이 먼저면 영상이 아니다
+        assertThat(renderer.leadingVideo("![](/files/0f8fad5b-d9cb-469f-a165-70867728950e.png)\n\nhttps://youtu.be/dQw4w9WgXcQ"))
+                .isEmpty();
+        // 다른 사이트 사진은 화면에 안 보이므로 세지 않는다
+        assertThat(renderer.leadingVideo("![](https://evil.example.com/a.png)\n\nhttps://chzzk.naver.com/video/15547963"))
+                .get().extracting(VideoEmbeds.Embed::key).isEqualTo("chzzk-video:15547963");
+        // 문장 중간 링크·이름 붙인 링크는 영상이 아니다
+        assertThat(renderer.leadingVideo("이거 보세요 https://youtu.be/dQw4w9WgXcQ\n\n[영상](https://youtu.be/dQw4w9WgXcQ)"))
+                .isEmpty();
+        assertThat(renderer.leadingVideo(null)).isEmpty();
+    }
+
     @Test
     void 마크다운_링크나_꺾쇠_링크로_써도_바뀐다() {
         assertThat(onlyFrame("[https://youtu.be/dQw4w9WgXcQ](https://youtu.be/dQw4w9WgXcQ)").attr("src"))
