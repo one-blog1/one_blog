@@ -95,9 +95,9 @@ jobs:
           mysql -h 127.0.0.1 -uroot -proot -e "CREATE DATABASE one_blog_smoke CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
           env $SMOKE_ENV DB_NAME=one_blog_smoke java -jar build/libs/one-blog.jar > smoke-jar.log 2>&1 &
           APP=$!
-          ./scripts/smoke-check.sh http://127.0.0.1:8080 || { cat smoke-jar.log; exit 1; }
+          ./scripts/smoke-check.sh http://127.0.0.1:8080 || { cat smoke-jar.log; ./scripts/ci-log-annotation.sh jar-start smoke-jar.log; exit 1; }
           kill $APP; wait $APP || true
-          grep -q "Graceful shutdown" smoke-jar.log && echo "정상 종료 확인" || { tail -50 smoke-jar.log; echo "정상 종료 로그가 없습니다"; exit 1; }
+          grep -q "Graceful shutdown" smoke-jar.log && echo "정상 종료 확인" || { tail -50 smoke-jar.log; ./scripts/ci-log-annotation.sh jar-shutdown smoke-jar.log; echo "정상 종료 로그가 없습니다"; exit 1; }
 
       - name: Docker 이미지 만들기
         run: docker build -t one-blog:ci .
@@ -106,7 +106,7 @@ jobs:
         run: |
           mysql -h 127.0.0.1 -uroot -proot -e "CREATE DATABASE one_blog_docker CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
           docker run -d --name one-blog --network host $(for v in $SMOKE_ENV; do printf -- '-e %s ' "$v"; done) -e DB_NAME=one_blog_docker -e PORT=8081 one-blog:ci
-          ./scripts/smoke-check.sh http://127.0.0.1:8081 || { docker logs one-blog; exit 1; }
+          ./scripts/smoke-check.sh http://127.0.0.1:8081 || { docker logs one-blog; docker logs one-blog 2>&1 | ./scripts/ci-log-annotation.sh docker-start -; exit 1; }
           docker stop -t 30 one-blog
 
       - name: jar 올리기
