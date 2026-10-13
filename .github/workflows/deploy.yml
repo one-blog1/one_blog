@@ -3,8 +3,9 @@
 # 아직 없으면 배포하고, 배포가 성공하면 그 커밋에 태그 v0.2.0을 붙인다. 버전이 그대로면 CI만 돌고 배포하지 않는다.
 # 수동 실행(Actions → Deploy → Run workflow)은 버전과 상관없이 지금 main을 다시 배포한다(시크릿을 바꿨을 때 등).
 # 1) Docker 이미지를 만든다 (태그 = 버전-커밋 앞 7자리)
-# 2) 이미지, 배포 스크립트(scripts/deploy.sh), 환경변수 파일(deploy.env)을 SSH로 서버의 ~/one-blog/ 에 올린다
-# 3) 서버에서 deploy.sh를 실행한다: 8430 포트로 새 컨테이너 실행 → /api/health 확인 → 실패하면 바로 전 버전으로 되돌림
+# 2) 이미지, 프록시(nginx) 이미지, 배포 스크립트(scripts/deploy.sh), 환경변수 파일(deploy.env)을 SSH로 서버의 ~/one-blog/ 에 올린다
+# 3) 서버에서 deploy.sh를 실행한다 (무중단, D-135): 쉬는 쪽 포트(8431·8432)에 새 컨테이너 → /api/health 확인
+#    → 8430 프록시가 새 포트로 보내도록 전환 → 옛 컨테이너 정상 종료. 새 버전이 실패하면 지금 버전을 그대로 둠
 # 필요한 GitHub Secrets
 #   SSH_ADDRESS, SSH_PORT, SSH_ID, SSH_PASSWORD        서버 접속
 #   DB_ADDRESS, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD  운영 DB
@@ -90,7 +91,10 @@ jobs:
         run: |
           docker build -t "one-blog:$TAG" .
           docker save "one-blog:$TAG" | gzip > one-blog-image.tar.gz
-          ls -lh one-blog-image.tar.gz
+          # 8430 프록시 이미지 (D-135). 서버가 Docker Hub에 닿지 않아도 되도록 함께 올린다. 서버에 이미 있으면 쓰지 않음
+          docker pull -q nginx:1.27-alpine
+          docker save nginx:1.27-alpine | gzip > nginx-image.tar.gz
+          ls -lh one-blog-image.tar.gz nginx-image.tar.gz
 
       - name: 환경변수 파일 만들기 (Secrets → deploy.env)
         env:
@@ -173,7 +177,7 @@ jobs:
             exit "$1"
           }
           sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "mkdir -p $REMOTE_DIR && chmod 700 $REMOTE_DIR" || explain $?
-          sshpass -e scp "${OPTS[@]}" -P "${SSH_PORT:-22}" one-blog-image.tar.gz deploy.env scripts/deploy.sh "$TARGET:$REMOTE_DIR/" || explain $?
+          sshpass -e scp "${OPTS[@]}" -P "${SSH_PORT:-22}" one-blog-image.tar.gz nginx-image.tar.gz deploy.env scripts/deploy.sh "$TARGET:$REMOTE_DIR/" || explain $?
           sshpass -e ssh "${OPTS[@]}" -p "${SSH_PORT:-22}" "$TARGET" "bash $REMOTE_DIR/deploy.sh $TAG" || explain $?
 
       - name: 환경변수 파일 지우기

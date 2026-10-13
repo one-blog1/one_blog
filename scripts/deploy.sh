@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
-# 서버에서 도는 배포 스크립트 (D-118). GitHub Actions(deploy.yml)가 SSH로 접속해 실행한다.
+# 서버에서 도는 배포 스크립트 (D-118, D-135 무중단 배포). GitHub Actions(deploy.yml)가 SSH로 접속해 실행한다.
 # 쓰는 법: bash ~/one-blog/deploy.sh <이미지 태그>
-#   같은 폴더에 Actions가 올려 둔 두 파일이 있어야 한다
-#   - one-blog-image.tar.gz : docker save로 만든 이미지
+#   같은 폴더에 Actions가 올려 둔 파일이 있어야 한다
+#   - one-blog-image.tar.gz : docker save로 만든 앱 이미지
+#   - nginx-image.tar.gz    : 프록시 이미지(서버에 없을 때만 불러옴)
 #   - deploy.env            : DB 접속 정보 등 (GitHub Secrets에서 만든 값, 이 스크립트가 600으로 잠근다)
+# 구조 (블루-그린): 바깥 nginx → 8430 프록시(nginx 컨테이너 one-blog-proxy, 늘 켜져 있음)
+#                   → 앱 one-blog-blue(8431) 또는 one-blog-green(8432) 중 지금 켜진 쪽
 # 하는 일
 #   1) 이미지를 불러온다 (docker load)
 #   2) 처음 배포라면 JWT_SECRET·CODE_PEPPER를 만들어 secrets.env에 저장한다. 이후에는 같은 값을 계속 쓴다(바꾸면 모든 로그인이 풀림)
-#   3) 기존 컨테이너를 정상 종료하고 새 컨테이너를 8430 포트로 띄운다
-#   4) /api/health 가 200이 될 때까지 기다린다. 실패하면 바로 전 이미지로 되돌리고 실패로 끝낸다
-#   5) 성공하면 지금 것과 바로 전 것만 남기고 옛 이미지를 지운다
+#   3) 지금 쉬는 색(블루·그린)으로 새 컨테이너를 띄운다. 그동안 지금 버전이 계속 요청을 받는다
+#   4) 새 컨테이너의 /api/health 가 200이 될 때까지 기다린다. 실패하면 새 것만 치우고 실패로 끝낸다(지금 버전은 그대로)
+#   5) 프록시가 새 포트로 보내도록 바꾸고 다시 읽는다(nginx -s reload, 끊기는 요청 없음)
+#   6) 옛 컨테이너를 정상 종료한다(처리 중인 요청을 마치도록 30초까지)
+#   7) 지금 것과 바로 전 것만 남기고 옛 이미지를 지운다
+# 처음 한 번: 8430을 쓰던 예전 단일 컨테이너(one-blog)를 내리고 프록시를 띄울 때만 몇 초 멈춘다
 set -euo pipefail
 
 TAG="${1:?이미지 태그를 넘겨 주세요 (예: bash deploy.sh abc1234)}"
 APP=one-blog
-PORT="${APP_PORT:-8430}"
+PROXY="$APP-proxy"
+PROXY_IMAGE="${PROXY_IMAGE:-nginx:1.27-alpine}"
+# 이 서버에서 이 앱이 쓰는 포트 (배정 8430~8439). 바깥 nginx는 PROXY_PORT로 보낸다
+PROXY_PORT="${APP_PORT:-8430}"
+BLUE_PORT="${BLUE_PORT:-8431}"
+GREEN_PORT="${GREEN_PORT:-8432}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 IMAGE="$APP:$TAG"
 WAIT_SECONDS="${WAIT_SECONDS:-180}"
@@ -47,6 +58,15 @@ chmod 600 "$DIR/deploy.env"
 log "이미지 불러오는 중: $IMAGE"
 gunzip -c "$DIR/one-blog-image.tar.gz" | "${DOCKER[@]}" load > /dev/null
 rm -f "$DIR/one-blog-image.tar.gz"
+if ! "${DOCKER[@]}" image inspect "$PROXY_IMAGE" > /dev/null 2>&1; then
+  if [ -f "$DIR/nginx-image.tar.gz" ]; then
+    log "프록시 이미지 불러오는 중: $PROXY_IMAGE"
+    gunzip -c "$DIR/nginx-image.tar.gz" | "${DOCKER[@]}" load > /dev/null
+  else
+    "${DOCKER[@]}" pull "$PROXY_IMAGE" > /dev/null || fail "프록시 이미지 $PROXY_IMAGE 가 없습니다."
+  fi
+fi
+rm -f "$DIR/nginx-image.tar.gz"
 
 # 2) 서버에서 한 번 만들고 계속 쓰는 비밀값
 SECRETS="$DIR/secrets.env"
@@ -63,12 +83,7 @@ chmod 600 "$SECRETS"
 # 호스트 네트워크로 띄운다: 컨테이너가 서버와 같은 네트워크·DNS를 쓴다.
 # Docker 기본(bridge) 네트워크에서는 서버에서 닿는 내부망 DB(예: s4.java21.net → 10.x)에
 # "No route to host"로 닿지 않았다 (서버 DNS·라우팅·방화벽을 컨테이너가 그대로 못 씀, D-118).
-# 앱은 PORT(8430)로 직접 받는다. bridge로 바꾸려면 DOCKER_NETWORK=bridge
-if [ "${DOCKER_NETWORK:-host}" = "bridge" ]; then
-  NETWORK_ARGS=(-p "$PORT:$PORT")
-else
-  NETWORK_ARGS=(--network host)
-fi
+# 프록시는 PROXY_PORT(8430), 앱은 BLUE_PORT(8431)·GREEN_PORT(8432)로 직접 받는다
 
 # 컨테이너에 넘길 환경변수 = secrets.env + deploy.env. 같은 이름이 둘 다 있으면 deploy.env(GitHub Secrets) 값을 쓴다
 RUN_ENV="$DIR/run.env"
@@ -81,69 +96,165 @@ for name in $(grep -oE '^(CODE_PEPPER|PRIVACY_HASH_PEPPER|JWT_SECRET)=' "$DIR/de
 done
 
 run_container() {
-  local image="$1"
+  local name="$1" image="$2" port="$3"
   "${DOCKER[@]}" run -d \
-    --name "$APP" \
+    --name "$name" \
     --restart unless-stopped \
-    "${NETWORK_ARGS[@]}" \
+    --network host \
     --env-file "$RUN_ENV" \
-    -e PORT="$PORT" \
+    -e PORT="$port" \
     -v one-blog-uploads:/app/uploads \
     --log-opt max-size=20m --log-opt max-file=5 \
     "$image" > /dev/null
 }
 
+running() {
+  [ "$("${DOCKER[@]}" inspect -f '{{.State.Running}}' "$1" 2>/dev/null || echo false)" = "true" ]
+}
+
+health() {
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$1/api/health" || true)" = "200" ]
+}
+
 wait_healthy() {
-  local i
+  local name="$1" port="$2" i
   for ((i = 0; i < WAIT_SECONDS; i += 3)); do
-    if [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/api/health" || true)" = "200" ]; then
-      log "상태 확인 통과 (${i}초)"
+    if health "$port"; then
+      log "상태 확인 통과: $name (${i}초)"
       return 0
     fi
     # 컨테이너가 이미 죽었으면 더 기다리지 않는다
-    if [ "$("${DOCKER[@]}" inspect -f '{{.State.Running}}' "$APP" 2>/dev/null || echo false)" != "true" ]; then
-      log "컨테이너가 멈췄습니다"
+    if ! running "$name"; then
+      log "컨테이너가 멈췄습니다: $name"
       return 1
     fi
     sleep 3
   done
-  log "${WAIT_SECONDS}초 안에 상태 확인을 통과하지 못했습니다"
+  log "${WAIT_SECONDS}초 안에 상태 확인을 통과하지 못했습니다: $name"
   return 1
 }
 
-# 3) 기존 컨테이너 내리기 (처리 중인 요청을 마치도록 30초까지 기다림)
-PREVIOUS=""
+# 프록시 설정: 바깥 nginx가 보낸 요청을 지금 켜진 앱 포트로 넘긴다. upstream.conf 한 줄만 바꿔 전환한다
+PROXY_DIR="$DIR/proxy"
+mkdir -p "$PROXY_DIR"
+cat > "$PROXY_DIR/nginx.conf" <<NGINX
+worker_processes 1;
+error_log /dev/stderr warn;
+pid /tmp/nginx.pid;
+events { worker_connections 1024; }
+http {
+  access_log off;
+  # 글 이미지 묶음 10MB(application.yml multipart) + 여유
+  client_max_body_size 12m;
+  map \$http_x_forwarded_proto \$forwarded_proto { default \$http_x_forwarded_proto; "" \$scheme; }
+  upstream one_blog {
+    include /etc/nginx/one-blog/upstream.conf;
+    keepalive 16;
+  }
+  server {
+    listen $PROXY_PORT;
+    location / {
+      proxy_pass http://one_blog;
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      proxy_set_header Host \$http_host;
+      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto \$forwarded_proto;
+      proxy_read_timeout 60s;
+    }
+  }
+}
+NGINX
+
+point_proxy() {
+  # 같은 폴더 안에서 이름만 바꿔 한 번에 바꾼다 (반쯤 쓴 파일을 nginx가 읽지 않게)
+  echo "server 127.0.0.1:$1;" > "$PROXY_DIR/upstream.conf.new"
+  mv -f "$PROXY_DIR/upstream.conf.new" "$PROXY_DIR/upstream.conf"
+}
+
+start_proxy() {
+  "${DOCKER[@]}" rm -f "$PROXY" > /dev/null 2>&1 || true
+  "${DOCKER[@]}" run -d \
+    --name "$PROXY" \
+    --restart unless-stopped \
+    --network host \
+    -v "$PROXY_DIR/nginx.conf:/etc/nginx/nginx.conf:ro" \
+    -v "$PROXY_DIR:/etc/nginx/one-blog:ro" \
+    --log-opt max-size=10m --log-opt max-file=3 \
+    "$PROXY_IMAGE" > /dev/null
+}
+
+# 3) 지금 켜진 색과 새로 띄울 색
+if running "$APP-blue"; then
+  ACTIVE="$APP-blue"; NEXT="$APP-green"; NEXT_PORT="$GREEN_PORT"
+elif running "$APP-green"; then
+  ACTIVE="$APP-green"; NEXT="$APP-blue"; NEXT_PORT="$BLUE_PORT"
+else
+  ACTIVE=""; NEXT="$APP-blue"; NEXT_PORT="$BLUE_PORT"
+fi
+LEGACY=""
 if "${DOCKER[@]}" inspect "$APP" > /dev/null 2>&1; then
-  PREVIOUS="$("${DOCKER[@]}" inspect -f '{{.Config.Image}}' "$APP")"
-  log "기존 컨테이너 종료: $PREVIOUS"
-  "${DOCKER[@]}" stop -t 30 "$APP" > /dev/null || true
-  "${DOCKER[@]}" rm "$APP" > /dev/null
+  LEGACY="$APP"   # 블루-그린 이전(8430을 직접 쓰던) 컨테이너
 fi
+PREVIOUS_IMAGE="$("${DOCKER[@]}" inspect -f '{{.Config.Image}}' "${ACTIVE:-${LEGACY:-none}}" 2>/dev/null || true)"
 
-log "새 컨테이너 실행: $IMAGE (포트 $PORT)"
-run_container "$IMAGE"
+"${DOCKER[@]}" rm -f "$NEXT" "$NEXT-failed" > /dev/null 2>&1 || true
+log "새 컨테이너 실행: $NEXT ($IMAGE, 포트 $NEXT_PORT). 지금 버전(${ACTIVE:-${LEGACY:-없음}})은 그대로 요청을 받습니다"
+run_container "$NEXT" "$IMAGE" "$NEXT_PORT"
 
-# 4) 상태 확인. 실패하면 되돌리기
-if ! wait_healthy; then
+# 4) 상태 확인. 실패하면 새 것만 치운다 (지금 버전은 건드리지 않았다)
+if ! wait_healthy "$NEXT" "$NEXT_PORT"; then
   log "새 버전 로그 (마지막 80줄):"
-  "${DOCKER[@]}" logs --tail 80 "$APP" 2>&1 || true
-  # 실패한 컨테이너는 이름만 바꿔 남긴다 (원인 확인용, 다음 배포 때 지움)
-  "${DOCKER[@]}" rm -f "$APP-failed" > /dev/null 2>&1 || true
-  "${DOCKER[@]}" stop -t 5 "$APP" > /dev/null 2>&1 || true
-  "${DOCKER[@]}" rename "$APP" "$APP-failed" || "${DOCKER[@]}" rm -f "$APP" > /dev/null || true
-  if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$IMAGE" ]; then
-    log "바로 전 버전으로 되돌립니다: $PREVIOUS"
-    run_container "$PREVIOUS"
-    wait_healthy || log "바로 전 버전도 상태 확인을 통과하지 못했습니다. 서버에서 docker logs $APP 로 확인해 주세요."
-  fi
+  "${DOCKER[@]}" logs --tail 80 "$NEXT" 2>&1 || true
+  "${DOCKER[@]}" stop -t 5 "$NEXT" > /dev/null 2>&1 || true
+  "${DOCKER[@]}" rename "$NEXT" "$NEXT-failed" || "${DOCKER[@]}" rm -f "$NEXT" > /dev/null || true
   # 시작 실패의 핵심 줄(예외 이름·원인)만 오류 요약에 올린다
-  CAUSE="$("${DOCKER[@]}" logs "$APP-failed" 2>&1 | grep -E "APPLICATION FAILED|Caused by|Exception:|Description:|ERROR" | grep -viE "password|secret" | tail -3 | tr '\n' ' ' | cut -c1-600 || true)"
-  fail "새 버전이 상태 확인을 통과하지 못해 되돌렸습니다. ${CAUSE:-서버에서 docker logs로 확인해 주세요.}"
+  CAUSE="$("${DOCKER[@]}" logs "$NEXT-failed" 2>&1 | grep -E "APPLICATION FAILED|Caused by|Exception:|Description:|ERROR" | grep -viE "password|secret" | tail -3 | tr '\n' ' ' | cut -c1-600 || true)"
+  fail "새 버전이 상태 확인을 통과하지 못해 지금 버전을 그대로 둡니다. ${CAUSE:-서버에서 docker logs $NEXT-failed 로 확인해 주세요.}"
 fi
 
-# 5) 옛 이미지 정리: 지금 것과 바로 전 것만 남긴다
+# 5) 프록시 전환
+point_proxy "$NEXT_PORT"
+if running "$PROXY"; then
+  "${DOCKER[@]}" exec "$PROXY" nginx -t > /dev/null 2>&1 || fail "프록시 설정 검사에 실패했습니다. 서버에서 docker exec $PROXY nginx -t 로 확인해 주세요."
+  "${DOCKER[@]}" exec "$PROXY" nginx -s reload
+  log "프록시 전환: $PROXY_PORT → $NEXT_PORT"
+else
+  # 처음 한 번: 8430을 쓰던 예전 컨테이너를 내리고 그 자리에 프록시를 띄운다 (이때만 몇 초 멈춤)
+  if [ -n "$LEGACY" ]; then
+    log "예전 컨테이너($LEGACY)를 내리고 $PROXY_PORT 에 프록시를 띄웁니다"
+    "${DOCKER[@]}" stop -t 30 "$LEGACY" > /dev/null || true
+  fi
+  start_proxy
+  ok=false
+  for ((i = 0; i < 30; i++)); do
+    if health "$PROXY_PORT"; then ok=true; break; fi
+    sleep 1
+  done
+  if [ "$ok" != true ]; then
+    "${DOCKER[@]}" logs --tail 30 "$PROXY" 2>&1 || true
+    "${DOCKER[@]}" rm -f "$PROXY" > /dev/null 2>&1 || true
+    if [ -n "$LEGACY" ]; then
+      "${DOCKER[@]}" start "$LEGACY" > /dev/null || true
+    fi
+    "${DOCKER[@]}" rm -f "$NEXT" > /dev/null 2>&1 || true
+    fail "프록시를 띄우지 못해 예전 컨테이너로 되돌렸습니다. 서버에서 $PROXY_PORT 포트를 다른 프로그램이 쓰는지 확인해 주세요."
+  fi
+  log "프록시 실행: $PROXY_PORT → $NEXT_PORT"
+fi
+health "$PROXY_PORT" || fail "프록시를 거친 상태 확인에 실패했습니다 ($PROXY_PORT)."
+
+# 6) 옛 컨테이너 정리 (처리 중인 요청을 마치도록 30초까지 기다림)
+for old in $ACTIVE $LEGACY; do
+  log "옛 컨테이너 종료: $old"
+  "${DOCKER[@]}" stop -t 30 "$old" > /dev/null 2>&1 || true
+  "${DOCKER[@]}" rm "$old" > /dev/null 2>&1 || true
+done
+"${DOCKER[@]}" rm -f "$APP-failed" > /dev/null 2>&1 || true
+
+# 7) 옛 이미지 정리: 지금 것과 바로 전 것만 남긴다
 "${DOCKER[@]}" images "$APP" --format '{{.Repository}}:{{.Tag}}' \
-  | grep -vxF -e "$IMAGE" -e "${PREVIOUS:-none}" \
+  | grep -vxF -e "$IMAGE" -e "${PREVIOUS_IMAGE:-none}" \
   | xargs -r "${DOCKER[@]}" rmi > /dev/null 2>&1 || true
 
-log "배포 완료: $IMAGE → http://<서버 주소>:$PORT"
+log "배포 완료: $IMAGE ($NEXT, 포트 $NEXT_PORT) → 프록시 http://<서버 주소>:$PROXY_PORT"
