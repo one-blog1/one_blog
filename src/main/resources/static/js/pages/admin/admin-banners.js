@@ -56,7 +56,7 @@
     section.append(el('p', 'hint', '최근 글 중 좋아요가 있고 썸네일(첫 사진·영상)이 있는 글을 좋아요 많은 순으로 넣어요. 사진과 제목은 글에서 가져와요.'));
     const form = el('form', 'row banner-settings');
     const count = el('select');
-    count.append(new Option('넣지 않음', '0'));
+    count.append(new Option('0개 (인기 글 끄기)', '0'));
     for (let i = 1; i <= 5; i++) {
       count.append(new Option(i + '개', String(i)));
     }
@@ -83,7 +83,7 @@
     const preview = data.popularPreview || [];
     if (preview.length === 0) {
       section.append(el('p', 'hint', data.settings.popularCount === 0
-        ? '인기 글을 넣지 않아요.' : '지금 조건에 맞는 인기 글이 없어요.'));
+        ? '인기 글이 0개라 배너에는 광고만 나가요.' : '지금 조건에 맞는 인기 글이 없어요.'));
     } else {
       const list = el('ul', 'banner-admin-preview');
       preview.forEach(p => {
