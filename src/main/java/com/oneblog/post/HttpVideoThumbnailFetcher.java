@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.json.JsonParserFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -26,7 +27,8 @@ import org.springframework.web.client.RestClient;
  * 영상 사이트에서 썸네일을 받는다 (D-128). 글을 저장한 뒤 한 번만 부르고, 받은 사진은 우리 서버에 둔다.
  * - 유튜브: 썸네일 주소가 영상 번호로 정해져 있다 (i.ytimg.com/vi/{번호}/mqdefault.jpg, 320×180, 위아래 검은 띠 없음)
  * - 치지직: 공식이 아닌 API의 content.thumbnailImageUrl (클립 /service/v1/clips/{번호}/detail, 다시보기 /service/v2/videos/{번호})
- * - SOOP: 공식이 아닌 API(api.m.sooplive.com/station/video/a/view)의 data.thumb
+ * - SOOP: 공식이 아닌 API(api.m.sooplive.com/station/video/a/view, POST nTitleNo)의 data.thumb
+ * 응답은 Content-Type과 관계없이 글자로 받아 JSON으로 읽는다(JSON을 text/html로 보내는 곳이 있어도 읽히게).
  * 치지직·SOOP API는 바뀔 수 있다. 실패하면 썸네일 없이 둔다(글 저장에는 영향 없음).
  *
  * 남의 주소로 서버가 요청을 보내는 일이라(SSRF) API 주소는 여기서 정한 것만, 사진 주소는 아래 사이트의 https만 받고
@@ -99,12 +101,12 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
     }
 
     private String chzzkThumbnail(String apiUrl) {
-        Map<?, ?> body = client.get().uri(URI.create(apiUrl)).accept(MediaType.APPLICATION_JSON)
-                .retrieve().body(Map.class);
-        if (body != null && body.get("content") instanceof Map<?, ?> content
-                && content.get("thumbnailImageUrl") instanceof String url) {
+        Map<String, Object> body = json(client.get().uri(URI.create(apiUrl)).accept(MediaType.APPLICATION_JSON)
+                .retrieve().body(String.class));
+        if (body.get("content") instanceof Map<?, ?> content && content.get("thumbnailImageUrl") instanceof String url) {
             return url;
         }
+        log.info("치지직 썸네일 응답에 사진 주소가 없습니다: {}", preview(body));
         return null;
     }
 
@@ -112,16 +114,38 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("nTitleNo", id);
         form.add("nApiLevel", "10");
-        Map<?, ?> body = client.post().uri(URI.create("https://api.m.sooplive.com/station/video/a/view"))
+        Map<String, Object> body = json(client.post().uri(URI.create("https://api.m.sooplive.com/station/video/a/view"))
                 .header(HttpHeaders.REFERER, "https://vod.sooplive.com/player/" + id)
+                .header(HttpHeaders.ORIGIN, "https://vod.sooplive.com")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .accept(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON, MediaType.TEXT_HTML, MediaType.ALL)
                 .body(form)
-                .retrieve().body(Map.class);
-        if (body != null && body.get("data") instanceof Map<?, ?> data && data.get("thumb") instanceof String url) {
+                .retrieve().body(String.class));
+        if (body.get("data") instanceof Map<?, ?> data && data.get("thumb") instanceof String url) {
             return url;
         }
+        log.info("SOOP 썸네일 응답에 사진 주소가 없습니다: {}", preview(body));
         return null;
+    }
+
+    /**
+     * 응답 글자를 JSON으로 읽는다. SOOP처럼 JSON을 text/html로 보내는 곳이 있어 Content-Type을 믿지 않고 직접 읽는다.
+     * 읽을 수 없으면 빈 Map.
+     */
+    static Map<String, Object> json(String text) {
+        if (text == null || text.isBlank()) {
+            return Map.of();
+        }
+        try {
+            return JsonParserFactory.getJsonParser().parseMap(text.strip());
+        } catch (RuntimeException e) {
+            return Map.of();
+        }
+    }
+
+    private static String preview(Map<String, Object> body) {
+        String text = String.valueOf(body);
+        return text.length() > 200 ? text.substring(0, 200) + "…" : text;
     }
 
     /** //로 시작하는 주소는 https로, http는 https로. 치지직 다시보기 주소의 {type} 자리는 480으로. */

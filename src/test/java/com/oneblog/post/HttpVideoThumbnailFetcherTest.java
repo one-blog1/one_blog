@@ -49,6 +49,16 @@ class HttpVideoThumbnailFetcherTest {
     }
 
     @Test
+    void 응답_글자를_JSON으로_읽는다() {
+        Object data = HttpVideoThumbnailFetcher.json(
+                "{\"result\":1,\"data\":{\"thumb\":\"//videoimg.sooplive.co.kr/a.jpg\"}}").get("data");
+        assertThat(data).isInstanceOf(java.util.Map.class);
+        assertThat(((java.util.Map<?, ?>) data).get("thumb")).isEqualTo("//videoimg.sooplive.co.kr/a.jpg");
+        assertThat(HttpVideoThumbnailFetcher.json("<html>점검 중</html>")).isEmpty();
+        assertThat(HttpVideoThumbnailFetcher.json(null)).isEmpty();
+    }
+
+    @Test
     void 꺼져_있거나_영상_구분이_이상하면_요청하지_않는다() {
         assertThat(new HttpVideoThumbnailFetcher(false).fetch("youtube:dQw4w9WgXcQ")).isEmpty();
         HttpVideoThumbnailFetcher on = new HttpVideoThumbnailFetcher(true);
