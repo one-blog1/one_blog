@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.oneblog"
-version = "0.16"
+version = "0.17"
 
 java {
     toolchain {
