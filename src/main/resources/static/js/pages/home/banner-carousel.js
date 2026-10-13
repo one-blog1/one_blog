@@ -23,6 +23,15 @@
     return /^https?:\/\//i.test(url) ? url : null;
   }
 
+  /** 사진이 없을 때: 블로그가 있으면 그 블로그 색과 첫 글자(blog-card와 같은 표지), 없으면 어두운 바탕. */
+  function placeholder(item) {
+    if (item.blogSlug && window.blogCard) {
+      return window.blogCard.cover({ slug: item.blogSlug, name: item.blogName || item.title },
+        'banner-image banner-tile');
+    }
+    return el('span', 'banner-image banner-empty');
+  }
+
   function iconButton(name, label, className) {
     const b = el('button', 'banner-btn ' + (className || ''));
     b.type = 'button';
@@ -52,10 +61,11 @@
       img.alt = '';
       img.loading = index === 0 ? 'eager' : 'lazy';
       img.decoding = 'async';
+      // 사진을 불러오지 못하면(파일이 없는 서버 등) 깨진 그림 대신 빈 표지
+      img.addEventListener('error', () => img.replaceWith(placeholder(item)), { once: true });
       link.append(img);
-    } else if (item.blogSlug && window.blogCard) {
-      // 대표 이미지가 없는 블로그: 그 블로그 색과 첫 글자 (blog-card와 같은 표지)
-      link.append(window.blogCard.cover({ slug: item.blogSlug, name: item.title }, 'banner-image banner-tile'));
+    } else {
+      link.append(placeholder(item));
     }
     const caption = el('span', 'banner-caption');
     caption.append(el('span', 'banner-label' + (item.kind === 'AD' ? ' ad' : ''), item.label || ''));

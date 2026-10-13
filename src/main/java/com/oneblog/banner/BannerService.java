@@ -63,7 +63,7 @@ public class BannerService {
         String label = BannerSettings.popularLabel(settings.popular().days());
         List<BannerSlide> popular = cards.stream().map(c -> new BannerSlide("POPULAR", label, c.title(),
                 c.blogName() + " · 좋아요 " + c.likeCount(), c.thumbnailUrl(),
-                "/blog/" + c.blogSlug() + "/posts/" + c.id(), false, null)).toList();
+                "/blog/" + c.blogSlug() + "/posts/" + c.id(), false, c.blogSlug(), c.blogName())).toList();
 
         List<BannerSlide> newBlogs = blogSlides("NEW_BLOG", "새 블로그",
                 blogQueries.newBlogs(settings.newBlog().count(), settings.newBlog().days()), Set.of());
@@ -87,7 +87,7 @@ public class BannerService {
             String image = blog.coverImageUrl() != null && blog.coverImageUrl().startsWith("/files/")
                     ? blog.coverImageUrl() : null;
             result.add(new BannerSlide(kind, label, blog.name(), blogCaption(blog), image, "/blog/" + blog.slug(),
-                    false, blog.slug()));
+                    false, blog.slug(), blog.name()));
         }
         return result;
     }
@@ -114,7 +114,7 @@ public class BannerService {
                 continue;
             }
             result.add(new BannerSlide(b.getKind().name(), b.getKind().label(), b.getTitle(), b.getCaption(),
-                    image.url(), b.getLinkUrl(), BannerLinks.isExternal(b.getLinkUrl()), null));
+                    image.url(), b.getLinkUrl(), BannerLinks.isExternal(b.getLinkUrl()), null, null));
         }
         return result;
     }

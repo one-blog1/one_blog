@@ -1098,7 +1098,13 @@ body.modal-open {
   object-fit: cover;
 }
 
-/* 대표 이미지가 없는 블로그 배너: 블로그 색 바탕에 큰 첫 글자 (D-133) */
+/* 사진을 불러오지 못한 관리자 배너: 어두운 바탕만 */
+.banner-empty {
+  display: block;
+  background: #1d2a24;
+}
+
+/* 사진이 없거나 불러오지 못한 블로그·인기 글 배너: 블로그 색 바탕에 큰 첫 글자 (D-133) */
 .banner-tile.cover-tile {
   display: flex;
   align-items: flex-start;
