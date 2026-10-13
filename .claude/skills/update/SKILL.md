@@ -19,18 +19,21 @@ disable-model-invocation: false
 
 ## 1. 확인 (하나라도 걸리면 멈추고 사용자에게 묻는다)
 
-- 형식이 `숫자.두자리`인가 (D-121: 배포마다 0.01씩, 예 0.21·0.30·1.00. 이전 형식 0.1.0·0.2.0은 기록으로만 남음)
-- 지금 버전(`build.gradle.kts`의 `version`)보다 정확히 0.01 큰가. 0.2.0 다음은 0.21. 다르면 지금 번호 + 0.01을 제안하고 묻는다
-- 코드 저장소에 태그 `v<버전>`이 아직 없는가: `git ls-remote --tags origin`
-- main이고, 원격과 같고(`git pull --ff-only`), 커밋하지 않은 변경이 없는가
-- 지난 버전 이후 바뀐 것이 있는가: `git fetch --tags` 후 `git log v<지난 버전>..HEAD --oneline`. 바뀐 것이 없으면 그래도 올릴지 묻는다
+- 형식이 `숫자.두자리`인가 (D-121: 배포마다 0.01씩, 예 0.18·0.30·1.00. 예전에 나간 0.1.0·0.2.0·0.21은 0.10·0.11·0.12로 이름을 바꿈)
+- 지금 버전(`build.gradle.kts`의 `version`)보다 정확히 0.01 큰가. (예: 0.17 다음은 0.18). 다르면 지금 번호 + 0.01을 제안하고 묻는다
+- 코드 저장소에 태그 `v<버전>`이 아직 없는가: `git ls-remote --tags origin`. 있으면 Deploy가 배포를 건너뛴다. 특히 옛 이름 태그 `v0.1.0`·`v0.2.0`·`v0.21`이 아직 남아 있으면(정리 전) 0.21로 올릴 때 `v0.21`에 걸려 배포되지 않으므로, 사용자에게 옛 태그 정리를 먼저 묻는다
+- 브랜치 규칙(D-136)대로 `develop`에서 올린다. `develop`과 `main`이 둘 다 원격과 같고(`git pull --ff-only`), 커밋하지 않은 변경이 없는가
+- 아직 `develop`에 합치지 않은 `feature/*`가 있으면, 이번 버전에 넣을지 사용자에게 묻는다(`git branch -r --no-merged origin/develop`)
+- `develop`의 마지막 CI가 성공했는가 (`gh run list --branch develop -L 1`)
+- 지난 버전 이후 바뀐 것이 있는가: `git fetch --tags` 후 `git log v<지난 버전>..origin/develop --oneline`. 바뀐 것이 없으면 그래도 올릴지 묻는다
 
 ## 2. 버전 올리고 배포
 
-1. `build.gradle.kts`의 `version = "..."`만 새 번호로 바꾼다. 다른 파일은 건드리지 않는다.
-2. 커밋 `release: <버전>` 후 main에 push한다. 커밋 메시지 끝에는 세션이 알려 준 Co-Authored-By 줄을 붙인다.
-3. 진행 상황을 사용자에게 한 줄로 알린다: CI → 배포 → 태그. 보통 10분 안팎.
-4. 결과 확인: `gh run list -L 3` (CI, Deploy). 오래 걸리면 터미널을 붙잡고 기다리지 말고 `send_later`로 10분쯤 뒤에 다시 확인한다.
+1. `develop`에서 `build.gradle.kts`의 `version = "..."`만 새 번호로 바꾼다. 다른 파일은 건드리지 않는다.
+2. 커밋 `release: <버전>` 후 `develop`에 push한다. 커밋 메시지 끝에는 세션이 알려 준 Co-Authored-By 줄을 붙인다.
+3. `main`으로 바꿔 `git merge --no-ff develop -m "release: <버전> (develop → main)"` 후 `main`에 push한다. main push가 배포를 시작한다.
+4. 진행 상황을 사용자에게 한 줄로 알린다: CI → 배포 → 태그. 보통 10분 안팎.
+5. 결과 확인: `gh run list --branch main -L 3` (CI, Deploy). 오래 걸리면 터미널을 붙잡고 기다리지 말고 `send_later`로 10분쯤 뒤에 다시 확인한다.
    - Deploy 성공 → 태그 `v<버전>`이 붙었는지 확인하고 다음 단계로
    - 실패 → 오류 요약(annotation)을 읽어 원인을 알리고 멈춘다. 릴리즈 노트는 쓰지 않는다. 서버는 지금 버전이 그대로 요청을 받고 있다(무중단 배포, D-135)
    - 배포는 됐는데 "버전 태그 붙이기"만 실패(`refusing to allow a GitHub App to create or update workflow`) → 배포 중에 main에 워크플로 파일 변경이 올라간 경우다. 다음 main push의 CI 뒤 Deploy가 다시 배포하고 태그를 붙이므로 그 결과를 확인한다. 배포가 도는 동안에는 `.github/workflows/`를 바꾼 커밋을 올리지 않는다
@@ -38,7 +41,7 @@ disable-model-invocation: false
 ## 3. 릴리즈 노트 (문서 저장소)
 
 1. 바뀐 것 정리: 코드 저장소 `git log v<지난 버전>..v<버전>`과 바뀐 파일. 필요하면 문서 저장소 8장 결정 기록과 specs를 함께 본다.
-2. 문서 저장소에 `releases/v<버전>.md`를 만든다. 형식은 `releases/v0.1.0.md`를 따른다.
+2. 문서 저장소에 `releases/v<버전>.md`를 만든다. 형식은 `releases/v0.10.md`를 따른다.
    - 첫 줄 `# One Blog <버전>`, 한 줄 요약과 날짜
    - 코드 태그, 요구사항 기준(결정 번호·기능 명세 번호)
    - 바뀐 것 (기능·화면 / 오류 수정 / 보안 / 운영·배포로 나눔, 해당 없는 묶음은 생략)
