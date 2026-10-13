@@ -1,4 +1,4 @@
-// 관리자 화면 (ADM-01~06, BRD-10). 서버가 가린 개인정보만 받고, "전체 보기"는 서버에 기록이 남는다 (4.4).
+// 관리자 화면 (ADM-01~08, BRD-10). 서버가 가린 개인정보만 받고, "전체 보기"는 서버에 기록이 남는다 (4.4).
 // 모든 값은 textContent로 넣는다 (SEC-06).
 (function () {
   'use strict';
@@ -191,6 +191,14 @@
         return [n.categoryLabel || '일반', goto(n.title, '/notice.html?id=' + encodeURIComponent(n.id)),
           date(n.createdAt), actions];
       }))),
+    // 메인 배너 (ADM-08, D-132): 광고 관리와 인기 글 설정. 페이지 없음
+    banners: async () => {
+      $('admin-pagination').replaceChildren();
+      await window.adminBanners.load({
+        table: table, button: button, message: message, content: $('admin-content'),
+        onUnauthorized: () => { window.location.href = '/admin-login.html'; }
+      });
+    },
     actions: paged('/api/admin/actions', (items) => table(
       ['시각', '관리자', '조치', '대상', '내용', 'IP'],
       items.map(a => [date(a.createdAt), a.adminLoginId, a.actionType, a.targetType + ' #' + a.targetId, a.detail,
@@ -271,6 +279,7 @@
         state.q = '';
         $('search-input').value = '';
         resetNoticeForm();
+        window.adminBanners.reset();
         load();
       });
     });

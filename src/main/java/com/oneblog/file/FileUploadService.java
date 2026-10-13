@@ -53,6 +53,12 @@ public class FileUploadService {
         return upload(userId, FilePurpose.POST, file, POST_IMAGE_MAX_BYTES);
     }
 
+    /** 메인 배너 광고 사진 (6.3: 3MB, D-132). 관리자 API에서만 부른다. 광고에 연결하는 것은 광고를 저장할 때. */
+    @Transactional
+    public StoredFile uploadBannerImage(Long adminId, MultipartFile file) {
+        return upload(adminId, FilePurpose.BANNER, file, COVER_MAX_BYTES);
+    }
+
     /** 프로필 사진 (6.3: 3MB, 1장, 009). */
     @Transactional
     public StoredFile uploadProfileImage(Long userId, UserRole role, MultipartFile file) {

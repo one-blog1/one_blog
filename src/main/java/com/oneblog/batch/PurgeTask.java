@@ -23,7 +23,7 @@ import com.oneblog.member.UserStatus;
 /**
  * 30일 지난 데이터 완전 삭제 (4.5).
  * - 삭제한 글(댓글·좋아요·태그·사진 포함), 삭제한 댓글(살아 있는 답글이 달린 첫 댓글은 남긴다), 삭제 표시한 파일,
- *   글에 붙지 않은 채 30일 지난 업로드 이미지
+ *   글에 붙지 않은 채 30일 지난 업로드 이미지, 광고에 쓰지 않은 채 30일 지난 배너 사진 (D-132)
  * - 폐쇄 30일 지난 블로그: 글·사진·카테고리·태그·구독을 지우고 주소를 비운다. 블로그 행은 남긴다 (D-86)
  * - 탈퇴 30일 지난 회원: 이름·닉네임·전화번호·프로필 사진·소개를 지운다. 글은 "탈퇴한 회원"으로 남는다
  * DB에서 먼저 지우고(트랜잭션), 커밋한 뒤 디스크 파일을 지운다. 파일 삭제가 실패해도 DB는 일관된다.
@@ -126,7 +126,9 @@ public class PurgeTask implements DailyTask {
     private int purgeFiles(LocalDateTime cutoff, List<String> files) {
         String where = """
                 FROM files WHERE deleted_at <= :cutoff
-                   OR (post_id IS NULL AND purpose = 'POST' AND created_at <= :cutoff)""";
+                   OR (post_id IS NULL AND purpose = 'POST' AND created_at <= :cutoff)
+                   OR (purpose = 'BANNER' AND created_at <= :cutoff
+                       AND NOT EXISTS (SELECT 1 FROM banners bn WHERE bn.image_file_id = files.id))""";
         MapSqlParameterSource args = new MapSqlParameterSource("cutoff", cutoff);
         files.addAll(jdbc.queryForList("SELECT stored_name " + where, args, String.class));
         return jdbc.update("DELETE " + where, args);

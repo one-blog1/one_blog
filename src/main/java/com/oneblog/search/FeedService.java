@@ -1,5 +1,6 @@
 package com.oneblog.search;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -84,6 +85,30 @@ public class FeedService {
         return new SearchPage<>(null, "feed", tab, "popular".equals(tab) ? "popular" : "latest",
                 postCardService.cards(result.ids()), result.params().page(), result.params().size(),
                 result.totalItems(), result.totalPages());
+    }
+
+    /**
+     * 메인 배너의 인기 글 (BRD-12, 6.8, D-132). 메인 피드 인기 글과 같은 범위(전체 공개 블로그의 공개 글, 차단한 회원 글 제외)에서
+     * 최근 days일 글 중 좋아요 1개 이상이고 썸네일(글 사진 또는 영상 썸네일)이 있는 글을 좋아요 많은 순으로 count개.
+     */
+    @Transactional(readOnly = true)
+    public List<PostCard> popularWithThumbnail(int count, int days, Long viewerId) {
+        if (count <= 0) {
+            return List.of();
+        }
+        MapSqlParameterSource args = new MapSqlParameterSource()
+                .addValue("since", LocalDateTime.now().minusDays(days))
+                .addValue("limit", count * 2);
+        StringBuilder sql = new StringBuilder("SELECT p.id FROM posts p JOIN blogs b ON b.id = p.blog_id WHERE ")
+                .append(SearchService.VISIBLE_POST).append(" AND ").append(SearchService.VISIBLE_BLOG)
+                .append(" AND p.created_at >= :since AND p.like_count > 0")
+                .append(" AND EXISTS (SELECT 1 FROM files f WHERE f.post_id = p.id AND f.deleted_at IS NULL")
+                .append(" AND f.purpose IN ('POST', 'VIDEO_THUMB'))");
+        searchService.appendFilters(sql, args, viewerId);
+        sql.append(" ORDER BY p.like_count DESC, p.created_at DESC, p.id DESC LIMIT :limit");
+        List<Long> ids = jdbc.queryForList(sql.toString(), args, Long.class);
+        // 첫 사진이 다른 사이트 사진이면 썸네일이 없을 수 있어 넉넉히 읽고 썸네일 있는 것만 남긴다
+        return postCardService.cards(ids).stream().filter(c -> c.thumbnailUrl() != null).limit(count).toList();
     }
 
     private static void requireLogin(Long viewerId) {

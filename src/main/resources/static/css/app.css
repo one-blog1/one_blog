@@ -785,6 +785,19 @@ a.social-button:hover {
   display: none !important;
 }
 
+/* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 제목 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .footer-links {
   margin-top: 18px;
   font-size: 14px;
@@ -1033,23 +1046,215 @@ body.modal-open {
 
 /* ── 메인: 첫 화면·내 블로그·메인 피드·참여 신청 (D-100, D-111, D-113) ──── */
 
-/* 첫 화면: 카드 없이 바탕 위에 인사와 검색창만 */
-.home-hero {
-  padding: 28px 4px 32px;
+/* 메인 배너 (BRD-12, 6.8, D-132): 내 블로그·메인 피드 맨 위. 큰 사진 한 장씩, 아래쪽 어두운 띠에 표시·제목·작은 글씨 */
+.banner {
+  margin: 0 0 40px;
 }
 
-.hero-hello {
-  margin: 0 0 6px;
-  color: var(--muted);
+.banner.off-view {
+  display: none;
+}
+
+.banner-frame {
+  position: relative;
+  height: 380px;
+  border-radius: var(--radius-field);
+  overflow: hidden;
+  background: #1d2a24;
+}
+
+.banner-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.banner-slide.active {
+  opacity: 1;
+}
+
+.banner-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.banner-link:hover .banner-title {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.banner-link:focus-visible {
+  outline: 3px solid var(--sun);
+  outline-offset: -3px;
+}
+
+.banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banner-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 26px 32px;
+  background: rgba(16, 18, 22, 0.62);
+  color: #ffffff;
+}
+
+.banner-label {
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: #ffffff;
+  color: #16181d;
+  font-size: 12px;
   font-weight: 600;
 }
 
-.hero-title {
-  max-width: 16em;
-  margin: 0 0 22px;
-  font-size: clamp(32px, 5.2vw, 52px);
-  line-height: 1.18;
+.banner-label.ad {
+  background: var(--sun);
+  color: #ffffff;
+}
+
+.banner-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.35;
   word-break: keep-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.banner-sub {
+  font-size: 14px;
+  color: #e3e5e8;
+}
+
+.banner-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.banner-dots {
+  display: flex;
+  align-items: center;
+}
+
+/* 점은 작게 보이지만 누르는 자리는 24px */
+.banner-dot {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.banner-dot::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: 0 auto;
+  border-radius: 5px;
+  background: var(--line);
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.banner-dot[aria-pressed="true"] {
+  width: 36px;
+}
+
+.banner-dot[aria-pressed="true"]::before {
+  width: 28px;
+  background: var(--text);
+}
+
+.banner-position {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.banner-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-field);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.banner-btn:hover {
+  border-color: var(--text);
+}
+
+.banner-play {
+  margin-left: auto;
+}
+
+.banner-btn .icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner-slide,
+  .banner-dot::before {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .banner {
+    margin-bottom: 28px;
+  }
+
+  .banner-frame {
+    height: 220px;
+  }
+
+  .banner-caption {
+    gap: 4px;
+    padding: 14px 16px;
+  }
+
+  .banner-title {
+    font-size: 19px;
+  }
+
+  .banner-sub {
+    font-size: 13px;
+  }
+
+  .banner-btn {
+    width: 40px;
+    height: 40px;
+  }
 }
 
 .home-blogs {
@@ -1058,13 +1263,6 @@ body.modal-open {
 
 .home-blogs .list-header h2 {
   margin: 0;
-}
-
-@media (max-width: 560px) {
-  .home-hero {
-    padding: 12px 0 24px;
-  }
-
 }
 
 .view-switch {
@@ -1106,20 +1304,29 @@ body.modal-open {
 }
 
 .home-view .list-header {
-  margin-bottom: 18px;
+  align-items: baseline;
+  margin-bottom: 14px;
 }
 
 .home-view .list-header h1 {
   margin: 0;
+  font-size: 20px;
 }
 
+.home-view .list-header .text-link {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 내 블로그 목록: 작은 그림(60px)과 이름 한 줄, 맨 끝 [+ 만들기]. 많으면 옆으로 밀어 본다 (D-132) */
 .blog-icons {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
-  gap: 24px 16px;
+  display: flex;
+  gap: 12px;
   margin: 0;
-  padding: 0;
+  padding: 0 0 6px;
+  overflow-x: auto;
   list-style: none;
+  scrollbar-width: thin;
 }
 
 .blog-icons.hidden {
@@ -1129,21 +1336,21 @@ body.modal-open {
 .blog-icon {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 0;
+  align-items: center;
+  gap: 8px;
+  width: 76px;
+  padding: 2px 0;
   color: var(--text);
-  text-align: left;
   text-decoration: none;
 }
 
 .blog-icon-cover {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 3;
+  width: 60px;
+  height: 60px;
   object-fit: cover;
   border-radius: var(--radius-tile);
   border: 1px solid transparent;
@@ -1159,7 +1366,7 @@ body.modal-open {
   width: auto;
   aspect-ratio: auto;
   background: none;
-  font-size: 38px;
+  font-size: 22px;
 }
 
 .blog-icon:hover .blog-icon-cover,
@@ -1174,33 +1381,24 @@ body.modal-open {
 
 .blog-icon-name {
   max-width: 100%;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.blog-icon-role {
-  margin-top: -4px;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .blog-icon-plus {
   border: 1px dashed var(--line);
   background: transparent;
   color: var(--muted);
-  font-size: 36px;
+  font-size: 24px;
   line-height: 1;
 }
 
 .blog-icon.create .blog-icon-name {
   color: var(--muted);
-  font-weight: 400;
 }
 
 .home-empty {
@@ -1221,10 +1419,6 @@ body.modal-open {
 }
 
 @media (max-width: 560px) {
-  .blog-icons {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .view-switch:not(.hidden) {
     display: flex;
     gap: 20px;
@@ -1304,9 +1498,11 @@ body.modal-open {
   font-size: 24px;
 }
 
-/* 메인 "내 블로그" 아래: 참여 중인 블로그의 새 글 (D-113) */
+/* 메인 "내 블로그" 아래: 참여 중인 블로그의 새 글 (D-113). 작은 블로그 목록과 선으로 나눈다 (D-132) */
 .home-posts {
-  margin-top: 28px;
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
 }
 
 .home-posts h2 {
@@ -2554,6 +2750,116 @@ button.like-button[aria-pressed="true"] .icon {
   color: var(--muted);
 }
 
+/* 관리자 "배너" 탭 (ADM-08, D-132): 인기 글 설정·미리보기, 광고 목록과 추가·수정 칸 */
+.banner-admin-section + .banner-admin-section {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.banner-admin-section h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.banner-settings {
+  align-items: center;
+  gap: 16px;
+  margin: 14px 0;
+}
+
+.banner-settings button.inline-button {
+  width: auto;
+  margin-top: 0;
+}
+
+.banner-admin-preview {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.banner-admin-preview a,
+.banner-admin-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.banner-admin-preview a > span,
+.banner-admin-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.banner-admin-thumb {
+  flex: none;
+  width: 96px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.banner-admin-order {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.banner-admin-form {
+  max-width: 640px;
+  margin-top: 28px;
+}
+
+.banner-admin-form h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.banner-admin-image {
+  display: grid;
+  place-items: center;
+  height: 140px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-field);
+  background: var(--bg);
+}
+
+.banner-admin-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banner-admin-field {
+  margin-bottom: 4px;
+}
+
+.banner-admin-form .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 14px;
+}
+
+.banner-admin-form .checkbox input {
+  width: auto;
+}
+
+.banner-admin-form .row button {
+  width: auto;
+  margin-top: 0;
+}
+
 /* ── 카테고리 (008) ────────────────────────────────── */
 
 .category-area {
@@ -3247,10 +3553,6 @@ a.user-name:hover {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-
-  .home-hero {
-    padding-top: 4px;
   }
 
   .list-header .button-link {

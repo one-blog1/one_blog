@@ -1,6 +1,6 @@
 // 메인 첫 화면 (BLG-06, BRD-09, D-100, D-111, D-113): [내 블로그][메인 피드][참여 신청] 전환.
 // 내 블로그는 참여 중인 블로그 아이콘과 그 블로그들의 새 글([전체]·블로그별 단추, 019), 참여 신청은 기다리는 신청 목록과 취소.
-// - 로그인한 회원: 공지 아래 [내 블로그][메인 피드]. 기본은 "내 블로그"(참여 중인 블로그를 아이콘과 이름으로)
+// - 로그인한 회원: 공지 아래 [내 블로그][메인 피드]. 기본은 "내 블로그"(배너 아래 참여 중인 블로그를 작은 그림과 이름으로, D-132)
 // - 비회원·관리자: 메인 피드만
 // 주소 /?view=feed 이면 메인 피드로 연다. 로고(/)를 누르면 늘 "내 블로그"로 돌아온다.
 // "내 블로그의 새 글"에서 글을 읽고 뒤로 오면 같은 블로그 단추·같은 페이지·같은 스크롤 위치로 돌아온다(이 탭에만 기억).
@@ -60,6 +60,8 @@
     if (target === 'requests') {
       loadRequests();
     }
+    // 배너는 내 블로그·메인 피드에서만 (main-banner.js, D-132)
+    document.dispatchEvent(new CustomEvent('home:view', { detail: target }));
   }
 
   function choose(view) {
@@ -77,12 +79,7 @@
     name.className = 'blog-icon-name';
     name.textContent = blog.name;
     a.append(name);
-    if (blog.role === 'OWNER') {
-      const role = document.createElement('span');
-      role.className = 'blog-icon-role';
-      role.textContent = '블로그장';
-      a.append(role);
-    }
+    a.title = blog.name; // 이름이 길면 한 줄에서 잘리므로 마우스를 올리면 전체 이름
     li.append(a);
     return li;
   }
@@ -98,7 +95,8 @@
     plus.textContent = '+';
     const name = document.createElement('span');
     name.className = 'blog-icon-name';
-    name.textContent = '블로그 만들기';
+    name.textContent = '만들기';
+    a.setAttribute('aria-label', '블로그 만들기');
     a.append(plus, name);
     li.append(a);
     return li;

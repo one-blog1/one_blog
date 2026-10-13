@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 관리자 화면. 통계, 회원·블로그·글·댓글 관리, 신고 처리, 공지, 활동 기록 (ADM-01~07). -->
+<!-- 관리자 화면. 통계, 회원·블로그·글·댓글 관리, 신고 처리, 공지, 메인 배너, 활동 기록 (ADM-01~08). -->
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -29,6 +29,7 @@
         <button type="button" role="tab" data-tab="comments" aria-selected="false">댓글</button>
         <button type="button" role="tab" data-tab="reports" aria-selected="false">신고</button>
         <button type="button" role="tab" data-tab="notices" aria-selected="false">공지</button>
+        <button type="button" role="tab" data-tab="banners" aria-selected="false">배너</button>
         <button type="button" role="tab" data-tab="actions" aria-selected="false">활동 기록</button>
       </nav>
       <form id="search-form" class="row search-row hidden">
@@ -72,6 +73,7 @@
   <script src="https://uicdn.toast.com/editor/3.2.2/i18n/ko-kr.min.js"></script>
   <script src="/js/components/editor.js"></script>
   <script src="/js/pages/admin/admin-reports.js"></script>
+  <script src="/js/pages/admin/admin-banners.js"></script>
   <script src="/js/pages/admin/admin.js"></script>
 </body>
 </html>
