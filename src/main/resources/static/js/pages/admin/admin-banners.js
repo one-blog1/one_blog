@@ -1,11 +1,18 @@
-// 관리자 "배너" 탭 (ADM-08, 6.8, D-132): 메인 배너의 광고를 넣고 고치고 지우고 순서를 바꾸며,
-// 인기 글(자동)의 개수·기간을 정하고 지금 나갈 인기 글을 미리 본다. 조치는 서버가 활동 기록에 남긴다 (ADM-06).
+// 관리자 "배너" 탭 (ADM-08, 6.8, D-132, D-133): 메인 배너에 관리자가 넣는 광고·공지·이벤트를 넣고 고치고 지우고 순서를 바꾸며,
+// 자동으로 넣는 인기 글·새 블로그·인기 블로그의 개수·기간을 정하고 지금 나갈 것을 미리 본다. 조치는 서버가 활동 기록에 남긴다 (ADM-06).
 // 서버가 준 값은 textContent로만 넣고, 사진은 /files/ 주소만 쓴다 (SEC-06).
 (function () {
   'use strict';
 
   const el = window.ui.el;
   const DAYS = [[1, '오늘(1일)'], [7, '최근 7일'], [30, '최근 30일']];
+  const KINDS = [['AD', '광고'], ['NOTICE', '공지'], ['EVENT', '이벤트']];
+  // 자동 종류: 설정 이름, 화면 이름, 설명
+  const AUTO = [
+    ['popular', '인기 글', '썸네일(첫 사진·영상)이 있는 글을 좋아요 많은 순으로. 사진과 제목은 글에서 가져와요.'],
+    ['newBlog', '새 블로그', '기간 안에 만든 공개 블로그, 최신순. 대표 이미지가 없으면 블로그 색과 첫 글자로 보여요.'],
+    ['popularBlog', '인기 블로그', '기간 안에 새 멤버가 많이 들어온 공개 블로그. 새 블로그로 나온 블로그는 빠져요.']
+  ];
 
   let ctx = null; // { content, message, reload }
   let editing = null; // 고치는 광고 (없으면 새 광고)
@@ -49,42 +56,63 @@
     ctx.content.querySelectorAll('[data-error-for^="banner-"]').forEach(n => { n.textContent = ''; });
   }
 
-  // ---- 인기 글 (자동) ----
-  function popularSection(data) {
+  // ---- 자동으로 넣는 것: 인기 글·새 블로그·인기 블로그 ----
+  function autoSection(data) {
     const section = el('section', 'banner-admin-section');
-    section.append(el('h2', null, '인기 글 (자동)'));
-    section.append(el('p', 'hint', '최근 글 중 좋아요가 있고 썸네일(첫 사진·영상)이 있는 글을 좋아요 많은 순으로 넣어요. 사진과 제목은 글에서 가져와요.'));
-    const form = el('form', 'row banner-settings');
-    const count = el('select');
-    count.append(new Option('0개 (인기 글 끄기)', '0'));
-    for (let i = 1; i <= 5; i++) {
-      count.append(new Option(i + '개', String(i)));
-    }
-    count.value = String(data.settings.popularCount);
-    const days = el('select');
-    DAYS.forEach(([v, label]) => days.append(new Option(label, String(v))));
-    days.value = String(data.settings.popularDays);
-    const countLabel = el('label', 'inline', '개수');
-    countLabel.append(count);
-    const daysLabel = el('label', 'inline', '기간');
-    daysLabel.append(days);
+    section.append(el('h2', null, '자동으로 넣는 것'));
+    section.append(el('p', 'hint', '종류마다 개수와 기간을 고르세요. 0개면 그 종류는 넣지 않아요. 조건에 맞는 것이 적으면 고른 개수보다 적게 나가요.'));
+    const form = el('form', 'banner-auto-form');
+    const selects = {};
+    AUTO.forEach(([key, name, help]) => {
+      const row = el('div', 'banner-auto-row');
+      row.append(el('strong', 'banner-auto-name', name));
+      const count = el('select');
+      count.setAttribute('aria-label', name + ' 개수');
+      for (let i = 0; i <= 5; i++) {
+        count.append(new Option(i === 0 ? '0개 (끄기)' : i + '개', String(i)));
+      }
+      count.value = String(data.settings[key].count);
+      const days = el('select');
+      days.setAttribute('aria-label', name + ' 기간');
+      DAYS.forEach(([v, label]) => days.append(new Option(label, String(v))));
+      days.value = String(data.settings[key].days);
+      selects[key] = { count: count, days: days };
+      row.append(count, days);
+      const preview = (data.autoPreview && data.autoPreview[key]) || [];
+      const wanted = data.settings[key].count;
+      row.append(el('span', 'hint banner-auto-help', help));
+      row.append(previewList(preview, wanted));
+      form.append(row);
+    });
     const save = el('button', 'secondary inline-button', '저장');
     save.type = 'submit';
-    form.append(countLabel, daysLabel, save);
+    form.append(save);
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const r = await window.api.put('/api/admin/banner-settings',
-        { popularCount: Number(count.value), popularDays: Number(days.value) }, { userAction: true });
+      const body = {};
+      AUTO.forEach(([key]) => {
+        body[key] = { count: Number(selects[key].count.value), days: Number(selects[key].days.value) };
+      });
+      const r = await window.api.put('/api/admin/banner-settings', body, { userAction: true });
       await ctx.reload();
-      ctx.message(r.ok ? '인기 글 설정을 저장했습니다.' : ((r.data && r.data.message) || '저장하지 못했습니다.'));
+      ctx.message(r.ok ? '자동 배너 설정을 저장했습니다.' : ((r.data && r.data.message) || '저장하지 못했습니다.'));
     });
     section.append(form);
+    return section;
+  }
 
-    const preview = data.popularPreview || [];
-    if (preview.length === 0) {
-      section.append(el('p', 'hint', data.settings.popularCount === 0
-        ? '인기 글이 0개라 배너에는 광고만 나가요.' : '지금 조건에 맞는 인기 글이 없어요.'));
-    } else {
+  /** 지금 나갈 자동 배너. 고른 개수보다 적으면 그 이유를 알려 준다. */
+  function previewList(preview, wanted) {
+    const box = el('div', 'banner-auto-preview');
+    if (wanted === 0) {
+      box.append(el('p', 'hint', '넣지 않아요.'));
+      return box;
+    }
+    if (preview.length < wanted) {
+      box.append(el('p', 'hint', wanted + '개를 골랐지만 지금 조건에 맞는 것이 ' + preview.length + '개라 '
+        + preview.length + '개만 나가요. 기간을 늘리면 더 나올 수 있어요.'));
+    }
+    if (preview.length > 0) {
       const list = el('ul', 'banner-admin-preview');
       preview.forEach(p => {
         const li = el('li');
@@ -99,16 +127,16 @@
         li.append(a);
         list.append(li);
       });
-      section.append(el('p', 'hint', '지금 나갈 인기 글'), list);
+      box.append(list);
     }
-    return section;
+    return box;
   }
 
-  // ---- 광고 ----
+  // ---- 관리자가 넣는 것: 광고·공지·이벤트 ----
   function adForm() {
     const form = el('form', 'banner-admin-form');
     form.noValidate = true;
-    const heading = el('h3', null, editing ? '"' + editing.title + '" 광고 고치기' : '광고 추가');
+    const heading = el('h3', null, editing ? '"' + editing.title + '" 고치기' : '배너 추가');
     const preview = el('div', 'banner-admin-image');
     const showImage = (url) => preview.replaceChildren(url ? img(url, 'banner-admin-photo') : el('span', 'hint', '사진을 골라 주세요'));
     showImage(editing ? editing.imageUrl : null);
@@ -131,6 +159,9 @@
         setError('image', (r.data && r.data.message) || '사진을 올리지 못했습니다.');
       }
     });
+    const kind = el('select');
+    KINDS.forEach(([v, label]) => kind.append(new Option(label, v)));
+    kind.value = editing ? editing.kind : 'AD';
     const title = el('input');
     title.type = 'text';
     title.maxLength = 100;
@@ -150,7 +181,7 @@
     const visibleLabel = el('label', 'checkbox');
     visibleLabel.append(visible, document.createTextNode(' 메인에 보이기'));
 
-    const submit = el('button', 'primary inline-button', editing ? '수정 저장' : '광고 추가');
+    const submit = el('button', 'primary inline-button', editing ? '수정 저장' : '배너 추가');
     submit.type = 'submit';
     const actions = el('div', 'row');
     actions.append(submit);
@@ -165,22 +196,23 @@
     }
 
     form.append(heading, preview,
+      field('banner-kind', '종류', kind, '배너에 "광고"·"공지"·"이벤트" 표시가 붙어요.'),
       field('banner-image', '사진', file, 'jpg·png·gif·webp, 3MB까지. 가로로 긴 사진(1080×380 이상)이 좋아요. 가운데를 기준으로 잘려 보여요.'),
       field('banner-title', '제목', title),
-      field('banner-caption', '작은 글씨 (광고주 등, 비워도 돼요)', caption),
+      field('banner-caption', '작은 글씨 (광고주·기간 등, 비워도 돼요)', caption),
       field('banner-linkUrl', '링크', link, '바깥 주소는 새 창으로 열려요.'),
       visibleLabel, actions);
     // 사진 칸 오류 이름을 image로 맞춘다 (서버 필드는 imageFileId)
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
-      const body = { title: title.value.trim(), caption: caption.value.trim(), linkUrl: link.value.trim(),
+      const body = { kind: kind.value, title: title.value.trim(), caption: caption.value.trim(), linkUrl: link.value.trim(),
         imageFileId: imageFileId, visible: visible.checked };
       const r = editing
         ? await window.api.put('/api/admin/banners/' + encodeURIComponent(editing.id), body, { userAction: true })
         : await window.api.post('/api/admin/banners', body, { userAction: true });
       if (r.ok) {
-        const done = editing ? '광고를 고쳤습니다.' : '광고를 추가했습니다.';
+        const done = editing ? '배너를 고쳤습니다.' : '배너를 추가했습니다.';
         editing = null;
         await ctx.reload();
         ctx.message(done);
@@ -194,13 +226,13 @@
   }
 
   function adTable(data, helpers) {
-    const ads = data.ads || [];
+    const ads = data.banners || [];
     if (ads.length === 0) {
-      return el('p', 'hint', '아직 광고가 없어요.');
+      return el('p', 'hint', '아직 넣은 배너가 없어요.');
     }
     let shown = 0;
-    return helpers.table(['사진', '제목', '링크', '노출', '순서', ''], ads.map((ad, i) => {
-      const live = ad.visible && shown < data.maxVisibleAds;
+    return helpers.table(['종류', '사진', '제목', '링크', '노출', '순서', ''], ads.map((ad, i) => {
+      const live = ad.visible && shown < data.maxVisibleBanners;
       if (ad.visible) {
         shown++;
       }
@@ -213,7 +245,7 @@
       linkCell.href = ad.linkUrl;
       linkCell.target = '_blank';
       linkCell.rel = 'noopener noreferrer';
-      const state = el('span', null, ad.visible ? (live ? '보임' : '대기 (' + data.maxVisibleAds + '개 넘음)') : '숨김');
+      const state = el('span', null, ad.visible ? (live ? '보임' : '대기 (' + data.maxVisibleBanners + '개 넘음)') : '숨김');
       const order = el('span', 'banner-admin-order');
       const move = (direction) => async () => {
         const r = await window.api.post('/api/admin/banners/' + encodeURIComponent(ad.id) + '/move',
@@ -231,10 +263,10 @@
       const actions = el('span');
       actions.append(helpers.button(ad.visible ? '숨기기' : '보이기', async () => {
         const r = await window.api.put('/api/admin/banners/' + encodeURIComponent(ad.id), {
-          title: ad.title, caption: ad.caption, linkUrl: ad.linkUrl, imageFileId: ad.imageFileId, visible: !ad.visible
+          kind: ad.kind, title: ad.title, caption: ad.caption, linkUrl: ad.linkUrl, imageFileId: ad.imageFileId, visible: !ad.visible
         }, { userAction: true });
         await ctx.reload();
-        ctx.message(r.ok ? (ad.visible ? '광고를 숨겼습니다.' : '광고를 보이게 했습니다.') : '바꾸지 못했습니다.');
+        ctx.message(r.ok ? (ad.visible ? '배너를 숨겼습니다.' : '배너를 보이게 했습니다.') : '바꾸지 못했습니다.');
       }), helpers.button('수정', () => {
         editing = ad;
         render(data, helpers);
@@ -243,7 +275,7 @@
           form.scrollIntoView({ block: 'start' });
         }
       }), helpers.button('삭제', async () => {
-        if (!await window.dialog.confirm('"' + ad.title + '" 광고를 삭제할까요?')) {
+        if (!await window.dialog.confirm('"' + ad.title + '" 배너를 삭제할까요?')) {
           return;
         }
         const r = await window.api.delete('/api/admin/banners/' + encodeURIComponent(ad.id), { userAction: true });
@@ -251,18 +283,18 @@
           editing = null;
         }
         await ctx.reload();
-        ctx.message(r.ok ? '광고를 삭제했습니다.' : '삭제하지 못했습니다.');
+        ctx.message(r.ok ? '배너를 삭제했습니다.' : '삭제하지 못했습니다.');
       }, 'link-button danger'));
-      return [img(ad.imageUrl, 'banner-admin-thumb'), titleCell, linkCell, state, order, actions];
+      return [ad.kindLabel || ad.kind, img(ad.imageUrl, 'banner-admin-thumb'), titleCell, linkCell, state, order, actions];
     }));
   }
 
   function render(data, helpers) {
     const box = el('div', 'banner-admin');
-    box.append(popularSection(data));
+    box.append(autoSection(data));
     const ads = el('section', 'banner-admin-section');
-    ads.append(el('h2', null, '광고'));
-    ads.append(el('p', 'hint', '노출을 켠 광고 중 위에서부터 ' + data.maxVisibleAds + '개가 인기 글과 번갈아 나가요. 배너에는 늘 "광고" 표시가 붙어요.'));
+    ads.append(el('h2', null, '관리자가 넣는 것 (광고·공지·이벤트)'));
+    ads.append(el('p', 'hint', '노출을 켠 배너 중 위에서부터 ' + data.maxVisibleBanners + '개가 나가요. 배너는 인기 글 → 관리자 배너 → 새 블로그 → 인기 블로그 순서로 하나씩 번갈아 놓여요.'));
     ads.append(adTable(data, helpers), adForm());
     box.append(ads);
     ctx.content.replaceChildren(box);

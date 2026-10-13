@@ -42,7 +42,7 @@
       link.href = href;
       if (item.external) {
         link.target = '_blank';
-        link.rel = 'noopener noreferrer sponsored';
+        link.rel = item.kind === 'AD' ? 'noopener noreferrer sponsored' : 'noopener noreferrer';
       }
     }
     const image = safeImage(item.imageUrl);
@@ -53,9 +53,13 @@
       img.loading = index === 0 ? 'eager' : 'lazy';
       img.decoding = 'async';
       link.append(img);
+    } else if (item.blogSlug && window.blogCard) {
+      // 대표 이미지가 없는 블로그: 그 블로그 색과 첫 글자 (blog-card와 같은 표지)
+      link.append(window.blogCard.cover({ slug: item.blogSlug, name: item.title }, 'banner-image banner-tile'));
     }
     const caption = el('span', 'banner-caption');
     caption.append(el('span', 'banner-label' + (item.kind === 'AD' ? ' ad' : ''), item.label || ''));
+    // 종류: 자동(인기 글·새 블로그·인기 블로그)과 관리자(광고·공지·이벤트). 광고만 초록 표시 (D-133)
     caption.append(el('strong', 'banner-title', item.title || ''));
     if (item.caption) {
       caption.append(el('span', 'banner-sub', item.caption));

@@ -23,7 +23,7 @@ import com.oneblog.post.PostTestSupport;
 
 import jakarta.servlet.http.Cookie;
 
-/** 025 메인 배너 (BRD-12, ADM-08, 6.8, D-132): 인기 글은 자동, 광고는 관리자가 넣고, 둘을 번갈아 보여 준다. */
+/** 025 메인 배너 (BRD-12, ADM-08, 6.8, D-132, D-133): 인기 글·새 블로그·인기 블로그는 자동, 광고·공지·이벤트는 관리자, 종류를 번갈아 보여 준다. */
 class BannerIntegrationTest extends PostTestSupport {
 
     private Cookie owner;
@@ -69,20 +69,39 @@ class BannerIntegrationTest extends PostTestSupport {
     }
 
     private Long createAd(String title, String link, boolean visible) throws Exception {
+        return createBanner("AD", title, link, visible);
+    }
+
+    private Long createBanner(String kind, String title, String link, boolean visible) throws Exception {
         String body = saveAd("POST", "/api/admin/banners", """
-                {"title":"%s","caption":"광고주","linkUrl":"%s","imageFileId":%d,"visible":%s}
-                """.formatted(title, link, uploadBannerImage(), visible))
+                {"kind":"%s","title":"%s","caption":"광고주","linkUrl":"%s","imageFileId":%d,"visible":%s}
+                """.formatted(kind, title, link, uploadBannerImage(), visible))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(body, "$.id")).longValue();
     }
 
+    private void settings(String json) throws Exception {
+        mvc.perform(put("/api/admin/banner-settings").with(csrf()).cookie(admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(json))
+                .andExpect(status().isOk());
+    }
+
+    /** 자동 종류 중 인기 글만 켠다. */
+    private void popularOnly(int count, int days) throws Exception {
+        settings("""
+                {"popular":{"count":%d,"days":%d},"newBlog":{"count":0,"days":30},"popularBlog":{"count":0,"days":30}}
+                """.formatted(count, days));
+    }
+
     @Test
     void 보여_줄_것이_없으면_빈_목록이고_누구나_본다() throws Exception {
+        popularOnly(0, 7);
         mvc.perform(get("/api/banners")).andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     @Test
-    void 인기_글은_최근_공개_글_중_썸네일과_좋아요가_있는_글만_좋아요_순으로() throws Exception {
+    void 인기_글은_최근_공개_글_중_썸네일이_있는_글을_좋아요_순으로_정한_개수만큼() throws Exception {
+        popularOnly(3, 7);
         Long top = photoPost("banner-blog", "좋아요 많은 글");
         Long second = photoPost("banner-blog", "좋아요 적은 글");
         Long noLike = photoPost("banner-blog", "좋아요 없는 글");
@@ -97,23 +116,22 @@ class BannerIntegrationTest extends PostTestSupport {
         like(secret, owner); // 비공개 블로그는 멤버만 누를 수 있다
         jdbc.update("UPDATE posts SET created_at = NOW() - INTERVAL 10 DAY WHERE id = ?", old);
 
+        // 좋아요가 없는 글도 개수를 채운다 (D-133). 사진 없는 글·기간 밖 글·비공개 블로그 글은 빠진다
         mvc.perform(get("/api/banners"))
-                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items", hasSize(3)))
                 .andExpect(jsonPath("$.items[0].kind").value("POPULAR"))
                 .andExpect(jsonPath("$.items[0].label").value("이번 주 인기"))
                 .andExpect(jsonPath("$.items[0].title").value("좋아요 많은 글"))
                 .andExpect(jsonPath("$.items[0].caption").value("블로그 banner-blog · 좋아요 2"))
                 .andExpect(jsonPath("$.items[0].linkUrl").value("/blog/banner-blog/posts/" + top))
                 .andExpect(jsonPath("$.items[0].external").value(false))
-                .andExpect(jsonPath("$.items[1].title").value("좋아요 적은 글"));
-        assertThat(noLike).isNotNull();
+                .andExpect(jsonPath("$.items[1].title").value("좋아요 적은 글"))
+                .andExpect(jsonPath("$.items[2].linkUrl").value("/blog/banner-blog/posts/" + noLike));
 
         // 기간을 30일로 넓히면 오래된 글도 들어온다
-        mvc.perform(put("/api/admin/banner-settings").with(csrf()).cookie(admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"popularCount\":5,\"popularDays\":30}"))
-                .andExpect(status().isOk());
+        popularOnly(5, 30);
         mvc.perform(get("/api/banners"))
-                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items", hasSize(4)))
                 .andExpect(jsonPath("$.items[0].label").value("이번 달 인기"));
 
         // 차단한 회원의 글은 그 사람에게만 빠진다
@@ -121,14 +139,64 @@ class BannerIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/banners").cookie(reader)).andExpect(jsonPath("$.items", hasSize(0)));
 
         // 0개면 인기 글을 넣지 않는다
-        mvc.perform(put("/api/admin/banner-settings").with(csrf()).cookie(admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"popularCount\":0,\"popularDays\":7}"))
-                .andExpect(status().isOk());
+        popularOnly(0, 7);
         mvc.perform(get("/api/banners")).andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     @Test
+    void 새_블로그와_인기_블로그는_자동이고_같은_블로그는_한_번만() throws Exception {
+        settings("""
+                {"popular":{"count":0,"days":7},"newBlog":{"count":2,"days":30},"popularBlog":{"count":2,"days":30}}
+                """);
+        createBlog(owner, "old-blog", "PUBLIC").andExpect(status().isCreated());
+        jdbc.update("UPDATE blogs SET created_at = NOW() - INTERVAL 60 DAY, description = '오래된 블로그' WHERE slug = 'old-blog'");
+        addMember("old-blog", "banner-reader@example.com", "MEMBER");
+        addMember("banner-blog", "banner-reader@example.com", "MEMBER");
+
+        // banner-blog는 새 블로그이면서 새 멤버도 있지만 새 블로그로 한 번만 나온다. 비공개 블로그는 빠진다
+        mvc.perform(get("/api/banners"))
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[0].kind").value("NEW_BLOG"))
+                .andExpect(jsonPath("$.items[0].label").value("새 블로그"))
+                .andExpect(jsonPath("$.items[0].title").value("블로그 banner-blog"))
+                .andExpect(jsonPath("$.items[0].blogSlug").value("banner-blog"))
+                .andExpect(jsonPath("$.items[0].linkUrl").value("/blog/banner-blog"))
+                .andExpect(jsonPath("$.items[0].imageUrl").isEmpty())
+                .andExpect(jsonPath("$.items[1].kind").value("POPULAR_BLOG"))
+                .andExpect(jsonPath("$.items[1].label").value("인기 블로그"))
+                .andExpect(jsonPath("$.items[1].caption").value("멤버 2명 · 오래된 블로그"));
+    }
+
+    @Test
+    void 종류를_하나씩_번갈아_놓는다() throws Exception {
+        settings("""
+                {"popular":{"count":3,"days":7},"newBlog":{"count":2,"days":30},"popularBlog":{"count":0,"days":30}}
+                """);
+        Long post = photoPost("banner-blog", "인기 글");
+        like(post, reader);
+        createBanner("AD", "광고", "https://example.com/ad", true);
+        createBanner("NOTICE", "공지", "/notice.html", true);
+        createBanner("EVENT", "이벤트", "/blog/banner-blog", true);
+
+        mvc.perform(get("/api/banners"))
+                .andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.items[0].kind").value("POPULAR"))
+                .andExpect(jsonPath("$.items[1].kind").value("AD"))
+                .andExpect(jsonPath("$.items[2].kind").value("NEW_BLOG"))
+                .andExpect(jsonPath("$.items[3].kind").value("NOTICE"))
+                .andExpect(jsonPath("$.items[3].label").value("공지"))
+                .andExpect(jsonPath("$.items[4].kind").value("EVENT"))
+                .andExpect(jsonPath("$.items[4].label").value("이벤트"));
+        saveAd("POST", "/api/admin/banners", """
+                {"kind":"POPUP","title":"x","linkUrl":"https://example.com","imageFileId":%d}
+                """.formatted(uploadBannerImage()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("kind"));
+    }
+
+    @Test
     void 인기_글과_광고를_번갈아_놓고_노출을_끈_광고는_빠진다() throws Exception {
+        popularOnly(3, 7);
         Long post = photoPost("banner-blog", "인기 글");
         like(post, reader);
         createAd("첫 광고", "https://example.com/sale", true);
@@ -174,8 +242,10 @@ class BannerIntegrationTest extends PostTestSupport {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("title"));
         mvc.perform(put("/api/admin/banner-settings").with(csrf()).cookie(admin)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"popularCount\":6,\"popularDays\":3}"))
-                .andExpect(status().isBadRequest());
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"popular\":{\"count\":6,\"days\":3}}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("popular.count"))
+                .andExpect(jsonPath("$.fieldErrors[1].field").value("popular.days"));
     }
 
     @Test
@@ -208,13 +278,18 @@ class BannerIntegrationTest extends PostTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"direction\":\"up\"}"))
                 .andExpect(status().isNoContent());
         mvc.perform(get("/api/admin/banners").cookie(admin))
-                .andExpect(jsonPath("$.ads[0].id").value(second.intValue()))
-                .andExpect(jsonPath("$.ads[1].title").value("고친 광고"))
-                .andExpect(jsonPath("$.ads[1].caption").isEmpty())
-                .andExpect(jsonPath("$.ads[1].visible").value(false))
-                .andExpect(jsonPath("$.settings.popularCount").value(3))
-                .andExpect(jsonPath("$.settings.popularDays").value(7))
-                .andExpect(jsonPath("$.maxVisibleAds").value(5));
+                .andExpect(jsonPath("$.banners[0].id").value(second.intValue()))
+                .andExpect(jsonPath("$.banners[1].title").value("고친 광고"))
+                .andExpect(jsonPath("$.banners[1].kind").value("AD"))
+                .andExpect(jsonPath("$.banners[1].kindLabel").value("광고"))
+                .andExpect(jsonPath("$.banners[1].caption").isEmpty())
+                .andExpect(jsonPath("$.banners[1].visible").value(false))
+                .andExpect(jsonPath("$.settings.popular.count").value(3))
+                .andExpect(jsonPath("$.settings.popular.days").value(7))
+                .andExpect(jsonPath("$.settings.newBlog.count").value(2))
+                .andExpect(jsonPath("$.settings.popularBlog.days").value(30))
+                .andExpect(jsonPath("$.autoPreview.newBlog[0].title").value("블로그 banner-blog"))
+                .andExpect(jsonPath("$.maxVisibleBanners").value(8));
 
         mvc.perform(delete("/api/admin/banners/" + first).with(csrf()).cookie(admin)).andExpect(status().isNoContent());
         assertThat(jdbc.queryForObject("SELECT deleted_at IS NOT NULL FROM files WHERE id = ?", Boolean.class, newImage))

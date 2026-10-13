@@ -19,7 +19,7 @@ import com.oneblog.member.ValidationFailedException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/** 관리자 배너 관리 (ADM-08, 6.8, D-132). 모든 조치는 활동 기록에 남는다 (ADM-06). */
+/** 관리자 배너 관리 (ADM-08, 6.8, D-132, D-133): 광고·공지·이벤트와 자동 종류의 개수·기간. 모든 조치는 활동 기록에 남는다 (ADM-06). */
 @Service
 public class BannerAdminService {
 
@@ -41,17 +41,24 @@ public class BannerAdminService {
         this.actionLogger = actionLogger;
     }
 
-    /** imageFileId는 POST /api/admin/banners/image로 올린 사진. visible을 빼면 켬. */
-    public record BannerRequest(String title, String caption, String linkUrl, Long imageFileId, Boolean visible) {
+    /** kind: AD·NOTICE·EVENT(빼면 AD). imageFileId는 POST /api/admin/banners/image로 올린 사진. visible을 빼면 켬. */
+    public record BannerRequest(String kind, String title, String caption, String linkUrl, Long imageFileId,
+            Boolean visible) {
     }
 
-    public record BannerRow(Long id, String title, String caption, String linkUrl, Long imageFileId, String imageUrl,
-            boolean visible, int sortOrder) {
+    public record BannerRow(Long id, String kind, String kindLabel, String title, String caption, String linkUrl,
+            Long imageFileId, String imageUrl, boolean visible, int sortOrder) {
     }
 
-    /** 관리자 배너 탭 한 번에: 광고 목록, 인기 글 설정, 지금 나갈 인기 글 미리보기, 광고가 몇 개까지 나가는지. */
-    public record Overview(List<BannerRow> ads, BannerSettings settings, List<BannerSlide> popularPreview,
-            int maxVisibleAds) {
+    /**
+     * 관리자 배너 탭 한 번에: 관리자 배너 목록, 자동 종류 설정, 지금 나갈 자동 배너 미리보기(종류별),
+     * 관리자 배너가 몇 개까지 나가는지.
+     */
+    public record Overview(List<BannerRow> banners, BannerSettings settings, AutoPreview autoPreview,
+            int maxVisibleBanners) {
+    }
+
+    public record AutoPreview(List<BannerSlide> popular, List<BannerSlide> newBlog, List<BannerSlide> popularBlog) {
     }
 
     @Transactional(readOnly = true)
@@ -60,19 +67,23 @@ public class BannerAdminService {
         Map<Long, StoredFile> files = bannerService.images(banners);
         List<BannerRow> rows = banners.stream().map(b -> {
             StoredFile image = files.get(b.getImageFileId());
-            return new BannerRow(b.getId(), b.getTitle(), b.getCaption(), b.getLinkUrl(), b.getImageFileId(),
-                    image == null || image.isDeleted() ? null : image.url(), b.isVisible(), b.getSortOrder());
+            return new BannerRow(b.getId(), b.getKind().name(), b.getKind().label(), b.getTitle(), b.getCaption(),
+                    b.getLinkUrl(), b.getImageFileId(), image == null || image.isDeleted() ? null : image.url(),
+                    b.isVisible(), b.getSortOrder());
         }).toList();
         BannerSettings settings = BannerSettings.read(siteSettings);
-        return new Overview(rows, settings, bannerService.popular(settings, null), BannerSettings.MAX_ADS);
+        BannerService.Auto auto = bannerService.auto(settings, null);
+        return new Overview(rows, settings, new AutoPreview(auto.popular(), auto.newBlogs(), auto.popularBlogs()),
+                BannerSettings.MAX_MANUAL);
     }
 
     @Transactional
     public Banner create(BannerRequest body, AuthenticatedUser admin, HttpServletRequest request) {
         Clean clean = validate(body, null);
-        Banner banner = bannerRepository.saveAndFlush(Banner.create(admin.id(), clean.imageFileId, clean.title,
-                clean.caption, clean.linkUrl, clean.visible, nextSortOrder()));
-        actionLogger.log(admin, "BANNER_CREATE", "BANNER", banner.getId(), clean.title, request);
+        Banner banner = bannerRepository.saveAndFlush(Banner.create(admin.id(), clean.kind, clean.imageFileId,
+                clean.title, clean.caption, clean.linkUrl, clean.visible, nextSortOrder()));
+        actionLogger.log(admin, "BANNER_CREATE", "BANNER", banner.getId(), clean.kind.label() + ": " + clean.title,
+                request);
         return banner;
     }
 
@@ -81,12 +92,12 @@ public class BannerAdminService {
         Banner banner = find(id);
         Clean clean = validate(body, banner.getImageFileId());
         Long oldImage = banner.getImageFileId();
-        banner.change(clean.imageFileId, clean.title, clean.caption, clean.linkUrl, clean.visible);
+        banner.change(clean.kind, clean.imageFileId, clean.title, clean.caption, clean.linkUrl, clean.visible);
         if (!oldImage.equals(clean.imageFileId)) {
             fileRepository.findById(oldImage).ifPresent(StoredFile::markDeleted);
         }
         actionLogger.log(admin, "BANNER_UPDATE", "BANNER", id,
-                clean.title + (clean.visible ? "" : " (노출 끔)"), request);
+                clean.kind.label() + ": " + clean.title + (clean.visible ? "" : " (노출 끔)"), request);
     }
 
     @Transactional
@@ -128,32 +139,55 @@ public class BannerAdminService {
         actionLogger.log(admin, "BANNER_MOVE", "BANNER", id, step < 0 ? "위로" : "아래로", request);
     }
 
+    /** 자동 종류 설정. 빠진 종류(null)는 그대로 둔다. */
     @Transactional
-    public BannerSettings updateSettings(Integer popularCount, Integer popularDays, AuthenticatedUser admin,
-            HttpServletRequest request) {
+    public BannerSettings updateSettings(BannerSettings.Auto popular, BannerSettings.Auto newBlog,
+            BannerSettings.Auto popularBlog, AuthenticatedUser admin, HttpServletRequest request) {
         List<ErrorResponse.FieldError> errors = new ArrayList<>();
-        if (popularCount == null || popularCount < 0 || popularCount > BannerSettings.MAX_COUNT) {
-            errors.add(new ErrorResponse.FieldError("popularCount", "인기 글 수는 0~" + BannerSettings.MAX_COUNT + "개로 골라 주세요."));
-        }
-        if (popularDays == null || !BannerSettings.DAYS.contains(popularDays)) {
-            errors.add(new ErrorResponse.FieldError("popularDays", "기간은 1일, 7일, 30일 중에서 골라 주세요."));
-        }
+        check("popular", popular, errors);
+        check("newBlog", newBlog, errors);
+        check("popularBlog", popularBlog, errors);
         if (!errors.isEmpty()) {
             throw new ValidationFailedException(errors);
         }
-        siteSettings.put(BannerSettings.COUNT_KEY, String.valueOf(popularCount));
-        siteSettings.put(BannerSettings.DAYS_KEY, String.valueOf(popularDays));
-        actionLogger.log(admin, "BANNER_SETTINGS", "BANNER", 0L,
-                "인기 글 " + popularCount + "개, 최근 " + popularDays + "일", request);
-        return new BannerSettings(popularCount, popularDays);
+        BannerSettings current = BannerSettings.read(siteSettings);
+        BannerSettings next = new BannerSettings(popular == null ? current.popular() : popular,
+                newBlog == null ? current.newBlog() : newBlog, popularBlog == null ? current.popularBlog() : popularBlog);
+        BannerSettings.write(siteSettings, BannerSettings.POPULAR, next.popular());
+        BannerSettings.write(siteSettings, BannerSettings.NEW_BLOG, next.newBlog());
+        BannerSettings.write(siteSettings, BannerSettings.POPULAR_BLOG, next.popularBlog());
+        actionLogger.log(admin, "BANNER_SETTINGS", "BANNER", 0L, "인기 글 " + describe(next.popular())
+                + ", 새 블로그 " + describe(next.newBlog()) + ", 인기 블로그 " + describe(next.popularBlog()), request);
+        return next;
     }
 
-    private record Clean(String title, String caption, String linkUrl, Long imageFileId, boolean visible) {
+    private static String describe(BannerSettings.Auto auto) {
+        return auto.count() + "개/" + auto.days() + "일";
+    }
+
+    private static void check(String field, BannerSettings.Auto auto, List<ErrorResponse.FieldError> errors) {
+        if (auto == null) {
+            return;
+        }
+        if (!BannerSettings.validCount(auto.count())) {
+            errors.add(new ErrorResponse.FieldError(field + ".count", "개수는 0~" + BannerSettings.MAX_COUNT + "개로 골라 주세요."));
+        }
+        if (!BannerSettings.valid(auto.days())) {
+            errors.add(new ErrorResponse.FieldError(field + ".days", "기간은 1일, 7일, 30일 중에서 골라 주세요."));
+        }
+    }
+
+    private record Clean(BannerKind kind, String title, String caption, String linkUrl, Long imageFileId,
+            boolean visible) {
     }
 
     /** currentImage: 고칠 때 지금 사진(그대로 두면 다시 검사하지 않아도 됨). */
     private Clean validate(BannerRequest body, Long currentImage) {
         List<ErrorResponse.FieldError> errors = new ArrayList<>();
+        BannerKind kind = BannerKind.parse(body == null ? null : body.kind());
+        if (kind == null) {
+            errors.add(new ErrorResponse.FieldError("kind", "종류는 광고, 공지, 이벤트 중에서 골라 주세요."));
+        }
         String title = body == null || body.title() == null ? "" : body.title().strip();
         if (title.isEmpty() || title.length() > TITLE_MAX) {
             errors.add(new ErrorResponse.FieldError("title", "제목은 1~" + TITLE_MAX + "자로 적어 주세요."));
@@ -177,7 +211,7 @@ public class BannerAdminService {
         if (!errors.isEmpty()) {
             throw new ValidationFailedException(errors);
         }
-        return new Clean(title, caption, link, imageFileId, body.visible() == null || body.visible());
+        return new Clean(kind, title, caption, link, imageFileId, body.visible() == null || body.visible());
     }
 
     /** 배너용으로 올렸고, 지워지지 않았고, 다른 광고가 쓰지 않는 사진. */

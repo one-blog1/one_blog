@@ -88,12 +88,14 @@ public class BannerController {
         return ResponseEntity.noContent().build();
     }
 
-    public record SettingsRequest(Integer popularCount, Integer popularDays) {
+    /** 자동 종류마다 { count, days }. 빠진 종류는 그대로 둔다. */
+    public record SettingsRequest(BannerSettings.Auto popular, BannerSettings.Auto newBlog,
+            BannerSettings.Auto popularBlog) {
     }
 
     @PutMapping("/api/admin/banner-settings")
     public BannerSettings updateSettings(@RequestBody SettingsRequest body,
             @AuthenticationPrincipal AuthenticatedUser admin, HttpServletRequest request) {
-        return adminService.updateSettings(body.popularCount(), body.popularDays(), admin, request);
+        return adminService.updateSettings(body.popular(), body.newBlog(), body.popularBlog(), admin, request);
     }
 }

@@ -89,7 +89,8 @@ public class FeedService {
 
     /**
      * 메인 배너의 인기 글 (BRD-12, 6.8, D-132). 메인 피드 인기 글과 같은 범위(전체 공개 블로그의 공개 글, 차단한 회원 글 제외)에서
-     * 최근 days일 글 중 좋아요 1개 이상이고 썸네일(글 사진 또는 영상 썸네일)이 있는 글을 좋아요 많은 순으로 count개.
+     * 최근 days일 글 중 썸네일(글 사진 또는 영상 썸네일)이 있는 글을 좋아요 많은 순(같으면 조회수, 최신)으로 count개.
+     * 좋아요가 없어도 들어간다: 글이 적을 때 관리자가 정한 개수만큼 채우도록 (D-133).
      */
     @Transactional(readOnly = true)
     public List<PostCard> popularWithThumbnail(int count, int days, Long viewerId) {
@@ -101,11 +102,11 @@ public class FeedService {
                 .addValue("limit", count * 2);
         StringBuilder sql = new StringBuilder("SELECT p.id FROM posts p JOIN blogs b ON b.id = p.blog_id WHERE ")
                 .append(SearchService.VISIBLE_POST).append(" AND ").append(SearchService.VISIBLE_BLOG)
-                .append(" AND p.created_at >= :since AND p.like_count > 0")
+                .append(" AND p.created_at >= :since")
                 .append(" AND EXISTS (SELECT 1 FROM files f WHERE f.post_id = p.id AND f.deleted_at IS NULL")
                 .append(" AND f.purpose IN ('POST', 'VIDEO_THUMB'))");
         searchService.appendFilters(sql, args, viewerId);
-        sql.append(" ORDER BY p.like_count DESC, p.created_at DESC, p.id DESC LIMIT :limit");
+        sql.append(" ORDER BY p.like_count DESC, p.view_count DESC, p.created_at DESC, p.id DESC LIMIT :limit");
         List<Long> ids = jdbc.queryForList(sql.toString(), args, Long.class);
         // 첫 사진이 다른 사이트 사진이면 썸네일이 없을 수 있어 넉넉히 읽고 썸네일 있는 것만 남긴다
         return postCardService.cards(ids).stream().filter(c -> c.thumbnailUrl() != null).limit(count).toList();

@@ -28,7 +28,7 @@ import com.oneblog.tag.TagService;
 @Service
 public class SearchService {
 
-    static final String VISIBLE_BLOG = """
+    public static final String VISIBLE_BLOG = """
             b.visibility = 'PUBLIC' AND b.status <> 'CLOSED' AND b.deleted_at IS NULL AND b.is_hidden = 0""";
     static final String VISIBLE_POST = """
             p.post_type IN ('BLOG', 'BLOG_NOTICE') AND p.deleted_at IS NULL AND p.is_hidden = 0""";

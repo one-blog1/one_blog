@@ -1098,6 +1098,23 @@ body.modal-open {
   object-fit: cover;
 }
 
+/* 대표 이미지가 없는 블로그 배너: 블로그 색 바탕에 큰 첫 글자 (D-133) */
+.banner-tile.cover-tile {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 48px;
+  background: var(--tile);
+}
+
+.banner-tile .cover-initial {
+  width: auto;
+  aspect-ratio: auto;
+  background: none;
+  font-size: 120px;
+  line-height: 1;
+}
+
 .banner-caption {
   position: absolute;
   left: 0;
@@ -1139,8 +1156,12 @@ body.modal-open {
 }
 
 .banner-sub {
+  max-width: 100%;
+  overflow: hidden;
   font-size: 14px;
   color: #e3e5e8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .banner-controls {
@@ -1245,6 +1266,14 @@ body.modal-open {
 
   .banner-title {
     font-size: 19px;
+  }
+
+  .banner-tile.cover-tile {
+    padding-top: 28px;
+  }
+
+  .banner-tile .cover-initial {
+    font-size: 64px;
   }
 
   .banner-sub {
@@ -2762,15 +2791,46 @@ button.like-button[aria-pressed="true"] .icon {
   font-size: 20px;
 }
 
-.banner-settings {
+.banner-auto-row {
+  display: grid;
+  grid-template-columns: 110px auto auto 1fr;
   align-items: center;
-  gap: 16px;
-  margin: 14px 0;
+  gap: 8px 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.banner-settings button.inline-button {
+.banner-auto-row select {
+  margin-left: 0;
+}
+
+.banner-auto-help {
+  font-size: 13px;
+}
+
+.banner-auto-preview {
+  grid-column: 2 / -1;
+}
+
+.banner-auto-preview .hint {
+  margin: 0 0 6px;
+}
+
+.banner-auto-form > button.inline-button {
   width: auto;
-  margin-top: 0;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .banner-auto-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .banner-auto-name,
+  .banner-auto-help,
+  .banner-auto-preview {
+    grid-column: 1 / -1;
+  }
 }
 
 .banner-admin-preview {

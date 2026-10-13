@@ -2,8 +2,13 @@ package com.oneblog.banner;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -11,7 +16,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
-/** 메인 배너 광고 (Crowfoot ERD banners, BRD-12, ADM-08, D-132). 관리자가 직접 넣는다. 인기 글 배너는 자동이라 여기 없다. */
+/** 관리자가 넣는 메인 배너: 광고·공지·이벤트 (Crowfoot ERD banners, BRD-12, ADM-08, D-132, D-133). 자동 배너는 여기 없다. */
 @Entity
 @Table(name = "banners")
 public class Banner {
@@ -25,6 +30,11 @@ public class Banner {
 
     @Column(name = "image_file_id", nullable = false)
     private Long imageFileId;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "kind", length = 20, nullable = false)
+    private BannerKind kind;
 
     @Column(name = "title", length = 100, nullable = false)
     private String title;
@@ -50,16 +60,18 @@ public class Banner {
     protected Banner() {
     }
 
-    public static Banner create(Long adminId, Long imageFileId, String title, String caption, String linkUrl,
-            boolean visible, int sortOrder) {
+    public static Banner create(Long adminId, BannerKind kind, Long imageFileId, String title, String caption,
+            String linkUrl, boolean visible, int sortOrder) {
         Banner banner = new Banner();
         banner.adminId = adminId;
-        banner.change(imageFileId, title, caption, linkUrl, visible);
+        banner.change(kind, imageFileId, title, caption, linkUrl, visible);
         banner.sortOrder = (short) sortOrder;
         return banner;
     }
 
-    public void change(Long imageFileId, String title, String caption, String linkUrl, boolean visible) {
+    public void change(BannerKind kind, Long imageFileId, String title, String caption, String linkUrl,
+            boolean visible) {
+        this.kind = kind;
         this.imageFileId = imageFileId;
         this.title = title;
         this.caption = caption;
@@ -92,6 +104,10 @@ public class Banner {
 
     public Long getImageFileId() {
         return imageFileId;
+    }
+
+    public BannerKind getKind() {
+        return kind;
     }
 
     public String getTitle() {
