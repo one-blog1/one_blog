@@ -6,28 +6,39 @@
 
 ## 0. 자동 배포
 
+**브랜치** (D-136)
+
 ```
-build.gradle.kts의 version을 올려(배포마다 0.01씩, 예: 0.21 → 0.22. 규칙은 문서 저장소 releases/README.md, D-121) main에 push / PR merge
+feature/<기능이름>  ──(구현·CI 통과·확인)──▶  develop  ──(버전 올릴 때 merge)──▶  main ──▶ 배포
+hotfix/<이름>  ──(확인)──▶  main  과  develop  둘 다
+```
+
+- CI는 `main`, `develop`, `feature/**`, `hotfix/**`에 push할 때 돕니다. 배포는 `main`에서만 합니다.
+- feature 이름은 영어 기능 이름입니다 (예: 댓글 → `feature/comments`).
+
+```
+develop에서 build.gradle.kts의 version을 올리고(배포마다 0.01씩, 예: 0.17 → 0.18. 규칙은 문서 저장소 releases/README.md, D-121) develop을 main에 merge해 push (D-136)
   → CI (.github/workflows/ci.yml): 테스트, jar 실행 확인, Docker 실행 확인
   → CI가 성공하면 Deploy (.github/workflows/deploy.yml)
-      0) 버전 확인: 태그 v0.21이 아직 없을 때만 배포 (버전이 그대로면 CI만 돌고 끝)
+      0) 버전 확인: 태그 v<버전>(예: v0.18)이 아직 없을 때만 배포 (버전이 그대로면 CI만 돌고 끝)
       1) Docker 이미지 만들기 (태그 = 버전-커밋 앞 7자리)
       2) 이미지 + 프록시(nginx) 이미지 + scripts/deploy.sh + deploy.env(Secrets로 만듦)를 SSH로 서버 ~/one-blog/ 에 올림
       3) 서버에서 scripts/deploy.sh 실행 (무중단, D-135)
            쉬는 쪽(블루 8431 / 그린 8432)에 새 컨테이너 실행 → /api/health 확인
            → 8430 프록시가 새 포트로 보내도록 전환(nginx reload) → 옛 컨테이너 정상 종료(30초까지)
-           새 버전이 상태 확인에 실패하면 새 것만 치우고 Actions를 실패로 표시 (지금 버전은 그대로 요청을 받음)
-      4) 성공하면 그 커밋에 태그 v0.21을 붙임
+           새 버전이 상태 확인에 실패하면 새 것만 멈춰 one-blog-<색>-failed로 남기고 Actions를 실패로 표시 (지금 버전은 그대로 요청을 받음)
+      4) 성공하면 그 커밋에 태그 v<버전>을 붙임
 ```
 
 **버전 올리는 법**: `build.gradle.kts`의 `version = "..."` 한 줄만 바꿉니다. 번호 규칙과 릴리즈 노트·공지 순서는 문서 저장소 [releases/README.md](https://github.com/one-blog1/one-blog_docs/blob/main/releases/README.md)를 따릅니다.
 
-**지금 떠 있는 버전**: `curl http://<서버>:8430/api/health` → `{"status":"UP","version":"0.21"}`
+**지금 떠 있는 버전**: `curl http://<서버>:8430/api/health` → `{"status":"UP","version":"0.17"}`
 
-**다시 배포**(시크릿을 바꿨을 때 등): Actions → Deploy → Run workflow. 버전과 상관없이 지금 main을 다시 배포합니다.
+**다시 배포**(시크릿이나 서버 `secrets.env`를 바꿨을 때 등): Actions → Deploy → Run workflow. 버전과 상관없이 지금 main을 다시 배포합니다.
 
+**옛 이름 태그 주의**: 코드 저장소에 옛 이름 태그 `v0.1.0`·`v0.2.0`·`v0.21`(지금의 0.10·0.11·0.12, D-121)이 아직 남아 있으면, 버전을 0.21로 올렸을 때 `v0.21`이 이미 있다고 보고 배포를 건너뜁니다. 그 전에 옛 태그를 정리합니다.
 
-CI가 실패하면 배포하지 않습니다. 수동 배포는 Actions 탭의 Deploy에서 "Run workflow"를 누릅니다.
+CI가 실패하면 배포하지 않습니다.
 
 **GitHub Secrets** (Settings → Secrets and variables → Actions)
 
@@ -45,6 +56,11 @@ CI가 실패하면 배포하지 않습니다. 수동 배포는 Actions 탭의 De
 | `CODE_PEPPER`, `PRIVACY_HASH_PEPPER`, `JWT_SECRET` | 선택 | 넣으면 서버 `secrets.env` 대신 이 값을 씀. 로컬과 같은 DB를 쓰는 동안 `CODE_PEPPER`(`.env`에 있으면 `PRIVACY_HASH_PEPPER`도)는 로컬 `.env`와 같은 값이어야 함: 블랙리스트(이름·이메일·전화번호)를 이 값으로 해시해 DB에 저장하므로, 다르면 로컬에서 등록한 블랙리스트를 서버가 알아보지 못함 |
 
 `JWT_SECRET`, `CODE_PEPPER`를 Secrets에 넣지 않으면 처음 배포할 때 서버가 만들어 `~/one-blog/secrets.env`에 두고 이후 계속 같은 값을 씁니다. 이 파일을 지우면 모든 로그인이 풀리고, 이메일 인증 중이던 코드와 블랙리스트 확인이 맞지 않게 됩니다.
+
+**Secrets에 없는 값은 서버 `~/one-blog/secrets.env`에 넣습니다.** `deploy.yml`은 위 표의 값만 넘깁니다. `deploy.sh`가 `secrets.env`와 `deploy.env`를 합쳐 컨테이너에 넘기므로(같은 이름이면 `deploy.env`가 우선), 그 밖의 환경변수는 `secrets.env`에 `이름=값` 한 줄씩 더하고 Actions → Deploy → Run workflow로 다시 배포하면 적용됩니다.
+
+- Cloudflare Turnstile 운영 키: `TURNSTILE_SITE_KEY=...`, `TURNSTILE_SECRET_KEY=...` 두 줄 (둘 다 있어야 켜짐). 운영은 이 방법으로 넣어 두었습니다.
+- `FORWARD_HEADERS_STRATEGY`: 운영은 지금 넣지 않아 기본값 `none`입니다. 바꾸려면 같은 방법으로 넣고 다시 배포합니다 (아래 3장·4장).
 
 **서버에 필요한 것**: Docker, curl, x86_64 CPU. SSH 계정이 `docker` 명령을 쓸 수 있어야 합니다 (`sudo usermod -aG docker <계정>` 후 다시 접속, sudo는 필요 없음). 이 앱은 8430~8432를 씁니다(배정받은 8430~8439 안). 바깥 nginx는 8430으로만 보냅니다.
 
@@ -65,11 +81,11 @@ ls ~/one-blog                      # deploy.sh, deploy.env, secrets.env, proxy/
 ```
 
 - 배포 때마다 쉬는 색에 새 버전을 띄우고, 상태 확인을 통과하면 `~/one-blog/proxy/upstream.conf`를 새 포트로 바꾸고 `nginx -s reload`로 다시 읽습니다. 끊기는 요청이 없습니다.
-- 새 버전이 실패하면 지금 버전은 건드리지 않습니다. 실패한 컨테이너는 `one-blog-<색>-failed`로 남아 `docker logs`로 볼 수 있고, 다음 배포 때 지워집니다.
+- 새 버전이 실패하면 지금 버전은 건드리지 않습니다. 실패한 컨테이너는 멈춘 채 `one-blog-<색>-failed`로 남아 `docker logs one-blog-<색>-failed`로 볼 수 있고, 다음 배포 때 지워집니다.
 - 처음 한 번(예전 단일 컨테이너 `one-blog`가 8430을 쓰던 때)만 예전 컨테이너를 내리고 프록시를 띄우는 몇 초 동안 멈춥니다.
-- 이전 버전으로 되돌리려면 이전 커밋을 다시 배포합니다: `gh workflow run Deploy --ref <태그 또는 커밋>` (그 커밋의 deploy.yml로 돎).
+- 이전 버전으로 되돌리려면 이전 태그를 다시 배포합니다: `gh workflow run Deploy --ref <태그>` (그 태그의 deploy.yml·deploy.sh로 돎). **블루-그린(D-135)이 들어간 v0.18 이후 태그에만 씁니다.** v0.17까지의 태그는 예전 방식(8430에 컨테이너 하나)의 deploy.sh로 돌아 지금의 프록시·블루-그린 구조와 맞지 않으므로, 그 버전으로 되돌릴 때는 아래 "손으로 되돌릴 때"를 씁니다.
 - 손으로 되돌릴 때(서버에서): 옛 이미지(`docker images one-blog`)로 쉬는 색 포트에 컨테이너를 띄우고 `upstream.conf`를 그 포트로 바꾼 뒤 `docker exec one-blog-proxy nginx -s reload`.
-- 프록시는 바깥 nginx가 보낸 `X-Forwarded-For`·`X-Forwarded-Proto`를 그대로 넘깁니다. 앱은 `FORWARD_HEADERS_STRATEGY=none`이라 접속 IP를 프록시 주소(127.0.0.1)로 봅니다(예전에는 바깥 nginx 주소).
+- 프록시는 바깥 nginx가 보낸 `X-Forwarded-For`·`X-Forwarded-Proto`를 그대로 넘깁니다. 운영 앱은 아직 `FORWARD_HEADERS_STRATEGY=none`(`deploy.yml`이 넘기지 않아 기본값)이라 접속 IP를 프록시 주소(127.0.0.1)로 봅니다(예전에는 바깥 nginx 주소). 실제 접속 IP를 읽게 하려면 서버 `~/one-blog/secrets.env`에 `FORWARD_HEADERS_STRATEGY=framework`를 넣고 다시 배포합니다.
 
 업로드 파일은 Docker 볼륨 `one-blog-uploads`에 있어 새 버전을 배포해도 남고, 블루·그린이 같이 씁니다. 컨테이너는 호스트 네트워크로 띄워 서버와 같은 네트워크·DNS를 씁니다(서버에서 `nc -vz <DB 주소> <포트>`가 되면 앱도 DB에 닿음).
 
@@ -90,7 +106,7 @@ ls ~/one-blog                      # deploy.sh, deploy.env, secrets.env, proxy/
 | Spring Boot | 4.1.1 | `build.gradle.kts` |
 | Spring Security | 7.x | Spring Boot가 맞춰 줍니다 |
 | Hibernate (JPA) | 7.x | Spring Boot가 맞춰 줍니다 |
-| Flyway (+ flyway-mysql) | Spring Boot가 맞춤 | 마이그레이션 V1~V17은 `src/main/resources/db/migration`에 있습니다 |
+| Flyway (+ flyway-mysql) | Spring Boot가 맞춤 | 마이그레이션(지금 V1~V23)은 `src/main/resources/db/migration`에 있습니다 |
 | MySQL Connector/J | Spring Boot가 맞춤 | |
 | commonmark (마크다운) | 0.24.0 | `build.gradle.kts` |
 | jsoup (HTML 걸러내기) | 1.18.1 | `build.gradle.kts` |
@@ -110,8 +126,8 @@ ls ~/one-blog                      # deploy.sh, deploy.env, secrets.env, proxy/
 java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 ```
 
-- 포트는 기본 8080입니다. 바꾸려면 `PORT`나 `SERVER_PORT`를 줍니다. Elastic Beanstalk는 앞단 Nginx가 5000번으로 보내므로 `SERVER_PORT=5000`을 줍니다.
-- 앱은 실행한 폴더의 `.env`를 읽습니다. 서버에서는 `.env` 파일 대신 배포 환경의 환경변수 설정에 넣는 것을 권합니다.
+- 포트는 기본 8080입니다. 바꾸려면 `PORT`나 `SERVER_PORT`를 줍니다. 운영 배포에서는 `deploy.sh`가 블루 8431·그린 8432를 `PORT`로 줍니다.
+- 앱은 실행한 폴더의 `.env`를 읽습니다. 운영 서버에서는 `.env`를 쓰지 않고 GitHub Secrets(→ `deploy.env`)와 서버 `~/one-blog/secrets.env`로 넣습니다 (0장).
 - Docker로 배포할 때는 `docker build -t one-blog .`로 이미지를 만듭니다. 사용법은 `Dockerfile` 맨 위에 적어 두었습니다.
 - 종료 신호를 받으면 처리 중인 요청을 최대 20초 기다린 뒤 꺼집니다 (graceful shutdown).
 
@@ -130,18 +146,18 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 | `MAIL_MODE` | `smtp` | smtp |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | Gmail 주소, 앱 비밀번호 16자리 | 인증 메일 발송 실패 |
 | `PUBLIC_BASE_URL` | `https://실제-도메인` | 요청의 Host 헤더를 씀 |
-| `FORWARD_HEADERS_STRATEGY` | 로드밸런서나 Nginx 뒤에 두면 `framework` | none |
-| `FILE_STORAGE_DIR` | 서버를 바꿔도 남는 폴더 (EBS, 볼륨) | ./uploads |
+| `FORWARD_HEADERS_STRATEGY` | 로드밸런서나 Nginx 뒤에 두면 `framework`. 운영은 아직 넣지 않아 `none` (바꾸려면 서버 `secrets.env`, 0장) | none |
+| `FILE_STORAGE_DIR` | 서버를 바꿔도 남는 폴더. Docker 배포는 이미지 안 `/app/uploads`에 볼륨 `one-blog-uploads`를 붙임 | ./uploads |
 | `VIDEO_THUMBNAIL_ENABLED` | 보통 그대로. 서버가 바깥(유튜브·치지직·SOOP)으로 요청을 못 보내면 `false` | true (글 첫 영상 링크의 목록 썸네일을 받아 둠, D-128) |
 | `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD` | 처음 한 번 관리자 계정을 만들 때만 | 관리자를 만들지 않음 |
-| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare에서 받은 키 | 사람 확인 꺼짐 |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare에서 받은 키. 운영은 서버 `secrets.env`에 넣음 (0장) | 사람 확인 꺼짐 |
 | `KAKAO_CLIENT_ID`·`NAVER_CLIENT_ID`·`GOOGLE_CLIENT_ID`와 각 `_CLIENT_SECRET` | 각 사이트 개발자 화면에서 받은 키. 돌아오는 주소는 `{PUBLIC_BASE_URL}/login/oauth2/code/{kakao\|naver\|google}` | 그 사이트 로그인 단추가 안 보임 |
 
 ## 4. 배포 전 확인
 
 - [ ] GitHub Actions의 **CI가 초록불**입니다 (테스트, jar 실행, Docker 실행을 모두 통과).
 - [ ] **HTTPS로 접속합니다.** `COOKIE_SECURE=true`이면 http에서는 로그인 쿠키가 저장되지 않아 로그인이 안 됩니다. 인증서 없이 잠깐 http로 띄워 볼 때만 `false`로 둡니다.
-- [ ] 로드밸런서나 Nginx 뒤에 두면 `FORWARD_HEADERS_STRATEGY=framework`로 둡니다. 두지 않으면 모든 요청이 같은 IP로 보여 요청 제한에 걸립니다. 직접 받을 때는 켜지 않습니다 (IP를 속일 수 있음).
+- [ ] 로드밸런서나 Nginx 뒤에 두면 `FORWARD_HEADERS_STRATEGY=framework`로 둡니다. 두지 않으면 모든 요청이 같은 IP로 보여 요청 제한에 걸립니다. 직접 받을 때는 켜지 않습니다 (IP를 속일 수 있음). 운영은 아직 `none`입니다 (0장).
 - [ ] DB 계정에 테이블을 만들고 바꾸는 권한(CREATE, ALTER, INDEX, REFERENCES, DROP)이 있습니다. Flyway가 시작할 때 씁니다.
 - [ ] 업로드 폴더(`FILE_STORAGE_DIR`)가 배포 때 지워지지 않는 곳입니다.
 - [ ] 메일: `MAIL_MODE=smtp`와 Gmail 앱 비밀번호를 넣었습니다. `log`로 두면 가입 인증번호가 서버 로그에만 찍힙니다.
@@ -161,9 +177,9 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 
 배포한 뒤 기능을 고칠 때 서버가 시작하지 못하는 일을 막는 규칙입니다.
 
-1. **이미 적용된 마이그레이션 파일(V1~V17)은 고치지 않습니다.** 한 글자만 바뀌어도 Flyway 검사합(checksum)이 달라져 서버가 시작하지 않습니다. 바꿀 내용은 새 파일 `V18__...sql`로 더합니다. ERD를 먼저 고칩니다 (constitution IV).
+1. **이미 있는 마이그레이션 파일은 고치지 않고, 바꿀 내용은 다음 번호의 새 파일로 더합니다** (지금 V1~V23, 다음은 `V24__...sql`). 한 글자만 바뀌어도 Flyway 검사합(checksum)이 달라져 서버가 시작하지 않습니다. ERD를 먼저 고칩니다 (constitution IV).
 2. **DB 변경은 옛 버전과 새 버전이 함께 돌 수 있게 합니다** (4장 무중단 배포). 컬럼을 지우거나 이름을 바꿀 때는 "새 컬럼 추가 → 코드 전환 → 다음 배포에서 옛 컬럼 삭제"로 나눕니다.
 3. **엔티티와 테이블을 같이 바꿉니다.** `ddl-auto: validate`라서 엔티티에 있는 컬럼이 테이블에 없으면 시작하지 않습니다.
-4. **main에 올리기 전에 CI가 초록불인지 봅니다.** 빨간불이면 배포하지 않습니다.
+4. **develop에 merge하기 전(feature 브랜치)과 main에 merge하기 전에 CI가 초록불인지 봅니다** (D-136). 빨간불이면 배포하지 않습니다.
 5. **새 환경변수는 기본값을 둡니다** (`${이름:기본값}`). 기본값이 없으면 배포 환경에 넣는 것을 잊었을 때 시작하지 않습니다. 새 값은 `.env.example`과 이 문서 3장에 적습니다.
 6. **새 화면(HTML)은 `SecurityConfig`의 허용 목록에 더합니다.** 빠지면 그 화면이 403이 됩니다.

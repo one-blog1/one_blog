@@ -25,7 +25,9 @@
 | (선택) | `/speckit-analyze` | 명세·계획·작업 사이 일관성 점검 |
 | 4 | `/speckit-implement` | 작업 목록대로 구현 |
 
-결과물은 기능별로 `specs/<번호>-<기능명>/` 아래에 생깁니다. 기능을 마치면 그 폴더를 문서 저장소의 `specs/`로 옮기고 이 저장소에서는 지웁니다.
+specify·plan·tasks는 단계마다 결과를 보고 확인한 뒤 다음 단계로 갑니다 (D-136). 결과물은 기능별로 `specs/<번호>-<기능명>/` 아래에 생깁니다. 기능을 마치면 그 폴더를 문서 저장소의 `specs/`로 옮기고 이 저장소에서는 지웁니다.
+
+브랜치는 `feature/<영어 기능이름>` → `develop` → (버전을 올릴 때) `main`이고, 운영 버그는 `hotfix/<이름>`을 main에서 만들어 main·develop 둘 다에 merge합니다 (D-136). 배포는 main에서 버전을 올렸을 때만 합니다 ([DEPLOY.md](DEPLOY.md)).
 
 ## 기술 스택
 
@@ -34,7 +36,7 @@ Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 H
 ### 코드 위치
 
 - 서버(`src/main/java/com/oneblog/`): 기능별 패키지(auth, member, blog, post, comment, notification, admin, sanction …). 공통은 `common/`. 뒤에 붙는 기능은 앞 기능이 열어 둔 자리(`PostExtension`, `JoinGate`, `FollowGate`, `SearchFilter`, `*Listener`)를 구현해 끼어들고, 앞 기능의 코드는 고치지 않습니다.
-- 화면(`src/main/resources/static/`): HTML은 화면마다 하나. 스크립트는 `js/lib/`(모든 화면이 싣는 공통: api, ui, header, modal, theme, icons), `js/components/`(여러 화면이 같이 쓰는 부품: blog-card, post-item, pager, report …), `js/pages/`(화면 하나에만 쓰는 것. 파일이 여럿이면 `pages/blog/`처럼 폴더). 날짜 표시·글 주소 같은 공통 도우미는 `js/lib/ui.js`에만 둡니다.
+- 화면(`src/main/resources/static/`): HTML은 화면마다 하나. 스크립트는 `js/lib/`(모든 화면이 싣는 공통: api, ui, header, modal, theme, icons. 글쓰기 화면만 싣는 로그인 연장 session-keeper도 여기 있음), `js/components/`(여러 화면이 같이 쓰는 부품: blog-card, post-item, pager, report …), `js/pages/`(화면 하나에만 쓰는 것. 파일이 여럿이면 `pages/blog/`처럼 폴더). 날짜 표시·글 주소 같은 공통 도우미는 `js/lib/ui.js`에만 둡니다.
 - 스타일(`css/app.css`): 파일 맨 위 주석의 구성(바탕 → 공통 부품 → 화면별 → 가로지르는 규칙) 순서를 지킵니다. 새 화면의 규칙은 그 화면 자리에 넣고 파일 끝에 덧붙이지 않습니다.
 
 ## 로컬 실행
