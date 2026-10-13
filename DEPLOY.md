@@ -85,7 +85,7 @@ ls ~/one-blog                  # deploy.sh, deploy.env, secrets.env
 |---|---|---|
 | Toast UI Editor | 3.2.2 | `uicdn.toast.com` CDN (글쓰기 화면) |
 | Cloudflare Turnstile | v0 | `challenges.cloudflare.com` (키를 넣었을 때만) |
-| 글꼴 IBM Plex Sans KR, Jua | | `static/fonts`에 들어 있습니다 (외부에서 받지 않음) |
+| 글꼴 IBM Plex Sans KR, Noto Serif KR | | `static/fonts`에 들어 있습니다 (외부에서 받지 않음) |
 
 ## 2. 만들기와 실행
 

@@ -14,7 +14,7 @@ class StaticCacheIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 글꼴은_1년_동안_캐시한다() throws Exception {
-        mvc.perform(get("/fonts/jua-2-400-normal.woff2"))
+        mvc.perform(get("/fonts/noto-serif-kr-2-700-normal.woff2"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", Matchers.containsString("max-age=31536000")))
                 .andExpect(header().string("Cache-Control", Matchers.containsString("immutable")))
