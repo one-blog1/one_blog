@@ -13,7 +13,7 @@
 1. **Given** 글쓰기, **When** 한 줄에 영상 링크만 붙여 넣고 저장하면, **Then** 글 화면에서 그 자리에 재생기가 글 폭에 맞춰 16:9로 보인다.
 2. 지원 링크
    - 유튜브: `youtube.com/watch?v=`, `youtu.be/`, `youtube.com/shorts/`, `youtube.com/live/` (www·m 포함) → `youtube-nocookie.com/embed/{id}`
-   - 치지직: 클립 `chzzk.naver.com/clips/{id}`, 다시보기 `chzzk.naver.com/video/{번호}`
+   - 치지직: 클립 `chzzk.naver.com/clips/{id}` (휴대폰 `m.chzzk.naver.com`도). 다시보기 `chzzk.naver.com/video/{번호}`는 재생기 대신 "치지직 다시보기 · 치지직에서 보기 ↗" 카드(새 창) — 치지직이 다시보기 퍼가기 주소를 주지 않음 (D-127)
    - SOOP: 다시보기 `vod.sooplive.com/player/{번호}` (예전 `vod.sooplive.co.kr`·`vod.afreecatv.com`·`v.afree.ca`도)
 3. 문장 중간의 링크, 글자와 주소가 다른 링크, 다른 사이트 링크는 지금처럼 링크로 남는다.
 

@@ -30,12 +30,9 @@ class VideoEmbedTest {
             "https://youtu.be/dQw4w9WgXcQ?si=abc, https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
             "https://www.youtube.com/shorts/dQw4w9WgXcQ, https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
             "https://www.youtube.com/live/dQw4w9WgXcQ, https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
-            // 치지직 클립·다시보기
+            // 치지직 클립 (휴대폰에서 복사한 주소도). 다시보기는 아래 카드 테스트
             "https://chzzk.naver.com/clips/AbC123xyz, https://chzzk.naver.com/embed/clip/AbC123xyz",
             "https://chzzk.naver.com/embed/clip/12341234, https://chzzk.naver.com/embed/clip/12341234",
-            "https://chzzk.naver.com/video/4567890, https://chzzk.naver.com/embed/vod/4567890",
-            // 휴대폰에서 복사한 치지직 주소
-            "https://m.chzzk.naver.com/video/15513352, https://chzzk.naver.com/embed/vod/15513352",
             "https://m.chzzk.naver.com/clips/AbC123xyz, https://chzzk.naver.com/embed/clip/AbC123xyz",
             // SOOP 다시보기: 새 도메인과 예전 도메인 모두
             "https://vod.sooplive.com/player/139470149, https://vod.sooplive.com/player/139470149/embed?showChat=false&autoPlay=false&mutePlay=false",
@@ -48,6 +45,25 @@ class VideoEmbedTest {
         assertThat(frame.parent().hasClass("video-embed")).isTrue();
         assertThat(frame.hasAttr("sandbox")).isTrue();
         assertThat(frame.attr("sandbox")).doesNotContain("allow-top-navigation").doesNotContain("allow-forms");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "https://chzzk.naver.com/video/15547963, https://chzzk.naver.com/video/15547963",
+            "https://m.chzzk.naver.com/video/15513352?t=10, https://chzzk.naver.com/video/15513352",
+            "https://chzzk.naver.com/embed/vod/4567890, https://chzzk.naver.com/video/4567890"
+    })
+    void 치지직_다시보기는_재생기_대신_치지직으로_가는_카드다(String link, String page) {
+        // 치지직에는 다시보기 퍼가기 주소가 없어 embed/vod를 넣으면 "존재하지 않는 채널입니다"가 뜬다 (D-127)
+        Document doc = Jsoup.parseBodyFragment(renderer.toSafeHtml("앞 문단\n\n" + link + "\n\n뒤 문단"));
+        assertThat(doc.select("iframe")).isEmpty();
+        Element card = doc.selectFirst("div.video-link.video-link-chzzk > a");
+        assertThat(card).isNotNull();
+        assertThat(card.attr("href")).isEqualTo(page);
+        assertThat(card.attr("target")).isEqualTo("_blank");
+        assertThat(card.attr("rel")).contains("noopener");
+        assertThat(card.text()).contains("치지직 다시보기").contains("치지직에서 보기");
+        assertThat(renderer.toPlainText("야구\n\n" + link, 100)).isEqualTo("야구");
     }
 
     @Test

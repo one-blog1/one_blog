@@ -86,6 +86,9 @@ public class MarkdownRenderer {
     }
 
     private static Element player(VideoEmbeds.Embed embed) {
+        if (!embed.frame()) {
+            return linkCard(embed);
+        }
         Element frame = new Element("iframe")
                 .attr("src", embed.src())
                 .attr("title", embed.title())
@@ -98,9 +101,33 @@ public class MarkdownRenderer {
         return new Element("div").addClass("video-embed").addClass("video-embed-" + embed.provider()).appendChild(frame);
     }
 
+    /** 재생기를 줄 수 없는 영상(치지직 다시보기)은 그 사이트로 가는 카드로 (D-127). 주소는 VideoEmbeds가 만든 것만. */
+    private static Element linkCard(VideoEmbeds.Embed embed) {
+        Element link = new Element("a")
+                .attr("href", embed.src())
+                .attr("rel", "nofollow noopener noreferrer")
+                .attr("target", "_blank");
+        link.appendChild(new Element("span").addClass("video-link-play").attr("aria-hidden", "true").text("▶"));
+        Element text = new Element("span").addClass("video-link-text");
+        text.appendChild(new Element("strong").text(embed.title()));
+        text.appendChild(new Element("span").text(siteName(embed.provider()) + "에서 보기 ↗"));
+        link.appendChild(text);
+        return new Element("div").addClass("video-link").addClass("video-link-" + embed.provider()).appendChild(link);
+    }
+
+    private static String siteName(String provider) {
+        return switch (provider) {
+            case "chzzk" -> "치지직";
+            case "soop" -> "SOOP";
+            default -> "YouTube";
+        };
+    }
+
     /** 목록·미리보기용 글자만 뽑기 (태그 없이). */
     public String toPlainText(String markdown, int maxLength) {
-        String text = Jsoup.parse(toSafeHtml(markdown)).text();
+        Document document = Jsoup.parse(toSafeHtml(markdown));
+        document.select(".video-link").remove();
+        String text = document.text();
         return text.length() > maxLength ? text.substring(0, maxLength) + "…" : text;
     }
 }

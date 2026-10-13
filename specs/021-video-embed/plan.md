@@ -16,7 +16,7 @@ DB 변경 없음. 글 본문을 HTML로 바꾸는 `MarkdownRenderer` 끝에 영�
 ### R2. 재생기 주소
 
 - 유튜브: 쿠키를 줄인 `www.youtube-nocookie.com/embed/{id}`. Referer가 없으면 재생이 막히므로 `referrerpolicy=strict-origin-when-cross-origin`.
-- 치지직: 클립 `chzzk.naver.com/embed/clip/{id}`, 다시보기 `chzzk.naver.com/embed/vod/{번호}`.
+- 치지직: 클립 `chzzk.naver.com/embed/clip/{id}`. 다시보기는 `embed/vod/{번호}`로 했다가 치지직이 `embed`를 채널 이름으로 읽어 "존재하지 않는 채널입니다"가 떠서(글 1913) 치지직 화면 `chzzk.naver.com/video/{번호}`로 가는 카드로 바꿈 (D-127).
 - SOOP: 2026-03 도메인 변경(sooplive.co.kr → sooplive.com) 뒤 `vod.sooplive.com/player/{번호}/embed?showChat=false&autoPlay=false&mutePlay=false`.
 - 근거: 네이버 카페에서 같은 사이트들을 띄우는 공개 스크립트(nomomo/Naver-Cafe-Twitch-Clip-Loader v1.5.9)와 SOOP 퍼가기 예시. 각 사이트가 바꾸면 `VideoEmbeds`만 고친다.
 

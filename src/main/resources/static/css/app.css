@@ -1837,6 +1837,56 @@ button.primary.inline-button {
   border: 0;
 }
 
+/* 재생기를 줄 수 없는 영상(치지직 다시보기, D-127): 그 사이트로 가는 카드 */
+.post-body .video-link {
+  margin: 16px 0;
+}
+
+.post-body .video-link a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-field);
+  background: var(--bg);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.post-body .video-link a:hover strong {
+  text-decoration: underline;
+}
+
+.post-body .video-link-play {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #000;
+  color: #fff;
+  font-size: 16px;
+}
+
+.post-body .video-link-chzzk .video-link-play {
+  background: #00ffa3;
+  color: #000;
+}
+
+.post-body .video-link-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+}
+
+.post-body .video-link-text span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+
 .post-body pre {
   padding: 14px 16px;
   overflow-x: auto;
