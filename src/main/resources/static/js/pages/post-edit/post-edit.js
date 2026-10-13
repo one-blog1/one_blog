@@ -116,6 +116,17 @@
     const blog = result.data;
     $('blog-link').textContent = blog.name;
     $('blog-link').href = '/blog/' + encodeURIComponent(blog.slug) + keyQuery();
+    if (!state.postId) {
+      // 어느 블로그에 쓰는지 제목에서 바로 보이게 (D-130). 블로그 이름은 textContent로만
+      $('page-title').textContent = blog.name + '에 글쓰기';
+      if (blog.myRole) {
+        try {
+          window.localStorage.setItem('oneblog.lastWriteBlog', blog.slug); // 상단 글쓰기 목록의 맨 위
+        } catch (e) {
+          // 기억하지 못해도 글쓰기에는 지장 없다
+        }
+      }
+    }
     if (!blog.myRole) {
       $('form-message').textContent = '이 블로그의 멤버만 글을 쓸 수 있어요.';
     }

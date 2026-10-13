@@ -307,6 +307,71 @@ a {
   border-top: 1px solid var(--line);
 }
 
+/* 상단 글쓰기 (D-130): 블로그가 여럿이면 목록을 펼쳐 고른다 */
+.write-menu {
+  position: relative;
+}
+
+.header-write {
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--text);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.header-write:hover,
+.header-write[aria-expanded="true"] {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.write-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 45;
+  min-width: 200px;
+  max-width: min(280px, 80vw);
+  padding: 6px;
+  background: var(--surface);
+  border: 1.5px solid var(--text);
+  border-radius: var(--radius-field);
+}
+
+.write-menu-title {
+  margin: 4px 8px 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.write-menu-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#header-user .write-menu-list a {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#header-user .write-menu-list a:hover,
+#header-user .write-menu-list a:focus {
+  background: var(--bg);
+}
+
 /* 상단 가운데 검색창 (D-116) */
 .header-search {
   display: flex;

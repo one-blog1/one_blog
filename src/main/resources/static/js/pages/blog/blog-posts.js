@@ -35,6 +35,24 @@
     window.history.replaceState(null, '', window.location.pathname + (query ? '?' + query : '') + window.location.hash);
   }
 
+  /** 블로그 안 [글쓰기]: 보고 있는 카테고리를 글쓰기 화면에서 미리 골라 둔다 (D-130) */
+  function updateWriteLink() {
+    const write = $('write-link');
+    if (!blog || !blog.myRole || !write) {
+      return;
+    }
+    const q = new URLSearchParams();
+    const key = keyParam();
+    if (key) {
+      q.set('key', key);
+    }
+    if (state.category) {
+      q.set('category', String(state.category));
+    }
+    const query = q.toString();
+    write.href = '/blog/' + encodeURIComponent(blog.slug) + '/write' + (query ? '?' + query : '');
+  }
+
   function markSort() {
     document.querySelectorAll('[data-post-sort]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.postSort === state.sort)));
@@ -57,6 +75,7 @@
     state.page = data.page;
     state.size = data.size;
     writeUrl();
+    updateWriteLink();
     $('post-size').value = String(state.size);
 
     const notices = $('notice-list');

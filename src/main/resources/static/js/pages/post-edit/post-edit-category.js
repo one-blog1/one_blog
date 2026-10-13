@@ -1,10 +1,17 @@
 // 글쓰기 화면의 카테고리 고르기 (BRD-03). 블로그에 카테고리가 있을 때만 보인다.
-// 글 고치기에서는 글의 카테고리를 미리 골라 둔다. 두 정보의 도착 순서는 정해져 있지 않다.
+// 글 고치기에서는 글의 카테고리를, 새 글은 블로그에서 보던 카테고리(?category=)를 미리 골라 둔다 (D-130).
+// 두 정보의 도착 순서는 정해져 있지 않다.
 (function () {
   'use strict';
 
   let loaded = null;
-  let wanted = null;
+  let wanted = (function () {
+    if (!/\/write$/.test(window.location.pathname)) {
+      return null;
+    }
+    const value = parseInt(new URLSearchParams(window.location.search).get('category'), 10);
+    return Number.isInteger(value) && value > 0 ? value : null;
+  })();
 
   function apply() {
     if (loaded && wanted !== null) {
