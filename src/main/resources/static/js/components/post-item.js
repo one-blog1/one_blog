@@ -1,5 +1,6 @@
 // 글 목록 한 줄. 블로그 화면, 카테고리·태그 목록, 검색·피드, 메인이 함께 쓴다.
-// 왼쪽: 작성자 사진·닉네임·날짜(오른쪽 끝에 블로그·카테고리) → 굵은 제목 → 본문 2줄 미리보기 → 좋아요·댓글·조회 → 태그
+// 왼쪽: 작성자 사진·닉네임·날짜 → 굵은 제목 → 본문 2줄 미리보기 → 블로그·카테고리와 좋아요·댓글·조회 → 태그
+// (블로그·카테고리를 머리줄 오른쪽 끝에 두면 썸네일이 있을 때 글자가 밀려 아래 줄 맨 앞으로 옮김)
 // 오른쪽: 썸네일(본문 첫 사진, 첫 미디어가 영상 링크면 서버가 받아 둔 영상 썸네일과 "▶ YouTube" 표시) (D-128)
 // 블로그 공지(notice)는 예전처럼 제목과 정보 한 줄로 짧게.
 // 사용자 입력(제목·작성자·미리보기·태그)은 textContent로만 넣는다 (SEC-06).
@@ -114,10 +115,6 @@
     avatar.alt = '';
     avatar.loading = 'lazy';
     head.append(avatar, authorNode(post), el('span', 'post-date', formatDate(post.createdAt)));
-    const where = [opts.blogName, post.categoryName].filter(Boolean).join(' · ');
-    if (where) {
-      head.append(el('span', 'post-where', where));
-    }
     main.append(head);
 
     const link = titleLink(post, href);
@@ -128,6 +125,10 @@
       main.append(el('p', 'post-excerpt', post.excerpt));
     }
     const stats = el('p', 'post-stats');
+    const where = [opts.blogName, post.categoryName].filter(Boolean).join(' · ');
+    if (where) {
+      stats.append(el('span', 'post-where', where));
+    }
     stats.append(el('span', null, '좋아요 ' + post.likeCount), el('span', null, '댓글 ' + post.commentCount),
       el('span', null, '조회 ' + post.viewCount));
     main.append(stats);

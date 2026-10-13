@@ -1979,7 +1979,7 @@ button.like-button[aria-pressed="true"] .icon {
   color: var(--text);
 }
 
-/* 글 목록 (D-128): 왼쪽 작성자·날짜 → 굵은 제목 → 본문 2줄 → 좋아요·댓글·조회, 오른쪽 정사각형 썸네일.
+/* 글 목록 (D-128): 왼쪽 작성자·날짜 → 굵은 제목 → 본문 2줄 → 블로그·카테고리와 좋아요·댓글·조회, 오른쪽 정사각형 썸네일.
    블로그 공지 줄(.notices)은 제목과 정보 한 줄 그대로 */
 .post-item-main {
   flex: 1;
@@ -2008,8 +2008,7 @@ button.like-button[aria-pressed="true"] .icon {
 }
 
 .post-item-head .author {
-  flex-shrink: 0;
-  max-width: 45%;
+  min-width: 0;
   color: var(--text);
   font-weight: 600;
   text-decoration: none;
@@ -2020,17 +2019,6 @@ button.like-button[aria-pressed="true"] .icon {
 
 .post-item-head .post-date {
   flex: none;
-}
-
-.post-item-head .post-where {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin-left: auto;
-  padding-left: 8px;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .post-card .post-link {
@@ -2053,10 +2041,20 @@ button.like-button[aria-pressed="true"] .icon {
 .post-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 4px 12px;
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* 블로그·카테고리: 좋아요 앞. 길면 줄여서 한 줄로 */
+.post-stats .post-where {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .post-card .tag-list {
@@ -2475,6 +2473,65 @@ button.like-button[aria-pressed="true"] .icon {
   align-items: center;
   gap: 8px;
   margin: 8px 0 12px;
+}
+
+/* 카테고리 줄: 왼쪽 카테고리, 오른쪽 끝에 정렬(D-129) */
+.category-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 8px 0 12px;
+}
+
+.category-row .category-area {
+  margin: 0;
+}
+
+/* 카테고리 관리 열기: 카테고리 줄 아래 작은 글자 */
+.category-manage-toggle {
+  display: block;
+  margin: -4px 0 12px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 작은 정렬 글자: 앞에 점 하나, 고른 것은 빨간 점 */
+.dot-sort {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.dot-sort button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dot-sort button::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.dot-sort button[aria-pressed="true"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.dot-sort button[aria-pressed="true"]::before {
+  background: var(--like);
 }
 
 .category-nav {
