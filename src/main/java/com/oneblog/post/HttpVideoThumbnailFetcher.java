@@ -32,7 +32,7 @@ import org.springframework.web.client.RestClient;
  * 치지직·SOOP API는 바뀔 수 있다. 실패하면 썸네일 없이 둔다(글 저장에는 영향 없음).
  *
  * 남의 주소로 서버가 요청을 보내는 일이라(SSRF) API 주소는 여기서 정한 것만, 사진 주소는 아래 사이트의 https만 받고
- * 다른 곳으로 넘기는 응답(redirect)은 따라가지 않는다. 연결 2초·응답 3초, 사진은 2MB까지.
+ * API는 다른 곳으로 넘기는 응답(redirect)을 따르지 않고, 사진은 허용한 사이트 안에서만 3번까지 따라간다. 연결 2초·응답 3초, 사진은 2MB까지.
  */
 @Component
 public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
@@ -181,18 +181,46 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
         return IMAGE_HOST_SUFFIXES.stream().anyMatch(s -> host.equals(s) || host.endsWith("." + s));
     }
 
+    /** 다른 주소로 넘기는 응답(SOOP 스냅샷 주소 등)은 3번까지 따라가되, 넘어갈 주소도 허용한 사이트인지 매번 확인한다. */
     private byte[] download(String imageUrl) {
-        return client.get().uri(URI.create(imageUrl)).accept(MediaType.ALL).exchange((request, response) -> {
-            if (!response.getStatusCode().is2xxSuccessful()) {
+        URI uri = URI.create(imageUrl);
+        for (int hop = 0; hop <= 3; hop++) {
+            Fetched fetched = fetchOnce(uri);
+            if (fetched.data() != null || fetched.location() == null) {
+                if (fetched.data() == null) {
+                    log.info("영상 썸네일 사진을 받지 못했습니다: {} ({})", uri, fetched.status());
+                }
+                return fetched.data();
+            }
+            URI next = uri.resolve(fetched.location());
+            if (!allowedImageUrl(normalize(next.toString()))) {
+                log.info("영상 썸네일이 허용하지 않은 주소로 넘어가려 해서 멈췄습니다: {} → {}", uri, next);
                 return null;
+            }
+            uri = URI.create(normalize(next.toString()));
+        }
+        return null;
+    }
+
+    private record Fetched(byte[] data, String location, int status) {
+    }
+
+    private Fetched fetchOnce(URI uri) {
+        return client.get().uri(uri).accept(MediaType.ALL).exchange((request, response) -> {
+            int status = response.getStatusCode().value();
+            if (response.getStatusCode().is3xxRedirection()) {
+                return new Fetched(null, response.getHeaders().getFirst(HttpHeaders.LOCATION), status);
+            }
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                return new Fetched(null, null, status);
             }
             long length = response.getHeaders().getContentLength();
             if (length > MAX_BYTES) {
-                return null;
+                return new Fetched(null, null, status);
             }
             try (InputStream in = response.getBody()) {
                 byte[] data = in.readNBytes(MAX_BYTES + 1);
-                return data.length > MAX_BYTES || data.length == 0 ? null : data;
+                return new Fetched(data.length > MAX_BYTES || data.length == 0 ? null : data, null, status);
             }
         });
     }
