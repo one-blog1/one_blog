@@ -94,7 +94,7 @@ class BannerIntegrationTest extends PostTestSupport {
         like(second, reader);
         like(noPhoto, reader);
         like(old, reader);
-        like(secret, reader);
+        like(secret, owner); // 비공개 블로그는 멤버만 누를 수 있다
         jdbc.update("UPDATE posts SET created_at = NOW() - INTERVAL 10 DAY WHERE id = ?", old);
 
         mvc.perform(get("/api/banners"))
@@ -208,7 +208,7 @@ class BannerIntegrationTest extends PostTestSupport {
                         .contentType(MediaType.APPLICATION_JSON).content("{\"direction\":\"up\"}"))
                 .andExpect(status().isNoContent());
         mvc.perform(get("/api/admin/banners").cookie(admin))
-                .andExpect(jsonPath("$.ads[0].id").value(second))
+                .andExpect(jsonPath("$.ads[0].id").value(second.intValue()))
                 .andExpect(jsonPath("$.ads[1].title").value("고친 광고"))
                 .andExpect(jsonPath("$.ads[1].caption").isEmpty())
                 .andExpect(jsonPath("$.ads[1].visible").value(false))

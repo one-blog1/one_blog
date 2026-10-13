@@ -57,7 +57,27 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_USERNAME: one_blog
           TEST_DB_PASSWORD: one_blog
-        run: ./gradlew test --no-daemon
+        run: ./gradlew test --no-daemon 2>&1 | tee gradle-test.log
+
+      # 실패한 테스트·컴파일 오류를 실행 화면의 Annotations에 띄운다(로그·보고서를 받지 못하는 곳에서도 이유가 보이게)
+      - name: 실패 내용 표시 (실패했을 때)
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          shown = 0
+          for f in sorted(glob.glob('build/test-results/test/TEST-*.xml')):
+              for case in ET.parse(f).getroot().iter('testcase'):
+                  for bad in list(case.iter('failure')) + list(case.iter('error')):
+                      if shown < 10:
+                          text = ((bad.get('message') or '') + ' | ' + (bad.text or '')).replace('%', '%25').replace('\r', '').replace('\n', '%0A')
+                          title = (case.get('classname', '').split('.')[-1] + '.' + case.get('name', '')).replace('%', '%25').replace(':', '%3A').replace(',', '%2C')
+                          print('::error title=' + title + '::' + text[:1500])
+                          shown += 1
+          if shown == 0:
+              lines = [l.strip() for l in open('gradle-test.log', encoding='utf-8', errors='replace') if 'error:' in l or 'FAILURE' in l or 'What went wrong' in l]
+              print('::error title=gradle::' + '%0A'.join(l.replace('%', '%25') for l in lines[:15])[:3000])
+          PY
 
       - name: 테스트 보고서 올리기 (실패했을 때)
         if: failure()

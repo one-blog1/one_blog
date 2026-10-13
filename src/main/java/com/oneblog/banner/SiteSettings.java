@@ -35,7 +35,7 @@ public class SiteSettings {
     public void put(String key, String value) {
         jdbc.update("""
                 INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)
-                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
-                """, key, value);
+                ON DUPLICATE KEY UPDATE setting_value = ?
+                """, key, value, value);
     }
 }
