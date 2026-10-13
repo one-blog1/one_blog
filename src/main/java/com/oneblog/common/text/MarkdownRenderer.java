@@ -2,6 +2,8 @@ package com.oneblog.common.text;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.commonmark.Extension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
@@ -91,9 +93,13 @@ public class MarkdownRenderer {
         return VideoEmbeds.from(url);
     }
 
+    /** 글자 안의 주소 (공백 전까지). 썸네일용 영상 링크를 찾을 때만 쓴다. */
+    private static final Pattern URL_IN_TEXT = Pattern.compile("https?://[^\\s<>\"]+");
+
     /**
-     * 본문에서 처음 나오는 사진·영상 중 첫 번째가 영상 링크 한 줄이면 그 영상 (목록 썸네일, D-128).
-     * 이 사이트에 올린 사진(/files/...)이 먼저 나오면 빈 값(사진이 썸네일).
+     * 본문에서 처음 나오는 사진·영상 중 첫 번째가 영상 링크면 그 영상 (목록 썸네일, D-128).
+     * 썸네일은 미리보기라서 한 줄짜리 링크뿐 아니라 이름 붙인 링크([영상](주소))나 문장 속 주소도 센다.
+     * (글 안 재생기는 지금처럼 한 줄짜리 링크만, D-125.) 이 사이트에 올린 사진(/files/...)이 먼저 나오면 빈 값(사진이 썸네일).
      */
     public Optional<VideoEmbeds.Embed> leadingVideo(String markdown) {
         if (markdown == null || markdown.isEmpty()) {
@@ -101,17 +107,30 @@ public class MarkdownRenderer {
         }
         String cleaned = Jsoup.clean(renderer.render(parser.parse(markdown)), BASE_URI, safelist);
         Document document = Jsoup.parseBodyFragment(cleaned, BASE_URI);
-        // select는 문서 순서대로 돌려준다. 문단이 그 안의 사진보다 먼저 온다
-        for (Element element : document.select("p, img")) {
+        // 문서 순서대로: 요소마다 먼저 자기 글자 속 주소를 보고, 그 뒤에 그 요소 자체(사진·링크)를 본다
+        for (Element element : document.body().getAllElements()) {
             if (element.is("img")) {
                 if (element.attr("src").startsWith("/files/")) {
                     return Optional.empty();
                 }
                 continue;
             }
-            Optional<VideoEmbeds.Embed> video = videoOf(element);
-            if (video.isPresent()) {
-                return video;
+            if (element.is("a[href]")) {
+                Optional<VideoEmbeds.Embed> linked = VideoEmbeds.from(element.attr("href"));
+                if (linked.isPresent()) {
+                    return linked;
+                }
+            }
+            for (org.jsoup.nodes.TextNode text : element.textNodes()) {
+                Matcher matcher = URL_IN_TEXT.matcher(text.getWholeText());
+                while (matcher.find()) {
+                    // 문장 끝의 마침표·괄호는 주소가 아니다
+                    String url = matcher.group().replaceAll("[.,!?)\\]]+$", "");
+                    Optional<VideoEmbeds.Embed> found = VideoEmbeds.from(url);
+                    if (found.isPresent()) {
+                        return found;
+                    }
+                }
             }
         }
         return Optional.empty();

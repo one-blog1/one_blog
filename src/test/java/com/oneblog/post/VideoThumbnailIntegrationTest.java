@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -137,6 +138,31 @@ class VideoThumbnailIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/blogs/thumb-blog/posts"))
                 .andExpect(jsonPath("$.items[0].thumbnailUrl").isEmpty())
                 .andExpect(jsonPath("$.items[1].thumbnailUrl").isEmpty());
+    }
+
+    @Autowired
+    private VideoThumbnailBackfill backfill;
+
+    @Test
+    void 이름_붙인_링크나_문장_속_영상_주소도_썸네일이_된다() throws Exception {
+        Long named = writePost(owner, "thumb-blog", "이름 붙인 링크", "오늘 본 [영상](" + YOUTUBE + ") 추천해요");
+        assertThat(thumbs(named, false)).containsExactly("youtube:dQw4w9WgXcQ");
+        Long inline = writePost(owner, "thumb-blog", "문장 속 주소", "클립 보세요 " + CHZZK_CLIP + " 재밌어요");
+        assertThat(thumbs(inline, false)).containsExactly("chzzk-clip:AbC123xyz");
+    }
+
+    @Test
+    void 기능_이전에_쓴_글은_서버가_뜬_뒤_한_번_채운다() throws Exception {
+        when(fetcher.fetch("youtube:dQw4w9WgXcQ")).thenReturn(Optional.empty());
+        Long old = writePost(owner, "thumb-blog", "예전 글", YOUTUBE);
+        Long plain = writePost(owner, "thumb-blog", "글자만", "영상 없음");
+        assertThat(thumbs(old, false)).isEmpty();
+        assertThat(backfill.candidates()).contains(old).doesNotContain(plain);
+
+        when(fetcher.fetch("youtube:dQw4w9WgXcQ")).thenReturn(Optional.of(TestImages.png()));
+        backfill.run();
+        assertThat(thumbs(old, false)).containsExactly("youtube:dQw4w9WgXcQ");
+        assertThat(backfill.candidates()).doesNotContain(old);
     }
 
     @Test

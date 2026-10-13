@@ -87,9 +87,14 @@ class VideoEmbedTest {
         // 다른 사이트 사진은 화면에 안 보이므로 세지 않는다
         assertThat(renderer.leadingVideo("![](https://evil.example.com/a.png)\n\nhttps://chzzk.naver.com/video/15547963"))
                 .get().extracting(VideoEmbeds.Embed::key).isEqualTo("chzzk-video:15547963");
-        // 문장 중간 링크·이름 붙인 링크는 영상이 아니다
-        assertThat(renderer.leadingVideo("이거 보세요 https://youtu.be/dQw4w9WgXcQ\n\n[영상](https://youtu.be/dQw4w9WgXcQ)"))
-                .isEmpty();
+        // 썸네일은 문장 속 주소·이름 붙인 링크도 센다 (재생기는 한 줄짜리만)
+        assertThat(renderer.leadingVideo("이거 보세요 https://youtu.be/dQw4w9WgXcQ."))
+                .get().extracting(VideoEmbeds.Embed::key).isEqualTo("youtube:dQw4w9WgXcQ");
+        assertThat(renderer.leadingVideo("오늘 경기 [다시보기](https://chzzk.naver.com/video/15547963) 올려요"))
+                .get().extracting(VideoEmbeds.Embed::key).isEqualTo("chzzk-video:15547963");
+        assertThat(renderer.leadingVideo("https://www.youtube.com/watch?v=Mwncl5gTHFQ[ㅇㅇ](https://www.youtube.com/watch?v=Mwncl5gTHFQ)"))
+                .get().extracting(VideoEmbeds.Embed::key).isEqualTo("youtube:Mwncl5gTHFQ");
+        assertThat(renderer.leadingVideo("영상 없는 글 https://example.com/a")).isEmpty();
         assertThat(renderer.leadingVideo(null)).isEmpty();
     }
 
