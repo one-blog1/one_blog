@@ -17,17 +17,17 @@
     <nav id="header-user" aria-label="회원 메뉴"></nav>
   </header>
 
-  <main class="wide">
-    <!-- 공지 줄: 최신 공지 하나씩, 2초마다 다음 공지로 (D-122). 마우스·키보드가 올라가 있으면 멈춘다 -->
-    <section id="notice-strip" class="notice-strip hidden" aria-label="공지사항">
-      <a class="notice-strip-label" href="/notice.html">공지</a>
-      <div class="notice-ticker" aria-live="off">
-        <a id="notice-current" class="notice-current" href="/notice.html"></a>
-      </div>
-      <span id="notice-count" class="notice-count" aria-hidden="true"></span>
-      <a class="notice-all" href="/notice.html">전체 보기</a>
-    </section>
+  <!-- 공지 줄: 상단 바로 아래(상단 선이 공지 위 구분선, D-131). 최신 공지 하나씩, 2초마다 다음 공지로 (D-122). 마우스·키보드가 올라가 있으면 멈춘다 -->
+  <section id="notice-strip" class="notice-strip hidden" aria-label="공지사항">
+    <a class="notice-strip-label" href="/notice.html">공지</a>
+    <div class="notice-ticker" aria-live="off">
+      <a id="notice-current" class="notice-current" href="/notice.html"></a>
+    </div>
+    <span id="notice-count" class="notice-count" aria-hidden="true"></span>
+    <a class="notice-all" href="/notice.html">전체 보기</a>
+  </section>
 
+  <main class="wide">
     <div id="view-switch" class="view-switch hidden" role="group" aria-label="메인 화면 고르기">
       <button type="button" data-view="home" aria-pressed="true">내 블로그</button>
       <button type="button" data-view="feed" aria-pressed="false">메인 피드</button>

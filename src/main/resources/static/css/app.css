@@ -2370,15 +2370,15 @@ button.like-button[aria-pressed="true"] .icon {
 }
 
 /* 메인 공지 줄: 한 줄에 공지 하나, 2초마다 다음 공지 (D-122, notice-strip.js) */
+/* 상단 바로 아래 띠: 상단의 아래 선이 공지 위 구분선 (D-131). 글자는 상단과 같은 폭에 맞춘다 */
 .notice-strip {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
-  padding: 12px 0;
+  margin: 0;
+  padding: 12px max(var(--gutter), calc((100% - var(--w-wide)) / 2));
   background: none;
   border: none;
-  border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   border-radius: 0;
   font-size: 14px;
