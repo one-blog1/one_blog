@@ -25,7 +25,7 @@
 | (선택) | `/speckit-analyze` | 명세·계획·작업 사이 일관성 점검 |
 | 4 | `/speckit-implement` | 작업 목록대로 구현 |
 
-specify·plan·tasks는 단계마다 결과를 보고 확인한 뒤 다음 단계로 갑니다 (D-136). 결과물은 기능별로 `specs/<번호>-<기능명>/` 아래에 생깁니다. 기능을 마치면 그 폴더를 문서 저장소의 `specs/`로 옮기고 이 저장소에서는 지웁니다.
+specify·plan·tasks는 단계마다 결과를 보고 확인한 뒤 다음 단계로 갑니다 (D-137). 결과물은 기능별로 `specs/<번호>-<기능명>/` 아래에 생깁니다. 기능을 마치면 그 폴더를 문서 저장소의 `specs/`로 옮기고 이 저장소에서는 지웁니다.
 
 브랜치는 `feature/<영어 기능이름>` → `develop` → (버전을 올릴 때) `main`이고, 운영 버그는 `hotfix/<이름>`을 main에서 만들어 main·develop 둘 다에 merge합니다 (D-136). 배포는 main에서 버전을 올렸을 때만 합니다 ([DEPLOY.md](DEPLOY.md)).
 

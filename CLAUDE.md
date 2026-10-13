@@ -3,13 +3,14 @@
 - 이 저장소는 소스 코드만 둡니다(배포용). 요구사항·로드맵·기능 명세(`docs/`, `specs/`)는 문서 저장소 one-blog1/one-blog_docs(https://github.com/one-blog1/one-blog_docs)에 있습니다. 문서를 고칠 때는 그 저장소를 고칩니다.
 - 요구사항은 문서 저장소의 `docs/requirements/`가 기준입니다. 문서끼리 다르면 `08-decision-log.md`의 최신 결정이 우선합니다.
 - 프로젝트 원칙은 `.specify/memory/constitution.md`를 따릅니다. 특히 III(보안 기준선)과 IV(처음부터 잡을 구조)는 첫 코드부터 지킵니다.
-- 기능 개발은 스펙 단위로 합니다 (D-136). 기능 하나를 Spec Kit 순서(`/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`)로 진행하고, **specify·plan·tasks는 단계마다 결과를 보여 주고 사용자 확인을 받은 뒤** 다음 단계로 갑니다. 확인 없이 바로 구현하지 않습니다. 스펙에는 관련 요구사항 ID를 적습니다. 이 저장소에 생긴 `specs/<번호>-<기능명>/`은 기능을 마치면 문서 저장소의 `specs/`로 옮깁니다.
-- 브랜치 (D-136):
-  - `main`: 배포되는 코드. 버전을 올릴 때 `develop`을 merge합니다. main에 바로 커밋하지 않습니다
-  - `develop`: 기능을 모으는 곳. 완성한 feature를 merge합니다
-  - `feature/<기능이름>`: 기능 하나. 이름은 영어 기능 이름 (예: 댓글이면 `feature/comments`). develop에서 만들고, 구현·테스트(CI)를 마치고 사용자가 확인하면 develop에 merge합니다
-  - `hotfix/<이름>`: 운영 중인 버그 수정. main에서 만들고, 확인 후 `main`과 `develop` 둘 다에 merge합니다
-  - push와 merge는 사용자가 확인한 뒤에만 합니다
+- 기능 개발은 스펙 단위로 합니다 (D-137). 기능 하나를 Spec Kit 순서(`/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`)로 진행하고, **specify·plan·tasks는 단계마다 결과를 보여 주고 사용자 확인을 받은 뒤** 다음 단계로 갑니다. 확인 없이 바로 구현하지 않습니다. 스펙에는 관련 요구사항 ID를 적습니다. 이 저장소에 생긴 `specs/<번호>-<기능명>/`은 기능을 마치면 문서 저장소의 `specs/`로 옮깁니다.
+- 브랜치 (D-136, 이름 규칙 D-137):
+  - `main`: 배포되는 코드. 버전을 올릴 때만 `develop`을 merge합니다. main에 바로 커밋하지 않습니다
+  - `develop`: 다음 버전에 넣을 기능을 모으는 곳
+  - `feature/<기능이름>`: 기능 하나. 이름은 영어 기능 이름 (예: 댓글이면 `feature/comments`). 늘 최신 `develop`에서 만들고, 구현·CI 통과·사용자 확인 뒤 `develop`으로 PR을 열어 합칩니다. 합친 뒤 브랜치는 지웁니다(PR로 합치면 GitHub가 자동으로 지움)
+  - `hotfix/<이름>`: 운영 중인 버그 수정. `main`에서 만들고, 확인 후 `main`과 `develop` 양쪽에 합친 뒤 지웁니다
+  - `feature/base`·`hotfix/base`: 묶음 자리로 둔 고정 브랜치. 지우지 않고 작업에도 쓰지 않습니다
+  - push와 merge는 사용자가 확인한 뒤에만 합니다. 문서 저장소는 `main`에 바로 올립니다
 - DB 구조는 Crowfoot ERD "One Blog 메인블로그"(https://crowfoot.java21.net/workspaces/58/models/655)를 따릅니다. 테이블은 기능을 만들 때 Flyway 마이그레이션으로 추가하고, 구조를 바꿀 때는 ERD를 먼저 고칩니다 (constitution IV).
 - 6장에서 상태가 "보류"인 항목은 구현하지 않습니다.
 - 요구사항을 바꾸면 해당 장과 8장 결정 기록을 함께 고칩니다 (문서 저장소).

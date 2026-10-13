@@ -1,6 +1,6 @@
 <!--
 Sync Impact Report
-- Version: 1.2.0 → 1.3.0 (MINOR: 개발 흐름에 스펙 단위 확인·브랜치 규칙 추가 D-136, 태그 규칙을 D-120·D-121로 재정의)
+- Version: 1.2.0 → 1.3.0 (MINOR: 개발 흐름에 스펙 단위 확인(D-137)·브랜치 규칙(D-136) 추가, 태그 규칙을 D-120·D-121로 재정의)
 - 바뀐 곳: 개발 흐름, I 이유 문장(결정 개수 대신 "결정 기록(8장)")
 - 함께 맞춘 파일: CLAUDE.md, DEPLOY.md, readme.md, .claude/skills/update/SKILL.md
 -->
@@ -88,7 +88,7 @@ Sync Impact Report
 - 기능마다 `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement` 순서로
   진행한다. 모호한 부분이 있으면 plan 전에 `/speckit-clarify`를 쓴다.
 - 권한이 걸린 기능은 "권한 없는 사용자가 요청하면 거부되는지"를 확인하는 테스트를 함께 만든다.
-- 기능은 스펙 단위로 개발한다. specify·plan·tasks는 단계마다 사용자 확인을 받고 다음으로 간다 (D-136).
+- 기능은 스펙 단위로 개발한다. specify·plan·tasks는 단계마다 사용자 확인을 받고 다음으로 간다 (D-137).
 - 기능은 `feature/<기능이름>` 브랜치에서 만들어 `develop`에 merge하고, 버전을 올릴 때 `develop`을 `main`에
   merge한다. 운영 버그는 `hotfix/<이름>`에서 고쳐 `main`과 `develop` 둘 다에 반영한다 (D-136).
 - 커밋 메시지에 관련 요구사항 ID를 적는다.

@@ -14,7 +14,8 @@ hotfix/<이름>  ──(확인)──▶  main  과  develop  둘 다
 ```
 
 - CI는 `main`, `develop`, `feature/**`, `hotfix/**`에 push할 때 돕니다. 배포는 `main`에서만 합니다.
-- feature 이름은 영어 기능 이름입니다 (예: 댓글 → `feature/comments`).
+- feature 이름은 영어 기능 이름입니다 (예: 댓글 → `feature/comments`, D-137). 작업 브랜치는 PR로 합치고, 합친 뒤 지웁니다(PR로 합치면 GitHub가 자동으로 지움).
+- `feature/base`·`hotfix/base`는 묶음 자리로 둔 고정 브랜치입니다(지우지 않음, 작업하지 않음).
 
 ```
 develop에서 build.gradle.kts의 version을 올리고(배포마다 0.01씩, 예: 0.17 → 0.18. 규칙은 문서 저장소 releases/README.md, D-121) develop을 main에 merge해 push (D-136)
@@ -29,6 +30,7 @@ develop에서 build.gradle.kts의 version을 올리고(배포마다 0.01씩, 예
            새 버전이 상태 확인에 실패하면 새 것만 멈춰 one-blog-<색>-failed로 남기고 Actions를 실패로 표시 (지금 버전은 그대로 요청을 받음)
       4) 성공하면 그 커밋에 태그 v<버전>을 붙임
 ```
+
 
 **버전 올리는 법**: `build.gradle.kts`의 `version = "..."` 한 줄만 바꿉니다. 번호 규칙과 릴리즈 노트·공지 순서는 문서 저장소 [releases/README.md](https://github.com/one-blog1/one-blog_docs/blob/main/releases/README.md)를 따릅니다.
 
