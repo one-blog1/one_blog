@@ -32,9 +32,11 @@ public class Banner {
     private Long imageFileId;
 
     /** 사진에서 보일 자리(CSS object-position %, D-134). 기본 가운데. */
+    @JdbcTypeCode(SqlTypes.TINYINT)
     @Column(name = "image_pos_x", nullable = false)
     private int imagePosX = 50;
 
+    @JdbcTypeCode(SqlTypes.TINYINT)
     @Column(name = "image_pos_y", nullable = false)
     private int imagePosY = 50;
 
