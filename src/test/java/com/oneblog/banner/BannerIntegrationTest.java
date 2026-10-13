@@ -219,6 +219,37 @@ class BannerIntegrationTest extends PostTestSupport {
     }
 
     @Test
+    void 사진에서_보일_자리를_정해_배너에_그대로_보낸다() throws Exception {
+        popularOnly(0, 7);
+        settings("""
+                {"newBlog":{"count":0,"days":30},"popularBlog":{"count":0,"days":30}}
+                """);
+        String body = saveAd("POST", "/api/admin/banners", """
+                {"kind":"EVENT","title":"이벤트","linkUrl":"/notice.html","imageFileId":%d,"imagePosX":10,"imagePosY":90}
+                """.formatted(uploadBannerImage()))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Long id = ((Number) JsonPath.read(body, "$.id")).longValue();
+        mvc.perform(get("/api/banners"))
+                .andExpect(jsonPath("$.items[0].imagePosX").value(10))
+                .andExpect(jsonPath("$.items[0].imagePosY").value(90));
+
+        // 빼면 가운데, 0~100 밖이면 거부
+        Long image = jdbc.queryForObject("SELECT image_file_id FROM banners WHERE id = ?", Long.class, id);
+        saveAd("PUT", "/api/admin/banners/" + id, """
+                {"kind":"EVENT","title":"이벤트","linkUrl":"/notice.html","imageFileId":%d,"imagePosX":101}
+                """.formatted(image))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("imagePosX"));
+        saveAd("PUT", "/api/admin/banners/" + id, """
+                {"kind":"EVENT","title":"이벤트","linkUrl":"/notice.html","imageFileId":%d}
+                """.formatted(image))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/admin/banners").cookie(admin))
+                .andExpect(jsonPath("$.banners[0].imagePosX").value(50))
+                .andExpect(jsonPath("$.banners[0].imagePosY").value(50));
+    }
+
+    @Test
     void 광고_링크와_사진을_검사한다() throws Exception {
         Long image = uploadBannerImage();
         for (String bad : new String[] {"javascript:alert(1)", "//evil.example.com", "http://", "ftp://example.com",

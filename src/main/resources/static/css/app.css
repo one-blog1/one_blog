@@ -2880,7 +2880,7 @@ button.like-button[aria-pressed="true"] .icon {
 }
 
 .banner-admin-form {
-  max-width: 640px;
+  max-width: 880px;
   margin-top: 28px;
 }
 
@@ -2889,21 +2889,108 @@ button.like-button[aria-pressed="true"] .icon {
   font-size: 17px;
 }
 
-.banner-admin-image {
-  display: grid;
-  place-items: center;
-  height: 140px;
-  margin-bottom: 12px;
-  overflow: hidden;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-field);
-  background: var(--bg);
+/* 배너 미리보기 (D-134): 실제 크기(PC 1080×380, 휴대폰 358×220)로 그린 뒤 칸 폭에 맞게 줄인다 */
+.banner-preview {
+  margin-bottom: 16px;
 }
 
-.banner-admin-photo {
-  width: 100%;
+.banner-preview-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.banner-preview-col {
+  margin: 0;
+}
+
+.banner-preview-col figcaption {
+  margin-top: 4px;
+}
+
+.banner-preview-box {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-field);
+}
+
+.banner-preview-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+.banner-preview-stage .banner-frame {
   height: 100%;
-  object-fit: cover;
+}
+
+.banner-preview-stage .banner-image {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.banner-preview-stage .banner-image:active {
+  cursor: grabbing;
+}
+
+.banner-preview-empty {
+  display: grid;
+  place-items: center;
+  color: #c9cdd2;
+  font-size: 28px;
+}
+
+/* 휴대폰 미리보기: 메인 배너의 휴대폰 크기 규칙과 같게 */
+.banner-frame.is-phone .banner-caption {
+  gap: 4px;
+  padding: 14px 16px;
+}
+
+.banner-frame.is-phone .banner-title {
+  font-size: 19px;
+}
+
+.banner-frame.is-phone .banner-sub {
+  font-size: 13px;
+}
+
+.banner-preview-sliders {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+}
+
+.banner-preview-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.banner-preview-slider input[type="range"] {
+  width: 100%;
+  padding: 0;
+  border: none;
+  accent-color: var(--text);
+}
+
+.banner-preview-sliders button.inline-button {
+  width: auto;
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .banner-preview-row {
+    grid-template-columns: 1fr;
+  }
+
+  .banner-preview-phone {
+    max-width: 240px;
+  }
 }
 
 .banner-admin-field {

@@ -31,6 +31,13 @@ public class Banner {
     @Column(name = "image_file_id", nullable = false)
     private Long imageFileId;
 
+    /** 사진에서 보일 자리(CSS object-position %, D-134). 기본 가운데. */
+    @Column(name = "image_pos_x", nullable = false)
+    private int imagePosX = 50;
+
+    @Column(name = "image_pos_y", nullable = false)
+    private int imagePosY = 50;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "kind", length = 20, nullable = false)
@@ -79,6 +86,11 @@ public class Banner {
         this.visible = visible;
     }
 
+    public void positionImage(int x, int y) {
+        this.imagePosX = x;
+        this.imagePosY = y;
+    }
+
     public void moveTo(int sortOrder) {
         this.sortOrder = (short) sortOrder;
     }
@@ -104,6 +116,14 @@ public class Banner {
 
     public Long getImageFileId() {
         return imageFileId;
+    }
+
+    public int getImagePosX() {
+        return imagePosX;
+    }
+
+    public int getImagePosY() {
+        return imagePosY;
     }
 
     public BannerKind getKind() {

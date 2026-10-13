@@ -61,6 +61,10 @@
       img.alt = '';
       img.loading = index === 0 ? 'eager' : 'lazy';
       img.decoding = 'async';
+      // 관리자가 정한 보일 자리 (D-134). 자동 배너는 가운데
+      if (Number.isFinite(item.imagePosX) && Number.isFinite(item.imagePosY)) {
+        img.style.objectPosition = item.imagePosX + '% ' + item.imagePosY + '%';
+      }
       // 사진을 불러오지 못하면(파일이 없는 서버 등) 깨진 그림 대신 빈 표지
       img.addEventListener('error', () => img.replaceWith(placeholder(item)), { once: true });
       link.append(img);

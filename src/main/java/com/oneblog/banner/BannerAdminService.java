@@ -42,12 +42,13 @@ public class BannerAdminService {
     }
 
     /** kind: AD·NOTICE·EVENT(빼면 AD). imageFileId는 POST /api/admin/banners/image로 올린 사진. visible을 빼면 켬. */
+    /** imagePosX·imagePosY: 사진에서 보일 자리 0~100(%), 빼면 50 (D-134). */
     public record BannerRequest(String kind, String title, String caption, String linkUrl, Long imageFileId,
-            Boolean visible) {
+            Boolean visible, Integer imagePosX, Integer imagePosY) {
     }
 
     public record BannerRow(Long id, String kind, String kindLabel, String title, String caption, String linkUrl,
-            Long imageFileId, String imageUrl, boolean visible, int sortOrder) {
+            Long imageFileId, String imageUrl, int imagePosX, int imagePosY, boolean visible, int sortOrder) {
     }
 
     /**
@@ -69,7 +70,7 @@ public class BannerAdminService {
             StoredFile image = files.get(b.getImageFileId());
             return new BannerRow(b.getId(), b.getKind().name(), b.getKind().label(), b.getTitle(), b.getCaption(),
                     b.getLinkUrl(), b.getImageFileId(), image == null || image.isDeleted() ? null : image.url(),
-                    b.isVisible(), b.getSortOrder());
+                    b.getImagePosX(), b.getImagePosY(), b.isVisible(), b.getSortOrder());
         }).toList();
         BannerSettings settings = BannerSettings.read(siteSettings);
         BannerService.Auto auto = bannerService.auto(settings, null);
@@ -82,6 +83,7 @@ public class BannerAdminService {
         Clean clean = validate(body, null);
         Banner banner = bannerRepository.saveAndFlush(Banner.create(admin.id(), clean.kind, clean.imageFileId,
                 clean.title, clean.caption, clean.linkUrl, clean.visible, nextSortOrder()));
+        banner.positionImage(clean.posX, clean.posY);
         actionLogger.log(admin, "BANNER_CREATE", "BANNER", banner.getId(), clean.kind.label() + ": " + clean.title,
                 request);
         return banner;
@@ -93,6 +95,7 @@ public class BannerAdminService {
         Clean clean = validate(body, banner.getImageFileId());
         Long oldImage = banner.getImageFileId();
         banner.change(clean.kind, clean.imageFileId, clean.title, clean.caption, clean.linkUrl, clean.visible);
+        banner.positionImage(clean.posX, clean.posY);
         if (!oldImage.equals(clean.imageFileId)) {
             fileRepository.findById(oldImage).ifPresent(StoredFile::markDeleted);
         }
@@ -178,7 +181,7 @@ public class BannerAdminService {
     }
 
     private record Clean(BannerKind kind, String title, String caption, String linkUrl, Long imageFileId,
-            boolean visible) {
+            boolean visible, int posX, int posY) {
     }
 
     /** currentImage: 고칠 때 지금 사진(그대로 두면 다시 검사하지 않아도 됨). */
@@ -208,10 +211,24 @@ public class BannerAdminService {
         if (imageFileId == null || !(imageFileId.equals(currentImage) || usableImage(imageFileId))) {
             errors.add(new ErrorResponse.FieldError("imageFileId", "배너 사진을 올려 주세요."));
         }
+        int posX = position(body == null ? null : body.imagePosX(), "imagePosX", errors);
+        int posY = position(body == null ? null : body.imagePosY(), "imagePosY", errors);
         if (!errors.isEmpty()) {
             throw new ValidationFailedException(errors);
         }
-        return new Clean(kind, title, caption, link, imageFileId, body.visible() == null || body.visible());
+        return new Clean(kind, title, caption, link, imageFileId, body.visible() == null || body.visible(), posX, posY);
+    }
+
+    /** 사진 위치 0~100(%). 빼면 가운데 50. */
+    private static int position(Integer value, String field, List<ErrorResponse.FieldError> errors) {
+        if (value == null) {
+            return 50;
+        }
+        if (value < 0 || value > 100) {
+            errors.add(new ErrorResponse.FieldError(field, "사진 위치는 0~100 사이여야 합니다."));
+            return 50;
+        }
+        return value;
     }
 
     /** 배너용으로 올렸고, 지워지지 않았고, 다른 광고가 쓰지 않는 사진. */

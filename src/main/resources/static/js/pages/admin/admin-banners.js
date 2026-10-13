@@ -137,9 +137,12 @@
     const form = el('form', 'banner-admin-form');
     form.noValidate = true;
     const heading = el('h3', null, editing ? '"' + editing.title + '" 고치기' : '배너 추가');
-    const preview = el('div', 'banner-admin-image');
-    const showImage = (url) => preview.replaceChildren(url ? img(url, 'banner-admin-photo') : el('span', 'hint', '사진을 골라 주세요'));
+    // 실제 배너와 같은 모양의 미리보기. 사진을 끌거나 막대로 보일 자리를 정한다 (D-134)
+    const preview = window.bannerPreview.create();
+    const showImage = (url) => preview.setImage(url);
     showImage(editing ? editing.imageUrl : null);
+    const pos = (v) => (Number.isFinite(v) ? v : 50);
+    preview.setPosition(editing ? pos(editing.imagePosX) : 50, editing ? pos(editing.imagePosY) : 50);
     imageFileId = editing ? editing.imageFileId : null;
 
     const file = el('input');
@@ -154,6 +157,7 @@
       if (r.ok && r.data) {
         imageFileId = r.data.fileId;
         showImage(r.data.url);
+        preview.setPosition(50, 50); // 새 사진은 가운데부터
         setError('image', '');
       } else {
         setError('image', (r.data && r.data.message) || '사진을 올리지 못했습니다.');
@@ -180,6 +184,11 @@
     visible.checked = editing ? editing.visible : true;
     const visibleLabel = el('label', 'checkbox');
     visibleLabel.append(visible, document.createTextNode(' 메인에 보이기'));
+    const label = () => (KINDS.find(k => k[0] === kind.value) || KINDS[0])[1];
+    const refreshText = () => preview.setText(kind.value, label(), title.value.trim(), caption.value.trim());
+    [kind, title, caption].forEach(input => input.addEventListener('input', refreshText));
+    kind.addEventListener('change', refreshText);
+    refreshText();
 
     const submit = el('button', 'primary inline-button', editing ? '수정 저장' : '배너 추가');
     submit.type = 'submit';
@@ -195,7 +204,7 @@
       actions.append(cancel);
     }
 
-    form.append(heading, preview,
+    form.append(heading, preview.element,
       field('banner-kind', '종류', kind, '배너에 "광고"·"공지"·"이벤트" 표시가 붙어요.'),
       field('banner-image', '사진', file, 'jpg·png·gif·webp, 3MB까지. 가로로 긴 사진(1080×380 이상)이 좋아요. 가운데를 기준으로 잘려 보여요.'),
       field('banner-title', '제목', title),
@@ -206,8 +215,9 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
+      const position = preview.getPosition();
       const body = { kind: kind.value, title: title.value.trim(), caption: caption.value.trim(), linkUrl: link.value.trim(),
-        imageFileId: imageFileId, visible: visible.checked };
+        imageFileId: imageFileId, visible: visible.checked, imagePosX: position.x, imagePosY: position.y };
       const r = editing
         ? await window.api.put('/api/admin/banners/' + encodeURIComponent(editing.id), body, { userAction: true })
         : await window.api.post('/api/admin/banners', body, { userAction: true });
@@ -263,7 +273,7 @@
       const actions = el('span');
       actions.append(helpers.button(ad.visible ? '숨기기' : '보이기', async () => {
         const r = await window.api.put('/api/admin/banners/' + encodeURIComponent(ad.id), {
-          kind: ad.kind, title: ad.title, caption: ad.caption, linkUrl: ad.linkUrl, imageFileId: ad.imageFileId, visible: !ad.visible
+          kind: ad.kind, title: ad.title, imagePosX: ad.imagePosX, imagePosY: ad.imagePosY, caption: ad.caption, linkUrl: ad.linkUrl, imageFileId: ad.imageFileId, visible: !ad.visible
         }, { userAction: true });
         await ctx.reload();
         ctx.message(r.ok ? (ad.visible ? '배너를 숨겼습니다.' : '배너를 보이게 했습니다.') : '바꾸지 못했습니다.');
