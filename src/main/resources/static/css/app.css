@@ -23,7 +23,7 @@
   --text: #16181d;
   --muted: #6b6f76;
   --text-soft: #4a4e55;
-  --line: #ececec;
+  --line: #c4c7cc;
   --sun: #2f6f5e;
   --sun-strong: #2f6f5e;
   --sun-soft: #e6efeb;
@@ -526,7 +526,7 @@ textarea,
 select {
   width: 100%;
   padding: 11px 14px;
-  border: 1px solid #d9dadc;
+  border: 1px solid var(--line);
   border-radius: var(--radius-field);
   background: var(--surface);
   color: var(--text);
@@ -1191,7 +1191,7 @@ body.modal-open {
 }
 
 .blog-icon-plus {
-  border: 1px dashed #c9cccf;
+  border: 1px dashed var(--line);
   background: transparent;
   color: var(--muted);
   font-size: 36px;
@@ -1205,7 +1205,7 @@ body.modal-open {
 
 .home-empty {
   padding: 28px;
-  border: 1px dashed #c9cccf;
+  border: 1px dashed var(--line);
   border-radius: var(--radius-panel);
   background: var(--surface);
 }
