@@ -7,7 +7,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # 브랜치 규칙 (D-136): main(배포), develop(다음 버전 모음), feature/*(기능), hotfix/*(운영 버그) 모두 테스트한다.
+    # 배포는 main만 (deploy.yml)
+    branches: [main, develop, 'feature/**', 'hotfix/**']
     # 문서·Claude 설정만 바뀐 push는 CI(와 그 뒤의 배포 확인)를 돌리지 않는다. 진행 중인 배포 CI가 취소되지 않게
     paths-ignore: ['**.md', '.claude/**', '.specify/**']
   pull_request:

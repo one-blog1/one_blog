@@ -20,6 +20,8 @@ build.gradle.kts의 version을 올려(배포마다 0.01씩, 예: 0.21 → 0.22. 
       4) 성공하면 그 커밋에 태그 v0.21을 붙임
 ```
 
+**브랜치** (D-136): `main`(운영, 배포는 여기서만) / `develop`(다음 버전에 넣을 것을 모음) / `feature/*`(기능, develop에서 만들고 develop에 합침) / `hotfix/*`(운영 버그, main에서 만들고 main·develop 양쪽에 합침). CI는 네 종류 모두에서 돌고, 배포는 main만 합니다. 버전은 develop에서 올리고 develop을 main에 합칩니다.
+
 **버전 올리는 법**: `build.gradle.kts`의 `version = "..."` 한 줄만 바꿉니다. 번호 규칙과 릴리즈 노트·공지 순서는 문서 저장소 [releases/README.md](https://github.com/one-blog1/one-blog_docs/blob/main/releases/README.md)를 따릅니다.
 
 **지금 떠 있는 버전**: `curl http://<서버>:8430/api/health` → `{"status":"UP","version":"0.21"}`
