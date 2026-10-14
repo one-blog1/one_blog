@@ -3480,6 +3480,16 @@ form.search-row input {
   border-color: var(--error);
 }
 
+/* 제재 입력: 고른 정지 기간은 잉크색으로 채운다 (D-104 선택됨 표시) */
+.member-manage .period-choices button[aria-pressed="true"] {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.member-manage textarea {
+  width: 100%;
+}
+
 .member-manage .message:empty {
   display: none;
 }

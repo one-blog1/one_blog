@@ -177,44 +177,84 @@
     }
   }
 
-  // ---- 제재 (BLG-11, BLG-13) ----
-  async function askDays() {
-    const raw = await window.dialog.prompt('정지 기간을 골라 주세요: 3, 14, 30 (일) 또는 영구', { defaultValue: '3' });
-    if (raw === null) {
-      return undefined;
-    }
-    const value = raw.trim();
-    if (value === '영구') {
-      return null;
-    }
-    const days = parseInt(value, 10);
-    return [3, 14, 30].includes(days) ? days : undefined;
-  }
+  // ---- 제재 (BLG-11, BLG-13): 창 하나에서 기간은 단추로 고르고 사유를 적는다 ----
+  // 정지 기간은 3일·14일·30일·영구 (D-57). 서버도 이 넷만 받는다. 사유는 정지 해제 말고는 꼭 적는다(500자까지)
+  const SANCTION_LABEL = { WARNING: '경고', SUSPENSION: '정지', RELEASE: '정지 해제', KICK: '강제 퇴장' };
+  const SANCTION_SUBMIT = { WARNING: '경고하기', SUSPENSION: '정지하기', RELEASE: '정지 해제', KICK: '강제 퇴장' };
+  const SUSPENSION_CHOICES = [[3, '3일'], [14, '14일'], [30, '30일'], [null, '영구']];
 
-  async function sanction(userId, nickname, type, reportId) {
-    const labels = { WARNING: '경고', SUSPENSION: '정지', RELEASE: '정지 해제', KICK: '강제 퇴장' };
-    let days = null;
+  // target: { userId, nickname, reportId? }. 처리되면 onDone(안내 문장), [취소]는 onCancel()
+  function renderSanctionForm(body, type, target, onDone, onCancel) {
+    body.replaceChildren();
+    body.classList.add('member-manage');
+    let days = type === 'SUSPENSION' ? 3 : null;
+    let firstFocus = null;
+
     if (type === 'SUSPENSION') {
-      days = await askDays();
-      if (days === undefined) {
-        return false;
+      const group = el('div', 'row period-choices');
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', '정지 기간');
+      const buttons = SUSPENSION_CHOICES.map(([value, text]) => {
+        const b = el('button', 'secondary', text);
+        b.type = 'button';
+        b.addEventListener('click', () => {
+          days = value;
+          buttons.forEach((x, i) => x.setAttribute('aria-pressed', String(SUSPENSION_CHOICES[i][0] === days)));
+        });
+        b.setAttribute('aria-pressed', String(value === days));
+        return b;
+      });
+      group.append(...buttons);
+      body.append(manageSection('기간', group));
+    }
+
+    let reasonInput = null;
+    if (type === 'RELEASE') {
+      body.append(el('p', 'dialog-message', target.nickname + '님의 정지를 지금 풀까요?'));
+    } else {
+      reasonInput = el('textarea');
+      reasonInput.rows = 3;
+      reasonInput.maxLength = 500;
+      reasonInput.placeholder = '사유를 적어 주세요 (500자까지)';
+      reasonInput.setAttribute('aria-label', SANCTION_LABEL[type] + ' 사유');
+      body.append(manageSection('사유', reasonInput));
+      firstFocus = reasonInput;
+    }
+    if (type === 'KICK') {
+      body.append(el('p', 'hint', '강제 퇴장하면 블랙리스트에 올라 다시 참여할 수 없어요.'));
+    }
+
+    const message = el('p', 'message error', '');
+    message.setAttribute('role', 'alert');
+    const row = el('div', 'row dialog-actions');
+    const cancel = el('button', 'secondary', '취소');
+    cancel.type = 'button';
+    cancel.addEventListener('click', onCancel);
+    const submit = el('button', 'primary inline-button' + (type === 'KICK' ? ' danger' : ''), SANCTION_SUBMIT[type]);
+    submit.type = 'button';
+    submit.addEventListener('click', async () => {
+      const reason = reasonInput ? reasonInput.value.trim() : '';
+      if (reasonInput && !reason) {
+        message.textContent = '사유를 적어 주세요.';
+        reasonInput.focus();
+        return;
       }
-    }
-    const reason = type === 'RELEASE' ? '' : await window.dialog.prompt(nickname + '님에게 ' + labels[type] + ' 사유를 적어 주세요.');
-    if (reason === null || (type !== 'RELEASE' && !reason.trim())) {
-      return false;
-    }
-    if (type === 'KICK' && !await window.dialog.confirm(nickname + '님을 강제 퇴장할까요? 블랙리스트에 올라 다시 참여할 수 없어요.')) {
-      return false;
-    }
-    const result = reportId
-      ? await window.api.post(base() + '/reports/' + reportId + '/resolve', { result: type, days: days, reason: reason },
-        { userAction: true })
-      : await window.api.post(base() + '/members/' + userId + '/sanctions', { type: type, days: days, reason: reason },
-        { userAction: true });
-    say(reportId ? 'reports-message' : 'members-message',
-      result.ok ? nickname + '님에게 ' + labels[type] + ' 처리했어요.' : errorText(result, '처리하지 못했어요.'), result.ok);
-    return result.ok;
+      submit.disabled = true;
+      const result = target.reportId
+        ? await window.api.post(base() + '/reports/' + target.reportId + '/resolve',
+          { result: type, days: days, reason: reason }, { userAction: true })
+        : await window.api.post(base() + '/members/' + target.userId + '/sanctions',
+          { type: type, days: days, reason: reason }, { userAction: true });
+      submit.disabled = false;
+      if (!result.ok) {
+        message.textContent = errorText(result, '처리하지 못했어요.');
+        return;
+      }
+      onDone(target.nickname + '님에게 ' + SANCTION_LABEL[type] + ' 처리했어요.');
+    });
+    row.append(cancel, submit);
+    body.append(row, message);
+    (firstFocus || submit).focus();
   }
 
   // ---- 멤버 관리 창: 한 멤버의 상태·제재·권한·위임을 한 창에서 (BLG-08, BLG-11, BLG-13, D-71, D-112) ----
@@ -235,8 +275,13 @@
   }
 
   function openManage(m, owner) {
-    const dialog = window.modal.open({ title: m.nickname + '님 관리' });
+    showManage(window.modal.open({ title: m.nickname + '님 관리' }), m, owner);
+  }
+
+  function showManage(dialog, m, owner) {
+    dialog.setTitle(m.nickname + '님 관리');
     const body = dialog.body;
+    body.replaceChildren();
     body.classList.add('member-manage');
     const message = el('p', 'message', '');
     message.setAttribute('role', 'status');
@@ -260,13 +305,17 @@
         }
         const b = el('button', 'secondary' + (type === 'KICK' ? ' danger' : ''), label);
         b.type = 'button';
-        b.addEventListener('click', async () => {
-          // 사유·기간을 묻는 창이 이 창 위에 겹치지 않게 먼저 닫는다
-          dialog.close();
-          if (await sanction(m.userId, m.nickname, type)) {
-            loadMembers();
-            loadBlacklist();
-          }
+        // 같은 창이 기간·사유 입력으로 바뀐다. [취소]를 누르면 관리 화면으로 돌아온다
+        b.addEventListener('click', () => {
+          dialog.setTitle(m.nickname + '님 ' + SANCTION_LABEL[type]);
+          renderSanctionForm(body, type, { userId: m.userId, nickname: m.nickname },
+            (text) => {
+              dialog.close();
+              say('members-message', text, true);
+              loadMembers();
+              loadBlacklist();
+            },
+            () => showManage(dialog, m, owner));
         });
         row.append(b);
       });
@@ -357,11 +406,17 @@
         [['WARNING', '경고'], ['SUSPENSION', '정지'], ['KICK', '강제 퇴장']].forEach(([type, label]) => {
           const b = el('button', type === 'KICK' ? 'link-button danger' : 'link-button', label);
           b.type = 'button';
-          b.addEventListener('click', async () => {
-            if (await sanction(r.targetUserId, r.targetNickname || '', type, r.id)) {
-              loadReports();
-              loadMembers();
-            }
+          b.addEventListener('click', () => {
+            const nickname = r.targetNickname || '';
+            const dialog = window.modal.open({ title: nickname + '님 ' + SANCTION_LABEL[type] });
+            renderSanctionForm(dialog.body, type, { userId: r.targetUserId, nickname: nickname, reportId: r.id },
+              (text) => {
+                dialog.close();
+                say('reports-message', text, true);
+                loadReports();
+                loadMembers();
+              },
+              () => dialog.close());
           });
           actions.append(b);
         });
