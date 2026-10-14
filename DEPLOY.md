@@ -25,9 +25,10 @@ develop에서 build.gradle.kts의 version을 올리고(배포마다 0.01씩, 예
       1) Docker 이미지 만들기 (태그 = 버전-커밋 앞 7자리)
       2) 이미지 + 프록시(nginx) 이미지 + scripts/deploy.sh + deploy.env(Secrets로 만듦)를 SSH로 서버 ~/one-blog/ 에 올림
       3) 서버에서 scripts/deploy.sh 실행 (무중단, D-135)
-           쉬는 쪽(블루 8431 / 그린 8432)에 새 컨테이너 실행 → /api/health 확인
-           → 8430 프록시가 새 포트로 보내도록 전환(nginx reload) → 옛 컨테이너 정상 종료(30초까지)
-           새 버전이 상태 확인에 실패하면 새 것만 멈춰 one-blog-<색>-failed로 남기고 Actions를 실패로 표시 (지금 버전은 그대로 요청을 받음)
+           쉬는 색 2개(블루 8431·8432 / 그린 8433·8434)에 새 컨테이너 실행 → 둘 다 /api/health 확인
+           → 8430 프록시가 그 두 포트로 보내도록 전환(nginx reload) → 옛 색 컨테이너 정상 종료(30초까지)
+           한 서버 안에서 색마다 앱 2개를 띄워 프록시가 번갈아 보낸다(앱 다중화). 평소 2개가 서비스하고 배포 때 쉬는 색 2개로 통째 전환(블루-그린 유지)
+           새 버전이 상태 확인에 실패하면(2개 중 하나라도) 새 것만 멈춰 one-blog-<색>-<번호>-failed로 남기고 Actions를 실패로 표시 (지금 버전은 그대로 요청을 받음)
       4) 성공하면 그 커밋에 태그 v<버전>을 붙임
 ```
 
@@ -48,7 +49,7 @@ CI가 실패하면 배포하지 않습니다.
 |---|---|---|
 | `SSH_ADDRESS`, `SSH_PORT`, `SSH_ID`, `SSH_PASSWORD` | 필수 | 서버 접속 정보 |
 | `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | 필수 | 운영 DB. `DB_ADDRESS`는 호스트만 적습니다(포트는 `DB_PORT`) |
-| `MAIL_USERNAME`, `MAIL_PASSWORD` | 선택 | Gmail과 앱 비밀번호. 없으면 인증번호가 메일 대신 서버 로그에 찍힘 (`docker logs one-blog-blue` 또는 `one-blog-green`) |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | 선택 | Gmail과 앱 비밀번호. 없으면 인증번호가 메일 대신 서버 로그에 찍힘 (`docker logs one-blog-blue-1` 등 지금 켜진 색의 컨테이너) |
 | `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD` | 선택 | 처음 시작할 때 관리자 계정을 만듦 |
 | `COOKIE_SECURE` | 선택 | HTTPS를 붙인 뒤 `true`. 없으면 `false`(http에서도 로그인되도록) |
 | `PUBLIC_BASE_URL` | 선택 | SNS 미리보기·소셜 로그인 돌아오는 주소에 쓸 사이트 주소. 없으면 `https://one-blog.java21.net` |
@@ -64,32 +65,34 @@ CI가 실패하면 배포하지 않습니다.
 - Cloudflare Turnstile 운영 키: `TURNSTILE_SITE_KEY=...`, `TURNSTILE_SECRET_KEY=...` 두 줄 (둘 다 있어야 켜짐). 운영은 이 방법으로 넣어 두었습니다.
 - `FORWARD_HEADERS_STRATEGY`: 운영은 지금 넣지 않아 기본값 `none`입니다. 바꾸려면 같은 방법으로 넣고 다시 배포합니다 (아래 3장·4장).
 
-**서버에 필요한 것**: Docker, curl, x86_64 CPU. SSH 계정이 `docker` 명령을 쓸 수 있어야 합니다 (`sudo usermod -aG docker <계정>` 후 다시 접속, sudo는 필요 없음). 이 앱은 8430~8432를 씁니다(배정받은 8430~8439 안). 바깥 nginx는 8430으로만 보냅니다.
+**서버에 필요한 것**: Docker, curl, x86_64 CPU. SSH 계정이 `docker` 명령을 쓸 수 있어야 합니다 (`sudo usermod -aG docker <계정>` 후 다시 접속, sudo는 필요 없음). 이 앱은 8430~8434를 씁니다(배정받은 8430~8439 안). 바깥 nginx는 8430으로만 보냅니다.
 
 **서버에서 볼 때**
 
 ```bash
-docker ps                          # one-blog-proxy(8430)와 one-blog-blue(8431) 또는 one-blog-green(8432)
-cat ~/one-blog/proxy/upstream.conf # 프록시가 지금 보내는 포트
-docker logs -f one-blog-blue       # 서버 로그 (지금 켜진 색으로)
+docker ps                          # one-blog-proxy(8430)와 one-blog-blue-1/-2(8431·8432) 또는 one-blog-green-1/-2(8433·8434)
+cat ~/one-blog/proxy/upstream.conf # 프록시가 지금 보내는 포트 2개
+docker logs -f one-blog-blue-1     # 서버 로그 (지금 켜진 색의 한 컨테이너)
 ls ~/one-blog                      # deploy.sh, deploy.env, secrets.env, proxy/
 ```
 
-**무중단 배포 구조** (D-135)
+**무중단 배포 + 앱 다중화 구조** (D-135)
 
 ```
 바깥 nginx(도메인) → :8430 one-blog-proxy (nginx 컨테이너, 늘 켜져 있음)
-                         → :8431 one-blog-blue  또는  :8432 one-blog-green (지금 켜진 쪽)
+                         → :8431 one-blog-blue-1 + :8432 one-blog-blue-2   (지금 켜진 색 2개, 번갈아)
+                            또는  :8433 one-blog-green-1 + :8434 one-blog-green-2
 ```
 
-- 배포 때마다 쉬는 색에 새 버전을 띄우고, 상태 확인을 통과하면 `~/one-blog/proxy/upstream.conf`를 새 포트로 바꾸고 `nginx -s reload`로 다시 읽습니다. 끊기는 요청이 없습니다.
-- 새 버전이 실패하면 지금 버전은 건드리지 않습니다. 실패한 컨테이너는 멈춘 채 `one-blog-<색>-failed`로 남아 `docker logs one-blog-<색>-failed`로 볼 수 있고, 다음 배포 때 지워집니다.
-- 처음 한 번(예전 단일 컨테이너 `one-blog`가 8430을 쓰던 때)만 예전 컨테이너를 내리고 프록시를 띄우는 몇 초 동안 멈춥니다.
+- 한 서버 안에서 색마다 앱을 2개씩 띄워 프록시가 번갈아(round-robin) 보냅니다. 평소 2개가 함께 서비스하므로 한 개가 죽어도 나머지가 받습니다(`proxy_next_upstream`, `max_fails=1 fail_timeout=10s`). 서버 자체가 멈추는 것은 막지 못합니다(앱 2개가 같은 서버).
+- 배포 때마다 쉬는 색 2개에 새 버전을 띄우고, 둘 다 상태 확인을 통과하면 `~/one-blog/proxy/upstream.conf`를 새 색의 포트 2개로 바꾸고 `nginx -s reload`로 다시 읽습니다. 끊기는 요청이 없습니다(블루-그린 유지).
+- 새 버전이 실패하면(2개 중 하나라도) 지금 버전은 건드리지 않습니다. 실패한 컨테이너는 멈춘 채 `one-blog-<색>-<번호>-failed`로 남아 `docker logs`로 볼 수 있고, 다음 배포 때 지워집니다.
+- 처음 한 번(예전 단일 컨테이너 `one-blog`/`one-blog-blue`/`one-blog-green`가 돌던 때)은 그 예전 컨테이너를 포트가 겹치지 않는 반대 색으로 교체한 뒤 내립니다. 프록시가 이미 떠 있으면 멈춤 없이 넘어갑니다.
 - 이전 버전으로 되돌리려면 이전 태그를 다시 배포합니다: `gh workflow run Deploy --ref <태그>` (그 태그의 deploy.yml·deploy.sh로 돎). **블루-그린(D-135)이 들어간 v0.18 이후 태그에만 씁니다.** v0.17까지의 태그는 예전 방식(8430에 컨테이너 하나)의 deploy.sh로 돌아 지금의 프록시·블루-그린 구조와 맞지 않으므로, 그 버전으로 되돌릴 때는 아래 "손으로 되돌릴 때"를 씁니다.
 - 손으로 되돌릴 때(서버에서): 옛 이미지(`docker images one-blog`)로 쉬는 색 포트에 컨테이너를 띄우고 `upstream.conf`를 그 포트로 바꾼 뒤 `docker exec one-blog-proxy nginx -s reload`.
 - 프록시는 바깥 nginx가 보낸 `X-Forwarded-For`·`X-Forwarded-Proto`를 그대로 넘깁니다. 운영 앱은 아직 `FORWARD_HEADERS_STRATEGY=none`(`deploy.yml`이 넘기지 않아 기본값)이라 접속 IP를 프록시 주소(127.0.0.1)로 봅니다(예전에는 바깥 nginx 주소). 실제 접속 IP를 읽게 하려면 서버 `~/one-blog/secrets.env`에 `FORWARD_HEADERS_STRATEGY=framework`를 넣고 다시 배포합니다.
 
-업로드 파일은 Docker 볼륨 `one-blog-uploads`에 있어 새 버전을 배포해도 남고, 블루·그린이 같이 씁니다. 컨테이너는 호스트 네트워크로 띄워 서버와 같은 네트워크·DNS를 씁니다(서버에서 `nc -vz <DB 주소> <포트>`가 되면 앱도 DB에 닿음).
+업로드 파일은 Docker 볼륨 `one-blog-uploads`에 있어 새 버전을 배포해도 남고, 블루·그린의 모든 컨테이너가 같이 씁니다. 컨테이너는 호스트 네트워크로 띄워 서버와 같은 네트워크·DNS를 씁니다(서버에서 `nc -vz <DB 주소> <포트>`가 되면 앱도 DB에 닿음).
 
 ## 1. 버전
 
@@ -128,7 +131,7 @@ ls ~/one-blog                      # deploy.sh, deploy.env, secrets.env, proxy/
 java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 ```
 
-- 포트는 기본 8080입니다. 바꾸려면 `PORT`나 `SERVER_PORT`를 줍니다. 운영 배포에서는 `deploy.sh`가 블루 8431·그린 8432를 `PORT`로 줍니다.
+- 포트는 기본 8080입니다. 바꾸려면 `PORT`나 `SERVER_PORT`를 줍니다. 운영 배포에서는 `deploy.sh`가 색마다 컨테이너 2개에 블루 8431·8432 / 그린 8433·8434를 `PORT`로 줍니다.
 - 앱은 실행한 폴더의 `.env`를 읽습니다. 운영 서버에서는 `.env`를 쓰지 않고 GitHub Secrets(→ `deploy.env`)와 서버 `~/one-blog/secrets.env`로 넣습니다 (0장).
 - Docker로 배포할 때는 `docker build -t one-blog .`로 이미지를 만듭니다. 사용법은 `Dockerfile` 맨 위에 적어 두었습니다.
 - 종료 신호를 받으면 처리 중인 요청을 최대 20초 기다린 뒤 꺼집니다 (graceful shutdown).
