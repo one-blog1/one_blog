@@ -12,6 +12,7 @@
 #   (선택) MAIL_USERNAME, MAIL_PASSWORD   넣으면 인증 메일을 실제로 보냄. 없으면 인증번호가 서버 로그에 찍힘
 #   (선택) ADMIN_LOGIN_ID, ADMIN_PASSWORD 넣으면 처음 시작할 때 관리자 계정을 만듦
 #   (선택) COOKIE_SECURE                  HTTPS를 붙인 뒤 true. 없으면 false(http에서 로그인되도록)
+#   (선택) FORWARD_HEADERS_STRATEGY       없으면 native(프록시 뒤 운영 기본). 프록시 없이 직접 받을 때만 none으로 덮어씀
 #   (선택) PUBLIC_BASE_URL                SNS 미리보기·소셜 로그인 돌아오는 주소에 쓸 사이트 주소 (비우면 https://one-blog.java21.net)
 #   (선택) KAKAO_CLIENT_ID / KAKAO_CLIENT_SECRET, NAVER_CLIENT_ID / NAVER_CLIENT_SECRET,
 #          GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET   소셜 로그인 키 (D-126). 넣은 사이트만 켜진다
@@ -108,6 +109,7 @@ jobs:
           ADMIN_LOGIN_ID: ${{ secrets.ADMIN_LOGIN_ID }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           COOKIE_SECURE: ${{ secrets.COOKIE_SECURE }}
+          FORWARD_HEADERS_STRATEGY: ${{ secrets.FORWARD_HEADERS_STRATEGY }}
           PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
           CODE_PEPPER: ${{ secrets.CODE_PEPPER }}
           PRIVACY_HASH_PEPPER: ${{ secrets.PRIVACY_HASH_PEPPER }}
@@ -130,6 +132,9 @@ jobs:
             echo "DB_USERNAME=$DB_USERNAME"
             echo "DB_PASSWORD=$DB_PASSWORD"
             echo "COOKIE_SECURE=${COOKIE_SECURE:-false}"
+            # 운영은 바깥 nginx → 프록시 뒤라 접속 IP를 프록시 헤더로 읽는다. 기본 native:
+            # 신뢰 프록시(127.0.0.1 등)를 오른쪽부터 건너뛰고 첫 바깥 IP를 고름 (framework는 X-Forwarded-For 맨 앞을 믿어 위조에 약함)
+            echo "FORWARD_HEADERS_STRATEGY=${FORWARD_HEADERS_STRATEGY:-native}"
             if [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ]; then
               echo "MAIL_MODE=smtp"
               echo "MAIL_USERNAME=$MAIL_USERNAME"
