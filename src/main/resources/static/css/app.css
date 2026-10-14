@@ -3428,7 +3428,7 @@ form.search-row input {
   overflow-x: auto;
 }
 
-/* 멤버 표 마지막 칸: 정지 상태·제재·권한·위임 단추가 겹치지 않게 줄바꿈 (BLG-08·BLG-13). 정지 중이면 안내·'정지 해제'가 더 붙는다 */
+/* 멤버 표 마지막 칸: 상태 표시와 [관리] 단추만 (BLG-08·BLG-13). 제재·권한·위임은 관리 창에서 */
 .member-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3437,16 +3437,51 @@ form.search-row input {
 }
 
 .member-actions .badge {
+  margin-left: 0;
   white-space: nowrap;
 }
 
-/* 안내(.hint)의 위 여백은 줄 맞춤을 흐트러뜨리고, 제재 단추 묶음은 좁으면 접혀야 다른 칸(닉네임·이름)을 밀지 않는다 */
-.member-actions .hint {
-  margin: 0;
+/* 멤버 관리 창: 상태·제재·권한·위임을 칸으로 나눈다 */
+.member-manage .manage-section + .manage-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
-.member-actions > span {
+.member-manage h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.member-manage .hint {
+  margin: 4px 0 0;
+}
+
+.member-manage .hint + button {
+  margin-top: 10px;
+}
+
+.member-manage .row {
   flex-wrap: wrap;
+}
+
+.member-manage .checkbox {
+  margin: 6px 0;
+}
+
+.member-manage button.secondary {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.member-manage button.secondary.danger {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.member-manage .message:empty {
+  display: none;
 }
 
 .danger-button {

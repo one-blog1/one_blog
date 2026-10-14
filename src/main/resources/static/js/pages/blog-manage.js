@@ -118,7 +118,7 @@
 
   // ---- 멤버 ----
   function permissionBox(label, checked) {
-    const wrap = el('label', 'checkbox inline');
+    const wrap = el('label', 'checkbox');
     const input = el('input');
     input.type = 'checkbox';
     input.checked = checked;
@@ -149,45 +149,23 @@
       nick.append(window.userLink(m.nickname));
       tr.append(nick);
       [m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));
+      // 줄에는 상태와 [관리] 단추만 둔다. 제재·권한·위임은 관리 창에서 (D-112 가운데 창)
       const actions = el('td');
       const box = el('div', 'member-actions');
+      if (m.suspendedUntil) {
+        const badge = el('span', 'badge muted', '정지 중');
+        badge.title = formatTime(m.suspendedUntil) + '까지';
+        box.append(badge);
+      }
       if (m.suspensionCount >= 3) {
         box.append(el('span', 'badge', '정지 ' + m.suspensionCount + '회'));
       }
-      if (m.suspendedUntil) {
-        box.append(el('span', 'hint', ' 정지 중(' + formatTime(m.suspendedUntil) + '까지) '));
-      }
-      const canSanction = m.role === 'MEMBER' || (owner && m.role === 'SUB_OWNER');
-      if (canSanction && m.userId !== state.me) {
-        box.append(sanctionButtons(m));
-      }
-      if (owner && m.role !== 'OWNER') {
-        const sub = permissionBox('부블로그장', m.role === 'SUB_OWNER');
-        const info = permissionBox('정보 수정', m.canEditInfo);
-        const members = permissionBox('멤버 관리', m.canManageMembers);
-        const posts = permissionBox('글 관리', m.canManagePosts);
-        const save = el('button', 'link-button', '권한 저장');
-        save.type = 'button';
-        save.addEventListener('click', async () => {
-          const r = await window.api.put(base() + '/members/' + m.userId + '/sub-owner', {
-            subOwner: sub.input.checked, canEditInfo: info.input.checked,
-            canManageMembers: members.input.checked, canManagePosts: posts.input.checked
-          }, { userAction: true });
-          say('members-message', r.ok ? m.nickname + '님의 권한을 저장했어요.' : errorText(r, '저장하지 못했어요.'), r.ok);
-          loadMembers();
-        });
-        const transfer = el('button', 'link-button', '위임');
-        transfer.type = 'button';
-        transfer.disabled = state.blog.status === 'CLOSING';
-        transfer.addEventListener('click', async () => {
-          if (!await window.dialog.confirm(m.nickname + '님에게 블로그장 위임을 요청할까요? 수락하면 나는 일반 멤버가 돼요.')) {
-            return;
-          }
-          const r = await window.api.post(base() + '/transfer', { toUserId: m.userId }, { userAction: true });
-          say('transfer-message', r.ok ? m.nickname + '님에게 위임을 요청했어요.' : errorText(r, '요청하지 못했어요.'), r.ok);
-          loadTransfer();
-        });
-        box.append(sub.wrap, info.wrap, members.wrap, posts.wrap, save, transfer);
+      if (canSanction(m, owner) || canEditRole(m, owner)) {
+        const manage = el('button', 'link-button', '관리');
+        manage.type = 'button';
+        manage.setAttribute('aria-label', m.nickname + '님 관리');
+        manage.addEventListener('click', () => openManage(m, owner));
+        box.append(manage);
       }
       actions.append(box);
       tr.append(actions);
@@ -239,23 +217,105 @@
     return result.ok;
   }
 
-  function sanctionButtons(m) {
-    const box = el('span');
-    [['WARNING', '경고'], ['SUSPENSION', '정지'], ['RELEASE', '정지 해제'], ['KICK', '강제 퇴장']].forEach(([type, label]) => {
-      if (type === 'RELEASE' && !m.suspendedUntil) {
-        return;
+  // ---- 멤버 관리 창: 한 멤버의 상태·제재·권한·위임을 한 창에서 (BLG-08, BLG-11, BLG-13, D-71, D-112) ----
+  // 제재는 일반 멤버, 블로그장은 부블로그장까지. 나 자신은 제외 (서버도 같은 규칙으로 확인한다)
+  function canSanction(m, owner) {
+    return m.userId !== state.me && (m.role === 'MEMBER' || (owner && m.role === 'SUB_OWNER'));
+  }
+
+  // 권한(부블로그장)과 위임은 블로그장만, 블로그장 자신의 줄은 제외
+  function canEditRole(m, owner) {
+    return owner && m.role !== 'OWNER';
+  }
+
+  function manageSection(title, ...children) {
+    const section = el('section', 'manage-section');
+    section.append(el('h3', null, title), ...children);
+    return section;
+  }
+
+  function openManage(m, owner) {
+    const dialog = window.modal.open({ title: m.nickname + '님 관리' });
+    const body = dialog.body;
+    body.classList.add('member-manage');
+    const message = el('p', 'message', '');
+    message.setAttribute('role', 'status');
+
+    if (m.suspendedUntil || m.suspensionCount > 0) {
+      const lines = [];
+      if (m.suspendedUntil) {
+        lines.push('정지 중 (' + formatTime(m.suspendedUntil) + '까지)');
       }
-      const b = el('button', type === 'KICK' ? 'link-button danger' : 'link-button', label);
-      b.type = 'button';
-      b.addEventListener('click', async () => {
-        if (await sanction(m.userId, m.nickname, type)) {
-          loadMembers();
-          loadBlacklist();
+      if (m.suspensionCount > 0) {
+        lines.push('지금까지 정지 ' + m.suspensionCount + '회');
+      }
+      body.append(manageSection('상태', el('p', 'hint', lines.join(' · '))));
+    }
+
+    if (canSanction(m, owner)) {
+      const row = el('div', 'row');
+      [['WARNING', '경고'], ['SUSPENSION', '정지'], ['RELEASE', '정지 해제'], ['KICK', '강제 퇴장']].forEach(([type, label]) => {
+        if (type === 'RELEASE' && !m.suspendedUntil) {
+          return;
         }
+        const b = el('button', 'secondary' + (type === 'KICK' ? ' danger' : ''), label);
+        b.type = 'button';
+        b.addEventListener('click', async () => {
+          // 사유·기간을 묻는 창이 이 창 위에 겹치지 않게 먼저 닫는다
+          dialog.close();
+          if (await sanction(m.userId, m.nickname, type)) {
+            loadMembers();
+            loadBlacklist();
+          }
+        });
+        row.append(b);
       });
-      box.append(b);
-    });
-    return box;
+      body.append(manageSection('제재', row));
+    }
+
+    if (canEditRole(m, owner)) {
+      const sub = permissionBox('부블로그장', m.role === 'SUB_OWNER');
+      const info = permissionBox('정보 수정', m.canEditInfo);
+      const members = permissionBox('멤버 관리', m.canManageMembers);
+      const posts = permissionBox('글 관리', m.canManagePosts);
+      const save = el('button', 'primary inline-button', '권한 저장');
+      save.type = 'button';
+      save.addEventListener('click', async () => {
+        const r = await window.api.put(base() + '/members/' + m.userId + '/sub-owner', {
+          subOwner: sub.input.checked, canEditInfo: info.input.checked,
+          canManageMembers: members.input.checked, canManagePosts: posts.input.checked
+        }, { userAction: true });
+        if (!r.ok) {
+          message.className = 'message error';
+          message.textContent = errorText(r, '저장하지 못했어요.');
+          return;
+        }
+        dialog.close();
+        say('members-message', m.nickname + '님의 권한을 저장했어요.', true);
+        loadMembers();
+      });
+      body.append(manageSection('권한', sub.wrap, info.wrap, members.wrap, posts.wrap,
+        el('p', 'hint', '정보 수정·멤버 관리·글 관리는 부블로그장일 때 쓰여요.'), save));
+
+      const closing = state.blog.status === 'CLOSING';
+      const transfer = el('button', 'secondary', '블로그장 위임 요청');
+      transfer.type = 'button';
+      transfer.disabled = closing;
+      transfer.addEventListener('click', async () => {
+        dialog.close();
+        if (!await window.dialog.confirm(m.nickname + '님에게 블로그장 위임을 요청할까요? 수락하면 나는 일반 멤버가 돼요.')) {
+          return;
+        }
+        const r = await window.api.post(base() + '/transfer', { toUserId: m.userId }, { userAction: true });
+        say('transfer-message', r.ok ? m.nickname + '님에게 위임을 요청했어요.' : errorText(r, '요청하지 못했어요.'), r.ok);
+        loadTransfer();
+      });
+      body.append(manageSection('블로그장 위임',
+        el('p', 'hint', closing ? '폐쇄 예정인 블로그는 위임할 수 없어요.' : '상대가 수락하면 블로그장이 바뀌고 나는 일반 멤버가 돼요.'),
+        transfer));
+    }
+
+    body.append(message);
   }
 
   // ---- 신고 처리 ----
