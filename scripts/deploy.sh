@@ -103,6 +103,7 @@ run_container() {
     --network host \
     --env-file "$RUN_ENV" \
     -e PORT="$port" \
+    --memory="${APP_MEMORY:-1536m}" \
     -v one-blog-uploads:/app/uploads \
     --log-opt max-size=20m --log-opt max-file=5 \
     "$image" > /dev/null
