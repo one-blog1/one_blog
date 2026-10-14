@@ -44,11 +44,15 @@
           </div>
         </form>
 
-        <!-- 이름·닉네임·전화번호·동의 (USR-01, 4.6) -->
+        <!-- 이름·닉네임·전화번호·동의 (USR-01, 4.6). 사이트가 준 값은 가려서 보여 주고, 빈칸만 입력받는다 (027) -->
         <form id="signup-form" novalidate>
-          <label for="name">이름</label>
-          <input id="name" name="name" type="text" autocomplete="name" maxlength="50" required>
-          <p class="hint">이름은 가입 후 바꿀 수 없습니다.</p>
+          <dl id="received" class="received-list hidden"></dl>
+
+          <div id="name-field">
+            <label for="name">이름</label>
+            <input id="name" name="name" type="text" autocomplete="name" maxlength="50" required>
+            <p class="hint">이름은 가입 후 바꿀 수 없습니다.</p>
+          </div>
 
           <label for="nickname">닉네임</label>
           <div class="row">
@@ -56,10 +60,12 @@
             <button id="check-nickname" class="secondary" type="button">중복 확인</button>
           </div>
           <p id="nickname-message" class="message" role="status"></p>
-          <p class="hint">2~12자의 한글, 영문, 숫자</p>
+          <p class="hint">2~12자의 한글, 영문, 숫자. 가입 후 내 정보에서도 바꿀 수 있습니다.</p>
 
-          <label for="phone">휴대전화 번호</label>
-          <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="010-1234-5678" required>
+          <div id="phone-field">
+            <label for="phone">휴대전화 번호</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="010-1234-5678" required>
+          </div>
 
           <fieldset class="agree-box" aria-label="약관 동의">
             <label class="checkbox agree-all" for="agree-all">
@@ -85,15 +91,18 @@
 
         <!-- 이미 가입한 회원: 비밀번호로 로그인하면 이 소셜 계정이 연결된다 -->
         <form id="link-form" class="social-link-form" novalidate>
-          <h2>이미 회원이신가요?</h2>
-          <p class="hint">비밀번호로 로그인하면 이 소셜 계정이 연결되어 다음부터 바로 로그인할 수 있습니다.</p>
-          <label for="link-email">이메일</label>
-          <input id="link-email" name="email" type="email" autocomplete="username" required>
+          <h2 id="link-title">이미 회원이신가요?</h2>
+          <p id="link-hint" class="hint">비밀번호로 로그인하면 이 소셜 계정이 연결되어 다음부터 바로 로그인할 수 있습니다.</p>
+          <div id="link-email-field">
+            <label for="link-email">이메일</label>
+            <input id="link-email" name="email" type="email" autocomplete="username" required>
+          </div>
           <label for="link-password">비밀번호</label>
           <input id="link-password" name="password" type="password" autocomplete="current-password" required>
           <div id="captcha" class="captcha hidden"></div>
           <p id="link-message" class="message error" role="alert"></p>
           <button class="secondary" type="submit">로그인하고 연결하기</button>
+          <p class="hint">비밀번호를 잊으셨나요? <a href="/find-account.html">비밀번호 찾기</a></p>
         </form>
 
         <p class="footer-links"><button id="cancel" class="text-link link-button" type="button">그만두기</button></p>

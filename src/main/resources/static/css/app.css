@@ -752,6 +752,27 @@ a.social-button:hover {
   margin-top: 16px;
 }
 
+/* 소셜 가입 화면: 사이트에서 받은 값(가린 값)을 이름표-값 두 칸으로 (027) */
+.received-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 0 0 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.received-list dt {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.received-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 /* ── 안내 글 ──────────────────────────────────────── */
 
 .hint {
