@@ -63,7 +63,7 @@ CI가 실패하면 배포하지 않습니다.
 **Secrets에 없는 값은 서버 `~/one-blog/secrets.env`에 넣습니다.** `deploy.yml`은 위 표의 값만 넘깁니다. `deploy.sh`가 `secrets.env`와 `deploy.env`를 합쳐 컨테이너에 넘기므로(같은 이름이면 `deploy.env`가 우선), 그 밖의 환경변수는 `secrets.env`에 `이름=값` 한 줄씩 더하고 Actions → Deploy → Run workflow로 다시 배포하면 적용됩니다.
 
 - Cloudflare Turnstile 운영 키: `TURNSTILE_SITE_KEY=...`, `TURNSTILE_SECRET_KEY=...` 두 줄 (둘 다 있어야 켜짐). 운영은 이 방법으로 넣어 두었습니다.
-- `FORWARD_HEADERS_STRATEGY`: 운영은 지금 넣지 않아 기본값 `none`입니다. 바꾸려면 같은 방법으로 넣고 다시 배포합니다 (아래 3장·4장).
+- `FORWARD_HEADERS_STRATEGY`: `deploy.yml`이 넣지 않으면 **`native`**(프록시 뒤 운영 기본, 0.19~). 프록시 없이 직접 받는 환경에서만 GitHub Secret `FORWARD_HEADERS_STRATEGY=none`으로 덮어씁니다 (아래 3장·4장).
 
 **서버에 필요한 것**: Docker, curl, x86_64 CPU. SSH 계정이 `docker` 명령을 쓸 수 있어야 합니다 (`sudo usermod -aG docker <계정>` 후 다시 접속, sudo는 필요 없음). 이 앱은 8430~8434를 씁니다(배정받은 8430~8439 안). 바깥 nginx는 8430으로만 보냅니다.
 
@@ -90,7 +90,7 @@ ls ~/one-blog                      # deploy.sh, deploy.env, secrets.env, proxy/
 - 처음 한 번(예전 단일 컨테이너 `one-blog`/`one-blog-blue`/`one-blog-green`가 돌던 때)은 그 예전 컨테이너를 포트가 겹치지 않는 반대 색으로 교체한 뒤 내립니다. 프록시가 이미 떠 있으면 멈춤 없이 넘어갑니다.
 - 이전 버전으로 되돌리려면 이전 태그를 다시 배포합니다: `gh workflow run Deploy --ref <태그>` (그 태그의 deploy.yml·deploy.sh로 돎). **블루-그린(D-135)이 들어간 v0.18 이후 태그에만 씁니다.** v0.17까지의 태그는 예전 방식(8430에 컨테이너 하나)의 deploy.sh로 돌아 지금의 프록시·블루-그린 구조와 맞지 않으므로, 그 버전으로 되돌릴 때는 아래 "손으로 되돌릴 때"를 씁니다.
 - 손으로 되돌릴 때(서버에서): 옛 이미지(`docker images one-blog`)로 쉬는 색 포트에 컨테이너를 띄우고 `upstream.conf`를 그 포트로 바꾼 뒤 `docker exec one-blog-proxy nginx -s reload`.
-- 프록시는 바깥 nginx가 보낸 `X-Forwarded-For`·`X-Forwarded-Proto`를 그대로 넘깁니다. 운영 앱은 아직 `FORWARD_HEADERS_STRATEGY=none`(`deploy.yml`이 넘기지 않아 기본값)이라 접속 IP를 프록시 주소(127.0.0.1)로 봅니다(예전에는 바깥 nginx 주소). 실제 접속 IP를 읽게 하려면 서버 `~/one-blog/secrets.env`에 `FORWARD_HEADERS_STRATEGY=framework`를 넣고 다시 배포합니다.
+- 프록시는 바깥 nginx가 보낸 `X-Forwarded-For`·`X-Forwarded-Proto`를 그대로 넘깁니다. 운영 앱은 `FORWARD_HEADERS_STRATEGY=native`(`deploy.yml` 기본, 0.19~)로 신뢰 프록시(127.0.0.1 등)를 오른쪽부터 건너뛰고 첫 바깥 IP를 접속 IP로 씁니다. 그래서 요청 제한·조회수·관리자 로그가 실제 사용자 IP를 봅니다. `framework`는 `X-Forwarded-For` 맨 앞을 믿어 위조에 약하므로 쓰지 않습니다. 프록시 없이 직접 받는 환경에서는 Secret `FORWARD_HEADERS_STRATEGY=none`으로 덮어씁니다(IP를 속일 수 있어 직접 받을 때는 켜지 않음).
 
 업로드 파일은 Docker 볼륨 `one-blog-uploads`에 있어 새 버전을 배포해도 남고, 블루·그린의 모든 컨테이너가 같이 씁니다. 컨테이너는 호스트 네트워크로 띄워 서버와 같은 네트워크·DNS를 씁니다(서버에서 `nc -vz <DB 주소> <포트>`가 되면 앱도 DB에 닿음).
 
@@ -151,7 +151,7 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 | `MAIL_MODE` | `smtp` | smtp |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | Gmail 주소, 앱 비밀번호 16자리 | 인증 메일 발송 실패 |
 | `PUBLIC_BASE_URL` | `https://실제-도메인` | 요청의 Host 헤더를 씀 |
-| `FORWARD_HEADERS_STRATEGY` | 로드밸런서나 Nginx 뒤에 두면 `framework`. 운영은 아직 넣지 않아 `none` (바꾸려면 서버 `secrets.env`, 0장) | none |
+| `FORWARD_HEADERS_STRATEGY` | 프록시 뒤 운영 기본은 `native`(`deploy.yml`이 넣음, 0.19~). 직접 받는 환경만 Secret으로 `none` | native |
 | `FILE_STORAGE_DIR` | 서버를 바꿔도 남는 폴더. Docker 배포는 이미지 안 `/app/uploads`에 볼륨 `one-blog-uploads`를 붙임 | ./uploads |
 | `VIDEO_THUMBNAIL_ENABLED` | 보통 그대로. 서버가 바깥(유튜브·치지직·SOOP)으로 요청을 못 보내면 `false` | true (글 첫 영상 링크의 목록 썸네일을 받아 둠, D-128) |
 | `ADMIN_LOGIN_ID`, `ADMIN_PASSWORD` | 처음 한 번 관리자 계정을 만들 때만 | 관리자를 만들지 않음 |
@@ -162,7 +162,7 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 
 - [ ] GitHub Actions의 **CI가 초록불**입니다 (테스트, jar 실행, Docker 실행을 모두 통과).
 - [ ] **HTTPS로 접속합니다.** `COOKIE_SECURE=true`이면 http에서는 로그인 쿠키가 저장되지 않아 로그인이 안 됩니다. 인증서 없이 잠깐 http로 띄워 볼 때만 `false`로 둡니다.
-- [ ] 로드밸런서나 Nginx 뒤에 두면 `FORWARD_HEADERS_STRATEGY=framework`로 둡니다. 두지 않으면 모든 요청이 같은 IP로 보여 요청 제한에 걸립니다. 직접 받을 때는 켜지 않습니다 (IP를 속일 수 있음). 운영은 아직 `none`입니다 (0장).
+- [ ] 프록시(바깥 nginx) 뒤 운영은 `FORWARD_HEADERS_STRATEGY=native`입니다(`deploy.yml` 기본, 0.19~). 두지 않으면 모든 요청이 프록시 IP(127.0.0.1)로 보여 요청 제한·조회수·관리자 로그가 뭉개집니다. 프록시 없이 직접 받는 환경에서만 Secret으로 `none`을 넣습니다 (IP를 속일 수 있음).
 - [ ] DB 계정에 테이블을 만들고 바꾸는 권한(CREATE, ALTER, INDEX, REFERENCES, DROP)이 있습니다. Flyway가 시작할 때 씁니다.
 - [ ] 업로드 폴더(`FILE_STORAGE_DIR`)가 배포 때 지워지지 않는 곳입니다.
 - [ ] 메일: `MAIL_MODE=smtp`와 Gmail 앱 비밀번호를 넣었습니다. `log`로 두면 가입 인증번호가 서버 로그에만 찍힙니다.
