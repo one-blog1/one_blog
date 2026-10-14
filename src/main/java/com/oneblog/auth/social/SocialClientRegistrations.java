@@ -35,10 +35,10 @@ public class SocialClientRegistrations implements ClientRegistrationRepository, 
                 ? "{baseUrl}" : publicBaseUrl.strip().replaceAll("/+$", "");
         String redirect = base + "/login/oauth2/code/{registrationId}";
         if (has(kakaoId)) {
-            // 비즈 앱이 아니면 카카오는 이메일을 주지 않는다. 닉네임만 받고 이메일은 가입 화면에서 인증받는다
+            // 비즈 앱으로 이메일을 받는다 (027). 카카오가 인증 표시를 주지 않으면 가입 화면에서 인증번호로 확인한다
             registrations.put(SocialProvider.KAKAO, builder(SocialProvider.KAKAO, kakaoId, kakaoSecret, redirect)
                     .clientName("카카오")
-                    .scope("profile_nickname")
+                    .scope("profile_nickname", "account_email")
                     .authorizationUri("https://kauth.kakao.com/oauth/authorize")
                     .tokenUri("https://kauth.kakao.com/oauth/token")
                     .userInfoUri("https://kapi.kakao.com/v2/user/me")

@@ -18,7 +18,7 @@ import com.oneblog.auth.AccessTokenService;
 
 /**
  * 소셜 로그인 중간 상태를 서명한 쿠키 값(JWT)으로 만든다 (D-126). 서버 메모리·세션에 두지 않는다 (SCL-01).
- * - 가입 대기: 사이트에서 받은 회원 번호·이메일·이름. 가입 화면이 이 값으로 가입을 마친다
+ * - 가입 대기: 사이트에서 받은 회원 번호·이메일·이름·휴대전화·닉네임. 가입 화면이 이 값으로 가입을 마친다 (027)
  * - 연결 표시: 로그인한 회원이 내 정보에서 "연결하기"를 눌렀다는 표시. 돌아왔을 때 그 회원에 연결한다
  * typ이 ACCESS가 아니어서 로그인 쿠키로는 쓸 수 없다 (JwtCookieAuthenticationFilter).
  */
@@ -38,9 +38,12 @@ public class SocialTickets {
         this.decoder = decoder;
     }
 
-    /** 사이트에서 받은 정보. email은 없을 수 있고, emailVerified는 사이트가 인증했다고 알려 준 경우만 true. */
+    /**
+     * 사이트에서 받은 정보. email은 없을 수 있고, emailVerified는 믿을 수 있는 이메일일 때만 true.
+     * name·phone은 우리 형식에 맞는 값만 들어 있다(아니면 null). phone은 숫자만.
+     */
     public record Pending(SocialProvider provider, String providerUserId, String email, boolean emailVerified,
-            String name, String nickname) {
+            String name, String nickname, String phone) {
     }
 
     public String issuePending(Pending pending) {
@@ -55,6 +58,7 @@ public class SocialTickets {
         putIfText(claims, "email", pending.email());
         putIfText(claims, "name", pending.name());
         putIfText(claims, "nick", pending.nickname());
+        putIfText(claims, "phone", pending.phone());
         return encode(claims.build());
     }
 
@@ -67,7 +71,7 @@ public class SocialTickets {
             }
             return Optional.of(new Pending(provider.get(), pid, jwt.getClaimAsString("email"),
                     Boolean.TRUE.equals(jwt.getClaimAsBoolean("ev")), jwt.getClaimAsString("name"),
-                    jwt.getClaimAsString("nick")));
+                    jwt.getClaimAsString("nick"), jwt.getClaimAsString("phone")));
         });
     }
 
