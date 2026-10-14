@@ -149,9 +149,16 @@
       nick.append(window.userLink(m.nickname));
       tr.append(nick);
       [m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));
-      // 줄에는 상태와 [관리] 단추만 둔다. 제재·권한·위임은 관리 창에서 (D-112 가운데 창)
+      // 줄에는 [관리] 단추와 상태만 둔다. [관리]는 늘 맨 앞이라 줄마다 같은 자리에 온다. 제재·권한·위임은 관리 창에서 (D-112)
       const actions = el('td');
       const box = el('div', 'member-actions');
+      if (canSanction(m, owner) || canEditRole(m, owner)) {
+        const manage = el('button', 'link-button', '관리');
+        manage.type = 'button';
+        manage.setAttribute('aria-label', m.nickname + '님 관리');
+        manage.addEventListener('click', () => openManage(m, owner));
+        box.append(manage);
+      }
       if (m.suspendedUntil) {
         const badge = el('span', 'badge muted', '정지 중');
         badge.title = formatTime(m.suspendedUntil) + '까지';
@@ -159,13 +166,6 @@
       }
       if (m.suspensionCount >= 3) {
         box.append(el('span', 'badge', '정지 ' + m.suspensionCount + '회'));
-      }
-      if (canSanction(m, owner) || canEditRole(m, owner)) {
-        const manage = el('button', 'link-button', '관리');
-        manage.type = 'button';
-        manage.setAttribute('aria-label', m.nickname + '님 관리');
-        manage.addEventListener('click', () => openManage(m, owner));
-        box.append(manage);
       }
       actions.append(box);
       tr.append(actions);
