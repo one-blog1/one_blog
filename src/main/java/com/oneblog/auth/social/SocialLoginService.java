@@ -28,7 +28,8 @@ import com.oneblog.verification.VerificationPurpose;
 /**
  * 소셜 로그인·가입·연결 (USR-09, D-126).
  * - 연결된 소셜 계정이면 바로 로그인한다
- * - 처음이면 가입 화면으로 보낸다. 이메일은 사이트가 인증한 것만 믿고, 아니면 우리 인증번호로 확인한다
+ * - 처음이면 가입 화면으로 보낸다. 이메일은 믿을 수 있는 것만 쓰고, 아니면 우리 인증번호로 확인한다
+ * - 가입 화면은 사이트가 주지 않은 칸과 약관 동의만 묻는다. 받은 이름·전화번호는 가려서 보여 주고 원래 값으로 가입한다 (027)
  * - 같은 이메일의 기존 회원에 저절로 붙이지 않는다. 비밀번호로 로그인해야 연결된다
  */
 @Service
@@ -41,11 +42,12 @@ public class SocialLoginService {
     private final VerificationCodeRepository codeRepository;
     private final SignupPolicy signupPolicy;
     private final SocialClientRegistrations registrations;
+    private final SocialNicknames nicknames;
 
     public SocialLoginService(SocialAccountRepository socialRepository, UserRepository userRepository,
             AuthService authService, AccessTokenService accessTokenService,
             VerificationCodeRepository codeRepository, SignupPolicy signupPolicy,
-            SocialClientRegistrations registrations) {
+            SocialClientRegistrations registrations, SocialNicknames nicknames) {
         this.socialRepository = socialRepository;
         this.userRepository = userRepository;
         this.authService = authService;
@@ -53,6 +55,7 @@ public class SocialLoginService {
         this.codeRepository = codeRepository;
         this.signupPolicy = signupPolicy;
         this.registrations = registrations;
+        this.nicknames = nicknames;
     }
 
     /** 사이트에서 돌아온 결과. login이 있으면 로그인, 없으면 가입 대기(pending)로 가입 화면에 간다. */
@@ -109,32 +112,41 @@ public class SocialLoginService {
         return save(userId, profile) ? null : "taken";
     }
 
-    /** 가입 화면에 보여 줄 값. 이메일이 이미 가입됐는지는 사이트가 이메일을 인증해 준 경우에만 알려 준다. */
+    /**
+     * 가입 화면에 보여 줄 값 (027). 이메일·이름·전화번호는 가린 값이다.
+     * need*가 true인 칸만 화면에서 입력받는다. 이메일이 이미 가입됐는지는 믿을 수 있는 이메일일 때만 알려 준다.
+     * 믿을 수 없는 이메일은 보내지 않는다(화면에서 새로 입력하고 인증번호로 확인).
+     */
     public record PendingView(String provider, String providerLabel, String email, boolean emailVerified,
-            boolean emailInUse, String name, String nickname) {
+            boolean emailInUse, String name, boolean needName, String phone, boolean needPhone,
+            String nickname) {
     }
 
     @Transactional(readOnly = true)
     public PendingView view(SocialTickets.Pending pending) {
-        String email = pending.email() == null ? null : signupPolicy.normalizeEmail(pending.email());
-        boolean inUse = pending.emailVerified() && email != null && userRepository.existsByEmail(email);
-        String name = pending.name() == null ? null : signupPolicy.normalizeName(pending.name());
-        return new PendingView(pending.provider().name(), pending.provider().label(), email,
-                pending.emailVerified(), inUse, name != null && signupPolicy.isValidName(name) ? name : null,
-                suggestNickname(pending.nickname()));
+        String email = trustedEmail(pending);
+        boolean inUse = email != null && userRepository.existsByEmail(email);
+        String name = pendingName(pending);
+        String phone = pendingPhone(pending);
+        return new PendingView(pending.provider().name(), pending.provider().label(), SocialMasks.email(email),
+                email != null, inUse, SocialMasks.name(name), name == null, SocialMasks.phone(phone),
+                phone == null, nicknames.suggest(pending.nickname()));
     }
 
-    /** 사이트의 닉네임을 쓸 수 있으면 그대로 제안한다. 형식이 맞지 않거나 이미 있으면 비워 둔다. */
-    private String suggestNickname(String hint) {
-        if (hint == null) {
-            return null;
-        }
-        String nickname = signupPolicy.normalizeNickname(hint);
-        if (!signupPolicy.isValidNicknameFormat(nickname) || signupPolicy.isReservedNickname(nickname)
-                || userRepository.existsByNickname(nickname)) {
-            return null;
-        }
-        return nickname;
+    /** 믿을 수 있는 이메일(정리한 값). 없으면 null. */
+    private String trustedEmail(SocialTickets.Pending pending) {
+        return pending.emailVerified() && pending.email() != null ? signupPolicy.normalizeEmail(pending.email())
+                : null;
+    }
+
+    private String pendingName(SocialTickets.Pending pending) {
+        String name = signupPolicy.normalizeName(pending.name());
+        return signupPolicy.isValidName(name) ? name : null;
+    }
+
+    private String pendingPhone(SocialTickets.Pending pending) {
+        String phone = signupPolicy.normalizePhone(pending.phone());
+        return signupPolicy.isValidPhone(phone) ? phone : null;
     }
 
     public record SocialSignupRequest(String name, String nickname, String phone, Boolean agreeTerms,
@@ -143,7 +155,8 @@ public class SocialLoginService {
 
     /**
      * 소셜 계정으로 가입하고 바로 로그인한다. 비밀번호는 만들지 않는다 (나중에 비밀번호 찾기로 만들 수 있다).
-     * 사이트가 인증한 이메일이 없으면 이메일 인증을 마친 가입 티켓(SIGNUP_TICKET)이 있어야 한다.
+     * 믿을 수 있는 이메일이 없으면 이메일 인증을 마친 가입 티켓(SIGNUP_TICKET)이 있어야 한다.
+     * 사이트가 준 이름·전화번호가 있으면 그 값을 쓰고 요청의 같은 칸은 무시한다 (027).
      */
     @Transactional
     public LoginResult signup(SocialTickets.Pending pending, String signupTicketToken, SocialSignupRequest request) {
@@ -152,8 +165,9 @@ public class SocialLoginService {
         }
         String email;
         VerificationCode verification = null;
-        if (pending.emailVerified() && pending.email() != null) {
-            email = signupPolicy.normalizeEmail(pending.email());
+        String trusted = trustedEmail(pending);
+        if (trusted != null) {
+            email = trusted;
         } else {
             SignupTicket ticket = accessTokenService.readSignupTicket(signupTicketToken)
                     .orElseThrow(SocialLoginService::emailNotVerified);
@@ -166,9 +180,11 @@ public class SocialLoginService {
             email = ticket.email();
         }
 
-        String name = signupPolicy.normalizeName(request.name());
+        String pendingName = pendingName(pending);
+        String pendingPhone = pendingPhone(pending);
+        String name = pendingName != null ? pendingName : signupPolicy.normalizeName(request.name());
         String nickname = signupPolicy.normalizeNickname(request.nickname());
-        String phone = signupPolicy.normalizePhone(request.phone());
+        String phone = pendingPhone != null ? pendingPhone : signupPolicy.normalizePhone(request.phone());
         validate(request, name, nickname, phone);
         if (signupPolicy.isReservedNickname(nickname) || userRepository.existsByNickname(nickname)) {
             throw nicknameUnavailable();
@@ -203,11 +219,22 @@ public class SocialLoginService {
         return authService.issueLogin(user, false);
     }
 
-    /** 이미 가입한 회원이 비밀번호로 로그인하면서 소셜 계정을 연결한다. 로그인 잠금·사람 확인은 로그인과 같다. */
+    /**
+     * 이미 가입한 회원이 비밀번호로 로그인하면서 소셜 계정을 연결한다. 로그인 잠금·사람 확인은 로그인과 같다.
+     * 이메일을 비워 보내면 믿을 수 있는 소셜 이메일을 쓴다 (027, "이미 있음" 화면은 비밀번호만 받는다).
+     */
     @Transactional(noRollbackFor = ApiException.class)
     public LoginResult linkWithPassword(SocialTickets.Pending pending, String email, String password, String ip,
             String captchaToken) {
-        User user = authService.authenticateMember(email, password, ip, captchaToken);
+        String loginEmail = email;
+        if (loginEmail == null || loginEmail.isBlank()) {
+            loginEmail = trustedEmail(pending);
+            if (loginEmail == null) {
+                throw new ValidationFailedException(
+                        List.of(new ErrorResponse.FieldError("email", "이메일을 입력해 주세요.")));
+            }
+        }
+        User user = authService.authenticateMember(loginEmail, password, ip, captchaToken);
         Optional<SocialAccount> existing = socialRepository
                 .findByProviderAndProviderUserId(pending.provider(), pending.providerUserId());
         if (existing.isPresent() && !existing.get().getUserId().equals(user.getId())) {

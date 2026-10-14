@@ -1,5 +1,6 @@
-// 소셜 가입 화면 (022, D-126). 서버가 준 가입 대기 정보로 칸을 채우고, 가입 또는 기존 계정 연결을 한다.
-// 이메일은 사이트가 인증했으면 그대로 쓰고(바꿀 수 없음), 아니면 인증번호로 확인한다.
+// 소셜 가입 화면 (022, D-126, 027). 서버가 준 가입 대기 정보로 칸을 채우고, 가입 또는 기존 계정 연결을 한다.
+// 사이트에서 받은 이메일·이름·휴대전화는 서버가 가린 값을 보여 주기만 하고, 빈칸만 입력받는다(가입은 서버가 원래 값으로).
+// 이메일은 믿을 수 있으면 그대로 쓰고, 아니면 인증번호로 확인한다. 닉네임은 사이트 값으로 채우고 고칠 수 있다.
 // 서버 문구는 모두 textContent로만 표시한다 (SEC-06).
 (function () {
   'use strict';
@@ -13,6 +14,8 @@
 
   const $ = window.ui.$;
   let emailVerified = false;
+  let useSocialEmail = false;
+  let providerLabel = '';
   let resendTimer = null;
 
   function setMessage(node, text, ok) {
@@ -40,33 +43,84 @@
       return;
     }
     const p = result.data;
+    providerLabel = p.providerLabel;
     $('title').textContent = p.providerLabel + ' 계정으로 가입';
-    $('intro').textContent = p.providerLabel + ' 계정을 처음 쓰시네요. 아래 정보를 확인하면 가입이 끝납니다.';
-    if (p.email) {
-      $('email').value = p.email;
-      $('link-email').value = p.email;
-    }
     emailVerified = Boolean(p.emailVerified);
-    if (emailVerified) {
-      // 사이트가 인증한 이메일은 그대로 쓴다
-      $('email').readOnly = true;
-      $('send-code').classList.add('hidden');
-      $('email-hint').textContent = p.providerLabel + '에서 확인된 이메일입니다.';
-    }
-    if (p.name) {
-      $('name').value = p.name;
-    }
-    if (p.nickname) {
-      $('nickname').value = p.nickname;
-    }
-    if (p.emailInUse) {
-      // 이메일을 인증한 본인이므로 이미 가입했다고 알려 주고 연결을 권한다
-      $('signup-form').classList.add('hidden');
+
+    // 받은 정보 (가린 값)
+    const received = [];
+    if (emailVerified && p.email) {
+      received.push(['이메일', p.email]);
+      // 믿을 수 있는 이메일은 그대로 쓰므로 이메일 칸이 필요 없다
       $('email-form').classList.add('hidden');
-      $('intro').textContent = '이 이메일로 가입한 계정이 이미 있습니다. 비밀번호로 로그인하면 '
-        + p.providerLabel + ' 계정이 연결됩니다.';
+    }
+    if (!p.needName && p.name) {
+      received.push(['이름', p.name]);
+    }
+    if (!p.needPhone && p.phone) {
+      received.push(['휴대전화', p.phone]);
+    }
+    showReceived(received);
+    toggleField('name-field', 'name', p.needName);
+    toggleField('phone-field', 'phone', p.needPhone);
+
+    if (p.nickname) {
+      // 사이트 닉네임(쓸 수 없으면 서버가 고친 값). 고칠 수 있다
+      $('nickname').value = p.nickname;
+      setMessage($('nickname-message'), '사용할 수 있는 닉네임입니다. 바꿔도 됩니다.', true);
+    }
+
+    const asks = [];
+    if (!emailVerified) {
+      asks.push('이메일 인증');
+    }
+    if (p.needName) {
+      asks.push('이름');
+    }
+    if (p.needPhone) {
+      asks.push('휴대전화 번호');
+    }
+    $('intro').textContent = p.providerLabel + ' 계정을 처음 쓰시네요. '
+      + (asks.length > 0 ? asks.join(', ') + '을(를) 넣고 ' : '')
+      + '약관에 동의하면 가입이 끝납니다.';
+
+    if (p.emailInUse) {
+      showEmailInUse(providerLabel, p.email);
     }
     $('content').classList.remove('hidden');
+  }
+
+  function showReceived(rows) {
+    const list = $('received');
+    list.replaceChildren();
+    rows.forEach(([label, value]) => {
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      dd.textContent = value;
+      list.append(dt, dd);
+    });
+    list.classList.toggle('hidden', rows.length === 0);
+  }
+
+  // 사이트가 값을 줬으면 칸을 숨긴다. 숨긴 칸은 보내지 않아도 서버가 받은 값을 쓴다
+  function toggleField(wrapperId, inputId, needed) {
+    $(wrapperId).classList.toggle('hidden', !needed);
+    $(inputId).required = Boolean(needed);
+  }
+
+  // 같은 이메일로 가입한 계정이 있다: 가입 대신 비밀번호로 연결만 (이메일은 서버가 받은 값을 쓴다)
+  function showEmailInUse(label, maskedEmail) {
+    useSocialEmail = true;
+    $('signup-form').classList.add('hidden');
+    $('email-form').classList.add('hidden');
+    $('link-email-field').classList.add('hidden');
+    $('link-email').required = false;
+    $('intro').textContent = '';
+    $('link-title').textContent = '이미 가입한 계정이 있습니다';
+    $('link-hint').textContent = (maskedEmail || '이 이메일') + '(으)로 가입한 계정이 이미 있습니다. '
+      + '비밀번호로 로그인하면 ' + label + ' 계정이 연결되고 다음부터는 ' + label + '(으)로 바로 로그인됩니다.';
+    $('link-password').focus();
   }
 
   function startResendCountdown(seconds) {
@@ -195,8 +249,13 @@
         return;
       }
       if (code === 'EMAIL_IN_USE') {
-        $('link-email').value = $('email').value.trim();
-        $('link-password').focus();
+        if (emailVerified && $('email-form').classList.contains('hidden')) {
+          // 받은 이메일로 이미 누가 가입했다 (화면을 연 뒤에 가입된 경우)
+          showEmailInUse(providerLabel, null);
+        } else {
+          $('link-email').value = $('email').value.trim();
+          $('link-password').focus();
+        }
       }
       setMessage(message, fieldErrorText(result.data, '가입하지 못했습니다.'), false);
     } finally {
@@ -208,17 +267,17 @@
     event.preventDefault();
     const message = $('link-message');
     const form = $('link-form');
-    const email = form.email.value.trim();
+    const email = useSocialEmail ? '' : form.email.value.trim();
     const password = form.password.value;
-    if (!email || !password) {
-      setMessage(message, '이메일과 비밀번호를 입력해 주세요.', false);
+    if ((!useSocialEmail && !email) || !password) {
+      setMessage(message, useSocialEmail ? '비밀번호를 입력해 주세요.' : '이메일과 비밀번호를 입력해 주세요.', false);
       return;
     }
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     try {
       const result = await window.api.post('/api/auth/social/link', {
-        email: email,
+        email: email || null,
         password: password,
         captchaToken: window.captcha ? window.captcha.token() : null
       }, { userAction: true });

@@ -73,11 +73,12 @@ public class SocialController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new LoginResponse(result.nickname()));
     }
 
+    /** email은 비워도 된다. 비우면 믿을 수 있는 소셜 이메일을 쓴다 (027). */
     public record LinkRequest(String email, String password, String captchaToken) {
 
         @Override
         public String toString() {
-            return "LinkRequest[email=" + email + "]";
+            return "LinkRequest[email=" + SocialMasks.email(email) + "]";
         }
     }
 

@@ -152,10 +152,12 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
         mvc.perform(get("/api/auth/social/pending").cookie(pending))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.provider").value("GOOGLE"))
-                .andExpect(jsonPath("$.email").value(GOOGLE_EMAIL))
+                .andExpect(jsonPath("$.email").value("gi***@gmail.com"))
                 .andExpect(jsonPath("$.emailVerified").value(true))
                 .andExpect(jsonPath("$.emailInUse").value(false))
-                .andExpect(jsonPath("$.name").value("홍길동"))
+                .andExpect(jsonPath("$.name").value("홍*동"))
+                .andExpect(jsonPath("$.needName").value(false))
+                .andExpect(jsonPath("$.needPhone").value(true))
                 .andExpect(jsonPath("$.nickname").value("길동이"));
 
         MvcResult signup = mvc.perform(post("/api/auth/signup/social").with(csrf()).cookie(pending)
@@ -191,6 +193,8 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.provider").value("KAKAO"))
                 .andExpect(jsonPath("$.emailVerified").value(false))
                 .andExpect(jsonPath("$.email").doesNotExist())
+                .andExpect(jsonPath("$.needName").value(true))
+                .andExpect(jsonPath("$.needPhone").value(true))
                 .andExpect(jsonPath("$.nickname").value("카카오친구"));
 
         mvc.perform(post("/api/auth/signup/social").with(csrf()).cookie(pending)
@@ -215,7 +219,8 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
         Cookie pending = callback(google("g-200", GOOGLE_EMAIL, true)).getCookie(SocialCookies.PENDING);
 
         mvc.perform(get("/api/auth/social/pending").cookie(pending))
-                .andExpect(jsonPath("$.emailInUse").value(true));
+                .andExpect(jsonPath("$.emailInUse").value(true))
+                .andExpect(jsonPath("$.email").value("gi***@gmail.com"));
         mvc.perform(post("/api/auth/signup/social").with(csrf()).cookie(pending)
                         .contentType(MediaType.APPLICATION_JSON).content(socialSignupBody("새닉네임")))
                 .andExpect(status().isConflict())
@@ -228,9 +233,10 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnauthorized());
         assertThat(links(GOOGLE_EMAIL)).isZero();
 
+        // "이미 있음" 화면은 비밀번호만 보낸다. 이메일은 서버가 받은 값을 쓴다 (027)
         MvcResult linked = mvc.perform(post("/api/auth/social/link").with(csrf()).cookie(pending)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"" + GOOGLE_EMAIL + "\",\"password\":\"" + PASSWORD + "\"}"))
+                        .content("{\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nickname").value("기존회원"))
                 .andReturn();
@@ -250,7 +256,7 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnauthorized());
         // 가입 대기 값은 로그인 쿠키로 쓸 수 없다
         String pending = tickets.issuePending(new SocialTickets.Pending(SocialProvider.KAKAO, "1", null, false,
-                null, null));
+                null, null, null));
         mvc.perform(get("/api/me").cookie(new Cookie(CookieNames.ACCESS_TOKEN, pending)))
                 .andExpect(status().isUnauthorized());
     }
@@ -327,5 +333,90 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM social_accounts", Integer.class)).isZero();
         assertThat(callback(google("g-400", "leaver@gmail.com", true)).getRedirectedUrl())
                 .isEqualTo("/social-signup.html");
+    }
+
+    /** 네이버처럼 이름·휴대전화까지 준 사이트. 테스트 설정은 네이버를 꺼 두므로 구글 가입 대기 값에 휴대전화를 넣어 흉내 낸다. */
+    private Cookie pendingWithPhone(String pid, String email) {
+        return new Cookie(SocialCookies.PENDING, tickets.issuePending(new SocialTickets.Pending(
+                SocialProvider.GOOGLE, pid, email, true, "홍길동", "길동", "01012345678")));
+    }
+
+    @Test
+    void 사이트가_준_이름과_휴대전화는_가려서_보여_주고_그_값으로_가입한다() throws Exception {
+        String email = "naverlike@example.com";
+        Cookie pending = pendingWithPhone("g-500", email);
+        mvc.perform(get("/api/auth/social/pending").cookie(pending))
+                .andExpect(jsonPath("$.email").value("na***@example.com"))
+                .andExpect(jsonPath("$.name").value("홍*동"))
+                .andExpect(jsonPath("$.needName").value(false))
+                .andExpect(jsonPath("$.phone").value("010-****-5678"))
+                .andExpect(jsonPath("$.needPhone").value(false))
+                .andExpect(jsonPath("$.nickname").value("길동"));
+
+        // 화면에서 다른 값을 보내도 사이트가 준 이름·휴대전화로 저장한다. 닉네임은 바꾼 값으로
+        mvc.perform(post("/api/auth/signup/social").with(csrf()).cookie(pending)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"딴사람","nickname":"바꾼닉네임","phone":"01099998888","agreeTerms":true,"agreePrivacy":true}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nickname").value("바꾼닉네임"));
+        Map<String, Object> user = jdbc.queryForMap("SELECT name, phone, nickname FROM users WHERE email = ?", email);
+        assertThat(user.get("name")).isEqualTo("홍길동");
+        assertThat(user.get("phone")).isEqualTo("01012345678");
+        assertThat(user.get("nickname")).isEqualTo("바꾼닉네임");
+    }
+
+    @Test
+    void 받은_값이_있으면_이름과_휴대전화를_비워_보내도_가입된다() throws Exception {
+        Cookie pending = pendingWithPhone("g-501", "quick@example.com");
+        mvc.perform(post("/api/auth/signup/social").with(csrf()).cookie(pending)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"","nickname":"길동","phone":"","agreeTerms":true,"agreePrivacy":true}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void 빈칸이나_약관_동의가_없으면_가입되지_않는다() throws Exception {
+        // 구글은 휴대전화를 주지 않는다
+        Cookie pending = callback(google("g-600", "nophone@gmail.com", true)).getCookie(SocialCookies.PENDING);
+        mvc.perform(post("/api/auth/signup/social").with(csrf()).cookie(pending)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"","nickname":"폰없음","phone":"","agreeTerms":true,"agreePrivacy":true}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("phone"));
+
+        mvc.perform(post("/api/auth/signup/social").with(csrf()).cookie(pending)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nickname":"폰없음","phone":"01012345678","agreeTerms":true,"agreePrivacy":false}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("agreePrivacy"));
+        assertThat(links("nophone@gmail.com")).isZero();
+    }
+
+    @Test
+    void 받은_닉네임이_이미_있으면_숫자를_붙여_채운다() throws Exception {
+        signUp("first@example.com", "길동이");
+        Cookie pending = callback(google("g-700", "second@gmail.com", true)).getCookie(SocialCookies.PENDING);
+        mvc.perform(get("/api/auth/social/pending").cookie(pending))
+                .andExpect(jsonPath("$.nickname").value("길동이2"));
+    }
+
+    @Test
+    void 믿을_수_없는_이메일이면_비밀번호만으로는_연결할_수_없다() throws Exception {
+        Cookie pending = callback(google("g-800", "unverified@gmail.com", false)).getCookie(SocialCookies.PENDING);
+        mvc.perform(get("/api/auth/social/pending").cookie(pending))
+                .andExpect(jsonPath("$.emailVerified").value(false))
+                .andExpect(jsonPath("$.email").doesNotExist());
+        mvc.perform(post("/api/auth/social/link").with(csrf()).cookie(pending)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("email"));
     }
 }
