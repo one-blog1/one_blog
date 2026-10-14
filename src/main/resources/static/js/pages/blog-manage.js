@@ -150,15 +150,16 @@
       tr.append(nick);
       [m.name, m.email, m.phone, ROLE[m.role] || m.role].forEach(v => tr.append(el('td', null, v || '')));
       const actions = el('td');
+      const box = el('div', 'member-actions');
       if (m.suspensionCount >= 3) {
-        actions.append(el('span', 'badge', '정지 ' + m.suspensionCount + '회'));
+        box.append(el('span', 'badge', '정지 ' + m.suspensionCount + '회'));
       }
       if (m.suspendedUntil) {
-        actions.append(el('span', 'hint', ' 정지 중(' + formatTime(m.suspendedUntil) + '까지) '));
+        box.append(el('span', 'hint', ' 정지 중(' + formatTime(m.suspendedUntil) + '까지) '));
       }
       const canSanction = m.role === 'MEMBER' || (owner && m.role === 'SUB_OWNER');
       if (canSanction && m.userId !== state.me) {
-        actions.append(sanctionButtons(m));
+        box.append(sanctionButtons(m));
       }
       if (owner && m.role !== 'OWNER') {
         const sub = permissionBox('부블로그장', m.role === 'SUB_OWNER');
@@ -186,8 +187,9 @@
           say('transfer-message', r.ok ? m.nickname + '님에게 위임을 요청했어요.' : errorText(r, '요청하지 못했어요.'), r.ok);
           loadTransfer();
         });
-        actions.append(sub.wrap, info.wrap, members.wrap, posts.wrap, save, transfer);
+        box.append(sub.wrap, info.wrap, members.wrap, posts.wrap, save, transfer);
       }
+      actions.append(box);
       tr.append(actions);
       rows.append(tr);
     });

@@ -53,22 +53,25 @@
       link.href = '/blog/' + encodeURIComponent(blog.slug) + '/manage';
       link.classList.remove('hidden');
     }
-    if (blog.myRole !== 'OWNER') {
-      const leave = $('leave-button');
-      leave.classList.remove('hidden');
-      leave.addEventListener('click', async () => {
-        if (!await window.dialog.confirm('이 블로그에서 나갈까요? 내가 쓴 글은 "탈퇴한 계정"으로 남아요.',
-          { title: '블로그 나가기', okLabel: '나가기', danger: true })) {
-          return;
-        }
-        const result = await window.api.delete('/api/blogs/' + encodeURIComponent(blog.slug) + '/membership',
-          { userAction: true });
-        if (!result.ok) {
-          $('ops-message').textContent = (result.data && result.data.message) || '나가지 못했어요.';
-          return;
-        }
-        window.location.reload();
-      });
-    }
+    const leave = $('leave-button');
+    leave.classList.remove('hidden');
+    leave.addEventListener('click', async () => {
+      // 블로그장은 먼저 다른 멤버에게 블로그장을 위임해야 나갈 수 있다 (BLG-07, BLG-08)
+      if (blog.myRole === 'OWNER') {
+        $('ops-message').textContent = '블로그장은 권한 위임 이후 탈퇴할 수 있습니다. 관리 화면에서 다른 멤버에게 블로그장을 위임해 주세요.';
+        return;
+      }
+      if (!await window.dialog.confirm('이 블로그에서 나갈까요? 내가 쓴 글은 "탈퇴한 계정"으로 남아요.',
+        { title: '블로그 나가기', okLabel: '나가기', danger: true })) {
+        return;
+      }
+      const result = await window.api.delete('/api/blogs/' + encodeURIComponent(blog.slug) + '/membership',
+        { userAction: true });
+      if (!result.ok) {
+        $('ops-message').textContent = (result.data && result.data.message) || '나가지 못했어요.';
+        return;
+      }
+      window.location.reload();
+    });
   });
 })();

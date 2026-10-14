@@ -3428,6 +3428,27 @@ form.search-row input {
   overflow-x: auto;
 }
 
+/* 멤버 표 마지막 칸: 정지 상태·제재·권한·위임 단추가 겹치지 않게 줄바꿈 (BLG-08·BLG-13). 정지 중이면 안내·'정지 해제'가 더 붙는다 */
+.member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.member-actions .badge {
+  white-space: nowrap;
+}
+
+/* 안내(.hint)의 위 여백은 줄 맞춤을 흐트러뜨리고, 제재 단추 묶음은 좁으면 접혀야 다른 칸(닉네임·이름)을 밀지 않는다 */
+.member-actions .hint {
+  margin: 0;
+}
+
+.member-actions > span {
+  flex-wrap: wrap;
+}
+
 .danger-button {
   color: var(--error);
   border-color: var(--error);
