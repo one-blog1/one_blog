@@ -67,4 +67,67 @@ class HttpVideoThumbnailFetcherTest {
         assertThat(on.fetch("youtube:../../etc")).isEmpty();
         assertThat(on.fetch("unknown:abc")).isEmpty();
     }
+
+    // ---- 실제로 받는 경로: 리다이렉트와 크기 (029 US4, D-128). 가짜 응답을 주는 클라이언트를 넣는다 ----
+
+    private static final String START = "https://i.ytimg.com/vi/abc123/mqdefault.jpg";
+
+    private org.springframework.test.web.client.MockRestServiceServer server;
+
+    private HttpVideoThumbnailFetcher fetcher() {
+        org.springframework.web.client.RestClient.Builder builder = org.springframework.web.client.RestClient.builder();
+        server = org.springframework.test.web.client.MockRestServiceServer.bindTo(builder).build();
+        return new HttpVideoThumbnailFetcher(true, builder.build());
+    }
+
+    private void redirect(String from, String to) {
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo(from))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withStatus(org.springframework.http.HttpStatus.FOUND).location(java.net.URI.create(to)));
+    }
+
+    private void image(String url, int size) {
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo(url))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withSuccess(new byte[size], org.springframework.http.MediaType.IMAGE_JPEG));
+    }
+
+    @Test
+    void 허용하지_않은_주소로_넘기면_따라가지_않는다() {
+        HttpVideoThumbnailFetcher fetcher = fetcher();
+        redirect(START, "https://evil.example.com/a.jpg");
+        // 두 번째 요청을 보내면 가짜 서버가 "예상하지 않은 요청"으로 실패시킨다
+        assertThat(fetcher.fetch("youtube:abc123")).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void 리다이렉트는_세_번까지만_따라간다() {
+        HttpVideoThumbnailFetcher fetcher = fetcher();
+        redirect(START, "https://i.ytimg.com/r1.jpg");
+        redirect("https://i.ytimg.com/r1.jpg", "https://i.ytimg.com/r2.jpg");
+        redirect("https://i.ytimg.com/r2.jpg", "https://i.ytimg.com/r3.jpg");
+        image("https://i.ytimg.com/r3.jpg", 100);
+        assertThat(fetcher.fetch("youtube:abc123")).hasValueSatisfying(data -> assertThat(data).hasSize(100));
+        server.verify();
+
+        HttpVideoThumbnailFetcher fourHops = fetcher();
+        redirect(START, "https://i.ytimg.com/r1.jpg");
+        redirect("https://i.ytimg.com/r1.jpg", "https://i.ytimg.com/r2.jpg");
+        redirect("https://i.ytimg.com/r2.jpg", "https://i.ytimg.com/r3.jpg");
+        redirect("https://i.ytimg.com/r3.jpg", "https://i.ytimg.com/r4.jpg");
+        assertThat(fourHops.fetch("youtube:abc123")).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void 이_메가바이트를_넘는_사진은_받지_않는다() {
+        HttpVideoThumbnailFetcher fetcher = fetcher();
+        image(START, HttpVideoThumbnailFetcher.MAX_BYTES + 1);
+        assertThat(fetcher.fetch("youtube:abc123")).isEmpty();
+
+        HttpVideoThumbnailFetcher exact = fetcher();
+        image(START, HttpVideoThumbnailFetcher.MAX_BYTES);
+        assertThat(exact.fetch("youtube:abc123")).isPresent();
+    }
 }

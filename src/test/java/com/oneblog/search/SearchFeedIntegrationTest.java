@@ -7,11 +7,13 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.jayway.jsonpath.JsonPath;
@@ -150,5 +152,75 @@ class SearchFeedIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/feed").param("tab", "myblogs")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/feed").param("tab", "myblogs").cookie(bob))
                 .andExpect(jsonPath("$.items[*].id", containsInAnyOrder(bobPost.intValue(), secretPost.intValue())));
+    }
+
+    private void blogNamed(Cookie owner, String name, String slug, String visibility) throws Exception {
+        postBlog(owner, """
+                {"name":"%s","slug":"%s","visibility":"%s","joinPolicy":"OPEN"}
+                """.formatted(name, slug, visibility)).andExpect(status().isCreated());
+    }
+
+    @Test
+    void 검색에는_일부_공개_숨김_폐쇄_블로그와_차단한_회원의_글이_나오지_않는다() throws Exception {
+        // 6.1 "결과에서 제외", BLG-01: 일부 공개는 목록·검색·피드에 나오지 않는다 (029 US4)
+        blogNamed(alice, "제주 링크", "link-trip", "UNLISTED");
+        blogNamed(alice, "제주 숨김", "hidden-trip", "PUBLIC");
+        blogNamed(alice, "제주 폐쇄", "closed-trip", "PUBLIC");
+        idOf(writePost(alice, "link-trip", "{\"title\":\"제주도 여행 링크\",\"content\":\"본문\"}"));
+        idOf(writePost(alice, "hidden-trip", "{\"title\":\"제주도 여행 숨김\",\"content\":\"본문\"}"));
+        idOf(writePost(alice, "closed-trip", "{\"title\":\"제주도 여행 폐쇄\",\"content\":\"본문\"}"));
+        jdbc.update("UPDATE blogs SET is_hidden = 1 WHERE slug = 'hidden-trip'");
+        jdbc.update("UPDATE blogs SET status = 'CLOSED' WHERE slug = 'closed-trip'");
+
+        mvc.perform(get("/api/search/posts").param("q", "제주도"))
+                .andExpect(jsonPath("$.items[*].id", contains(travelPost.intValue())));
+        mvc.perform(get("/api/search/blogs").param("q", "제주"))
+                .andExpect(jsonPath("$.items[*].slug", contains("jeju-trip")));
+
+        // 내가 차단한 회원의 글은 빠진다. 같은 블로그 멤버가 아닌 사람 기준 (D-36 예외 밖)
+        addMember("jeju-trip", "bob@example.com", "MEMBER");
+        Long bobPost = idOf(writePost(bob, "jeju-trip", "{\"title\":\"제주도 여행 둘째날\",\"content\":\"본문\"}"));
+        Cookie carol = signUpAndLogin("carol@example.com", "캐럴");
+        mvc.perform(get("/api/search/posts").param("q", "제주도").cookie(carol))
+                .andExpect(jsonPath("$.items[*].id", containsInAnyOrder(travelPost.intValue(), bobPost.intValue())));
+        mvc.perform(post("/api/users/밥아저씨/block").with(csrf()).cookie(carol)).andExpect(status().isOk());
+        mvc.perform(get("/api/search/posts").param("q", "제주도").cookie(carol))
+                .andExpect(jsonPath("$.items[*].id", contains(travelPost.intValue())));
+    }
+
+    @Test
+    void 구독_탭은_볼_수_있는_블로그의_글만_보여_준다() throws Exception {
+        // BRD-09, BLG-01, D-37, D-50 (029 US4)
+        Cookie carol = signUpAndLogin("carol@example.com", "캐럴");
+        mvc.perform(post("/api/blogs/jeju-trip/subscription").with(csrf()).cookie(carol)).andExpect(status().isOk());
+        blogNamed(alice, "제주 링크", "link-trip", "UNLISTED");
+        Long linkPost = idOf(writePost(alice, "link-trip", "{\"title\":\"링크로만 보는 글\",\"content\":\"본문\"}"));
+        String key = jdbc.queryForObject("SELECT share_token FROM blogs WHERE slug = 'link-trip'", String.class);
+        mvc.perform(post("/api/blogs/link-trip/subscription").param("key", key).with(csrf()).cookie(carol))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/feed").param("tab", "subscriptions").cookie(carol))
+                .andExpect(jsonPath("$.items[*].id", containsInAnyOrder(travelPost.intValue(), linkPost.intValue())));
+
+        // 구독한 블로그가 비공개로 바뀌면 멤버가 아닌 구독자에게는 글이 보이지 않는다
+        mvc.perform(put("/api/blogs/jeju-trip/settings").with(csrf()).cookie(alice)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"visibility\":\"PRIVATE\",\"joinPolicy\":\"APPROVAL\"}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/feed").param("tab", "subscriptions").cookie(carol))
+                .andExpect(jsonPath("$.items[*].id", contains(linkPost.intValue())));
+    }
+
+    @Test
+    void 정지된_블로그의_글은_내_블로그_새_글에서_빠진다() throws Exception {
+        // D-113 + BLG-13: 정지 기간에는 그 블로그에 들어갈 수 없으므로 새 글도 보여 주지 않는다 (029 US4)
+        addMember("jeju-trip", "bob@example.com", "MEMBER");
+        mvc.perform(get("/api/feed").param("tab", "myblogs").cookie(bob))
+                .andExpect(jsonPath("$.items[*].id", contains(travelPost.intValue())));
+        mvc.perform(post("/api/blogs/jeju-trip/members/" + userId("bob@example.com") + "/sanctions").with(csrf())
+                        .cookie(alice).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"type\":\"SUSPENSION\",\"days\":3,\"reason\":\"도배\"}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/feed").param("tab", "myblogs").cookie(bob))
+                .andExpect(jsonPath("$.items", hasSize(0)));
     }
 }

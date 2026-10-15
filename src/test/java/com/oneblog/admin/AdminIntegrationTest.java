@@ -125,6 +125,17 @@ class AdminIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/admin/actions").cookie(admin))
                 .andExpect(jsonPath("$.items[0].adminLoginId").value("admin01"))
                 .andExpect(jsonPath("$.items[0].actionType").value("VIEW_PERSONAL_INFO"));
+        // 회원 상세도 기본은 가린다. 원래 값은 기록이 남는 전체 보기(reveal)로만 (4.4, ADM-01, 029 US4)
+        String detail = mvc.perform(get("/api/admin/users/" + userId).cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.nickname").value("블로그장"))
+                .andExpect(jsonPath("$.user.email").value("ow***@example.com"))
+                .andExpect(jsonPath("$.user.phone").value("010-****-5678"))
+                .andExpect(jsonPath("$.blogs.length()").value(1))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(detail).doesNotContain("owner@example.com").doesNotContain("01012345678")
+                .doesNotContain("010-1234-5678");
+        mvc.perform(get("/api/admin/users/" + userId).cookie(owner)).andExpect(status().isForbidden());
     }
 
     @Test

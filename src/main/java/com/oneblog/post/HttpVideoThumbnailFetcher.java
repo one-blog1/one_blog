@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.json.JsonParserFactory;
 import org.springframework.http.HttpHeaders;
@@ -52,15 +53,25 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
     private final boolean enabled;
     private final RestClient client;
 
+    @Autowired
     public HttpVideoThumbnailFetcher(@Value("${app.video-thumbnail.enabled:true}") boolean enabled) {
+        this(enabled, defaultClient());
+    }
+
+    /** HTTP 클라이언트를 받아 만든다. 테스트가 가짜 응답(리다이렉트·큰 사진)을 넣을 때 쓴다 (029 research R6). 동작은 같다. */
+    HttpVideoThumbnailFetcher(boolean enabled, RestClient client) {
         this.enabled = enabled;
+        this.client = client;
+    }
+
+    private static RestClient defaultClient() {
         HttpClient http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(2))
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(http);
         factory.setReadTimeout(Duration.ofSeconds(3));
-        this.client = RestClient.builder()
+        return RestClient.builder()
                 .requestFactory(factory)
                 .defaultHeader(HttpHeaders.USER_AGENT, USER_AGENT)
                 .build();

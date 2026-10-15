@@ -308,4 +308,46 @@ class ModerationIntegrationTest extends PostTestSupport {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM reports WHERE status = 'PENDING'", Integer.class))
                 .isEqualTo(2);
     }
+
+    @Test
+    void 블랙리스트는_탈퇴_후_다시_가입해도_이메일이나_전화번호로_막는다() throws Exception {
+        // BLG-11: 블랙리스트에 있는 이메일이나 전화번호로는 참여할 수 없다. 탈퇴 후 재가입해도 막힌다 (029 US4)
+        sanction(owner, "member@example.com", "{\"type\":\"KICK\",\"reason\":\"규칙 위반\"}")
+                .andExpect(status().isNoContent());
+        mvc.perform(post("/api/me/withdrawal").with(csrf()).cookie(member).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isNoContent());
+        // 가입 인증번호는 같은 이메일로 1분에 한 번이라 앞서 쓴 기록을 지운다
+        jdbc.update("DELETE FROM verification_codes");
+
+        Cookie sameEmail = signUpAndLogin("member@example.com", "다시온멤버", "이멤버", "010-1111-0009");
+        mvc.perform(post("/api/blogs/open-blog/join").with(csrf()).cookie(sameEmail))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("BLACKLISTED"));
+        Cookie samePhone = signUpAndLogin("new@example.com", "새얼굴", "이멤버", "010-1111-0002");
+        mvc.perform(post("/api/blogs/open-blog/join").with(csrf()).cookie(samePhone))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("BLACKLISTED"));
+        Cookie stranger = signUpAndLogin("other@example.com", "다른사람", "정다른", "010-1111-0010");
+        mvc.perform(post("/api/blogs/open-blog/join").with(csrf()).cookie(stranger))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void 블로그장_경고는_1년_안의_것만_센다() throws Exception {
+        // ADM-07, D-30: 경고가 3번 쌓이면 권한 박탈. 1년이 지난 경고는 세지 않는다 (029 US5)
+        Cookie admin = createAdminAndLogin("admin01");
+        Long blogId = blogId("open-blog");
+        jdbc.update("UPDATE blog_members SET role = 'SUB_OWNER', sub_owner_since = NOW(6) WHERE user_id = ?",
+                userId("member@example.com"));
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(post("/api/admin/blogs/" + blogId + "/owner-warning").with(csrf()).cookie(admin)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"예전 경고\"}")).andExpect(status().isOk());
+        }
+        jdbc.update("UPDATE sanctions SET created_at = DATE_SUB(NOW(6), INTERVAL 13 MONTH) WHERE type = 'OWNER_WARNING'");
+
+        mvc.perform(post("/api/admin/blogs/" + blogId + "/owner-warning").with(csrf()).cookie(admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"새 경고\"}")).andExpect(status().isOk());
+        mvc.perform(get("/api/blogs/open-blog").cookie(owner)).andExpect(jsonPath("$.myRole").value("OWNER"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_actions WHERE action_type = 'OWNER_REVOKE'",
+                Integer.class)).isZero();
+    }
 }

@@ -323,4 +323,54 @@ class BlogOpsIntegrationTest extends PostTestSupport {
         mvc.perform(post("/api/blogs/open-blog/share-link").with(csrf()).cookie(owner))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NOT_UNLISTED"));
     }
+
+    @Test
+    void 멤버_목록의_이메일과_전화번호는_가려서_보인다() throws Exception {
+        // 4.4: 블로그장과 멤버 관리 부블로그장은 이메일·전화번호를 가려서 본다 (029 US4)
+        Cookie manager = signUpAndLogin("manager@example.com", "관리멤버", "최관리", "010-7777-1234");
+        addMember("open-blog", "manager@example.com", "MEMBER");
+        mvc.perform(put("/api/blogs/open-blog/members/" + userId("manager@example.com") + "/sub-owner").with(csrf())
+                        .cookie(owner).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"subOwner\":true,\"canEditInfo\":false,\"canManageMembers\":true,\"canManagePosts\":false}"))
+                .andExpect(status().isNoContent());
+
+        for (Cookie viewer : new Cookie[] {owner, manager}) {
+            String body = mvc.perform(get("/api/blogs/open-blog/members").cookie(viewer))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[?(@.nickname == '멤버회원')].email").value(
+                            org.hamcrest.Matchers.contains("me***@example.com")))
+                    .andExpect(jsonPath("$[?(@.nickname == '관리멤버')].phone").value(
+                            org.hamcrest.Matchers.contains("010-****-1234")))
+                    .andReturn().getResponse().getContentAsString();
+            assertThat(body).doesNotContain("member@example.com").doesNotContain("manager@example.com")
+                    .doesNotContain("01077771234").doesNotContain("010-7777-1234");
+        }
+    }
+
+    @Test
+    void 탈퇴하면_구독_대기_신청_최근_검색어를_바로_정리한다() throws Exception {
+        // USR-05, 4.5 (029 US4): 개인정보 30일 보관과 별개로 이 기록들은 탈퇴 즉시 정리하고, 프로필은 바로 안 보인다
+        createBlog(owner, "wait-blog", "PUBLIC", "APPROVAL").andExpect(status().isCreated());
+        mvc.perform(post("/api/blogs/wait-blog/join").with(csrf()).cookie(member)).andExpect(status().isAccepted());
+        mvc.perform(post("/api/blogs/wait-blog/subscription").with(csrf()).cookie(member)).andExpect(status().isOk());
+        mvc.perform(get("/api/search/posts").param("q", "여행기").cookie(member)).andExpect(status().isOk());
+        Long me = memberId();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM recent_searches WHERE user_id = ?", Integer.class, me))
+                .isEqualTo(1);
+        mvc.perform(get("/api/users/멤버회원")).andExpect(status().isOk());
+
+        mvc.perform(post("/api/me/withdrawal").with(csrf()).cookie(member).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isNoContent());
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM blog_subscriptions WHERE user_id = ?", Integer.class, me))
+                .isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM recent_searches WHERE user_id = ?", Integer.class, me))
+                .isZero();
+        assertThat(jdbc.queryForObject("SELECT status FROM blog_join_requests WHERE user_id = ?", String.class, me))
+                .isEqualTo("CANCELED");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM refresh_tokens WHERE user_id = ? AND revoked_at IS NULL",
+                Integer.class, me)).isZero();
+        mvc.perform(get("/api/users/멤버회원")).andExpect(status().isNotFound());
+    }
 }

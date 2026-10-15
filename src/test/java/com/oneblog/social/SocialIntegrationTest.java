@@ -1,5 +1,6 @@
 package com.oneblog.social;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -155,5 +156,23 @@ class SocialIntegrationTest extends BlogTestSupport {
         mvc.perform(post("/api/blogs/open-blog/subscription").with(csrf()).cookie(bob))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subscribed").value(false));
+    }
+
+    @Test
+    void 다른_회원의_프로필에는_이메일_이름_전화번호가_없다() throws Exception {
+        // 4.4: 다른 회원(프로필)에게는 닉네임·사진·소개만 (029 US4)
+        signUp("carol@example.com", "캐럴", "한캐럴", "010-5555-6789");
+        for (Cookie viewer : new Cookie[] {null, alice}) {
+            var request = get("/api/users/캐럴");
+            if (viewer != null) {
+                request = request.cookie(viewer);
+            }
+            String body = mvc.perform(request)
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.nickname").value("캐럴"))
+                    .andReturn().getResponse().getContentAsString();
+            assertThat(body).doesNotContain("carol@example.com").doesNotContain("한캐럴")
+                    .doesNotContain("01055556789").doesNotContain("010-5555-6789");
+        }
     }
 }
