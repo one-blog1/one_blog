@@ -23,6 +23,12 @@ on:
   # 직접 실행: 아무 브랜치에서나 2단계(full)를 돌린다. SonarQube에는 올리지 않는다(develop 결과를 덮어쓰지 않게)
   workflow_dispatch:
 
+# 셸을 bash로 명시하면 GitHub가 -eo pipefail로 실행한다. 기본값(bash -e)은 pipefail이 없어
+# "./gradlew test | tee 로그"에서 gradle이 실패해도 tee의 성공으로 덮여 단계가 초록불이 됐다 (028에서 발견)
+defaults:
+  run:
+    shell: bash
+
 # 같은 브랜치의 새 push는 앞 실행을 취소한다. 이벤트별로 나눠서, 직접 실행(full)이 push의 unit을 취소하지 않게 한다
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
