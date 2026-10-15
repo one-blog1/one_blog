@@ -46,7 +46,7 @@
 
 **Goal**: `develop`·`main` push(=merge)와 직접 실행에서만 지금 CI 전체가 돈다. 배포 연결은 그대로
 
-**Independent Test**: Actions → CI → Run workflow(이 브랜치)에서 `full`만 돌고 테스트 265개·jar·Docker 통과, SonarQube 단계는 건너뜀
+**Independent Test**: Actions → CI → Run workflow(이 브랜치)에서 `full`만 돌고 테스트 306개(단위 90 포함)·jar·Docker 통과, SonarQube 단계는 건너뜀
 
 - [x] T007 [US2] `.github/workflows/ci.yml`: 기존 job `build`를 `full`로 이름을 바꾸고 `if`(push는 `develop`·`main`, 그리고 `workflow_dispatch`) 추가. 테스트 단계를 `./gradlew test jacocoTestReport --no-daemon`으로. 나머지(MySQL, 실패 표시, 보고서, bootJar, jar 실행 확인, Docker 확인, jar 올리기)는 그대로
 - [x] T008 [US2] `.github/workflows/deploy.yml` 확인만: `workflow_run: workflows: [CI]`·`conclusion == 'success' && event == 'push'` 조건이 job 분리 뒤에도 맞는지(건너뛴 `unit`은 실패가 아님). 바꿀 것 없으면 주석에 "CI의 full job 성공" 한 줄만
@@ -114,11 +114,17 @@
 - [x] T019 `CLAUDE.md`: 브랜치 절에 "PR은 `unit` 통과가 필수, 품질 게이트는 merge 뒤 `full`에서" 한 줄
 - [x] T020 문서 저장소 `docs/requirements/07-implementation.md`: 구현 표에 "CI 단계·정적 분석 | 1단계 unit(PR) / 2단계 full + SonarQube Community(merge 뒤 게이트) / 운영 스모크·자동 되돌리기 | — | D-140" 줄
 - [x] T021 문서 저장소 `docs/requirements/08-decision-log.md`: D-140 (결정·이유·이전 방식) 맨 위에 추가
-- [ ] T022 커밋 정리 후 **사용자 확인 받고** 브랜치 push → `unit` 결과 확인(SC-001 시간) → Actions에서 직접 실행으로 `full` 확인(SonarQube 단계 건너뜀, 265개 + E2E 7개 통과, E2E가 깨지면 trace 보고 고침)
+- [x] T022 커밋 정리 후 **사용자 확인 받고** 브랜치 push → `unit` 결과 확인(SC-001 시간) → Actions에서 직접 실행으로 `full` 확인(SonarQube 단계 건너뜀, 306개 + E2E 8개 통과, E2E가 깨지면 trace 보고 고침)
 - [ ] T023 사용자 확인 뒤 `develop`으로 PR → merge → `develop`의 `full`에서 서버 연결·분석·게이트 확인(quickstart 5). 사용자에게 브랜치 보호(`unit`) 켜기 요청
 - [ ] T024 기능 마침: `specs/028-ci-test-stages/`를 문서 저장소 `specs/`로 옮김, 문서 저장소 push(사용자 확인 뒤)
 
 ---
+
+## 확인 결과 (2026-10-15, feature/ci-test-stages)
+
+- `unit`: 단위 테스트 90개 통과, 약 1~1.5분
+- `full`(직접 실행): 전체 테스트 306개, E2E 8개(흐름 7개, C는 2개) 통과, 약 7분. SonarQube 단계는 직접 실행이라 건너뜀(merge 뒤 첫 분석)
+- 구현 중 발견·수정: (1) `gradle | tee`가 pipefail 없이 돌아 실패가 초록불로 덮이던 기존 문제 → workflow 셸을 bash로 명시 (2) 직접 실행이 같은 브랜치 push의 `unit`을 취소 → concurrency를 이벤트별로 (3) E2E 준비에 MockMvc `.with(csrf())`를 쓰면 서버 CSRF 저장소가 세션으로 바뀌어 브라우저 POST가 403 → 준비를 실제 HTTP API로 (4) 테스트 수 요약 줄·0개면 실패, E2E 실패 진단 주석
 
 ## Dependencies
 
