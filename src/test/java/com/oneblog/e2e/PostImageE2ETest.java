@@ -2,7 +2,6 @@ package com.oneblog.e2e;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,8 +12,6 @@ import org.junit.jupiter.api.io.TempDir;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.oneblog.file.TestImages;
-
-import jakarta.servlet.http.Cookie;
 
 /**
  * 흐름 F: 진짜 글쓰기 에디터(Toast UI 3.2.2, 외부 CDN)로 사진을 올려 글에 넣는다 (US5, BRD-01, 6.3).
@@ -30,8 +27,7 @@ class PostImageE2ETest extends E2ETestSupport {
 
     @Test
     void 에디터로_사진을_올려_글에_넣는다() throws Exception {
-        Cookie login = signUpAndLogin(EMAIL, "사진가");
-        createBlog(login, "photo-blog", "PUBLIC").andExpect(status().isCreated());
+        apiCreateBlog(apiSignUpAndLogin(EMAIL, "사진가"), "photo-blog", "PUBLIC", "OPEN");
         Path photo = tempDir.resolve("photo.png");
         Files.write(photo, TestImages.png());
 

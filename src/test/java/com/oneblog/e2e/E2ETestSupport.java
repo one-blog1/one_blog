@@ -29,14 +29,22 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Route;
 import com.microsoft.playwright.Tracing;
 import com.microsoft.playwright.assertions.PlaywrightAssertions;
-import com.oneblog.post.PostTestSupport;
+import com.jayway.jsonpath.JsonPath;
+import com.microsoft.playwright.APIRequest;
+import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.options.RequestOptions;
+import com.oneblog.IntegrationTestSupport;
 
 /**
  * E2E 테스트 공통 (028, D-140): 테스트 안에서 실제 서버를 무작위 포트로 띄우고, Chromium(화면 없음)이 화면을 눌러 본다.
  *
  * <ul>
- * <li>통합 테스트 준비 코드를 그대로 쓴다: 테스트마다 테스트 DB 비우기, 가짜 메일, MockMvc로 회원·블로그·글 빠르게 만들기.
- * MockMvc와 브라우저가 같은 서버·DB를 보므로, 미리 만든 회원으로 화면에서 로그인할 수 있다.</li>
+ * <li>통합 테스트의 준비 코드 중 테스트 DB 비우기와 가짜 메일만 쓴다. 회원·블로그·글을 미리 만들 때는 이 클래스의
+ * api... 도우미(실제 HTTP 요청, 브라우저처럼 XSRF-TOKEN 쿠키를 헤더에 실음)를 쓴다.</li>
+ * <li><b>주의: E2E에서는 MockMvc의 .with(csrf())를 쓰는 도우미(signUp, signUpAndLogin, loginCookie 등)를 부르지 않는다.</b>
+ * Spring Security 테스트 기능이 같은 서버의 CSRF 저장소를 세션 저장소로 바꿔 버려, 그 뒤로 브라우저가 XSRF-TOKEN 쿠키를
+ * 받지 못하고 모든 POST가 403이 된다 (028 첫 실행에서 겪음).</li>
  * <li>테스트마다 새 BrowserContext(쿠키·localStorage가 비어 있음). 회원 둘이 필요한 흐름은 {@link #newPage(boolean)}를 두 번 부른다.</li>
  * <li>요소는 문구가 아니라 id로 찾는다. 기다림은 Playwright 자동 대기와 assertThat을 쓴다(networkidle 금지: 알림이 30초마다 서버를 부름).</li>
  * <li>테스트가 끝나면 trace(누른 순서·화면 기록)와 마지막 화면 캡처를 build/e2e-artifacts/클래스/테스트-번호.* 로 남긴다.
@@ -45,7 +53,7 @@ import com.oneblog.post.PostTestSupport;
  * 이름이 ...E2ETest로 끝나는 클래스만 ./gradlew e2eTest 에서 돈다 (test·unitTest에서는 빠짐).
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-public abstract class E2ETestSupport extends PostTestSupport {
+public abstract class E2ETestSupport extends IntegrationTestSupport {
 
     /** 사이트 전체에서 화면 요소를 기다리는 최대 시간. 느린 CI에서도 넉넉하게. */
     private static final double TIMEOUT_MS = 15_000;
@@ -58,6 +66,7 @@ public abstract class E2ETestSupport extends PostTestSupport {
 
     private final List<BrowserContext> contexts = new ArrayList<>();
     private final List<Page> pages = new ArrayList<>();
+    private final List<APIRequestContext> apiClients = new ArrayList<>();
 
     @BeforeAll
     static void launchBrowser() {
@@ -97,6 +106,8 @@ public abstract class E2ETestSupport extends PostTestSupport {
         }
         contexts.clear();
         pages.clear();
+        apiClients.forEach(APIRequestContext::dispose);
+        apiClients.clear();
     }
 
     /**
@@ -169,6 +180,70 @@ public abstract class E2ETestSupport extends PostTestSupport {
 
     protected String baseUrl() {
         return "http://localhost:" + port;
+    }
+
+    // ---- 준비용 API 도우미 (브라우저 밖에서 실제 HTTP로 회원·블로그·글을 만든다) ----
+
+    /** 쿠키를 따로 갖는 API 사용자 하나. 화면을 한 번 받아 XSRF-TOKEN 쿠키를 얻어 둔다. */
+    protected APIRequestContext newApiClient() {
+        APIRequestContext client = playwright.request().newContext(new APIRequest.NewContextOptions().setBaseURL(baseUrl()));
+        apiClients.add(client);
+        expectStatus(client.get("/login.html"), 200, "GET /login.html");
+        return client;
+    }
+
+    /** 화면의 api.js처럼 X-XSRF-TOKEN 헤더를 실어 JSON을 보낸다. */
+    protected APIResponse apiSend(APIRequestContext client, String method, String path, String json) {
+        List<String> token = JsonPath.read(client.storageState(), "$.cookies[?(@.name == 'XSRF-TOKEN')].value");
+        if (token.isEmpty()) {
+            throw new IllegalStateException("XSRF-TOKEN 쿠키가 없습니다. E2E에서 MockMvc .with(csrf()) 도우미를 부르지 않았는지 확인하세요");
+        }
+        RequestOptions options = RequestOptions.create().setMethod(method)
+                .setHeader("Content-Type", "application/json")
+                .setHeader("X-XSRF-TOKEN", token.get(0));
+        if (json != null) {
+            options.setData(json);
+        }
+        return client.fetch(path, options);
+    }
+
+    protected static APIResponse expectStatus(APIResponse response, int status, String what) {
+        if (response.status() != status) {
+            throw new IllegalStateException(what + " → " + response.status() + " (기대 " + status + "): " + response.text());
+        }
+        return response;
+    }
+
+    /** 이메일 인증 → 가입까지 API로 (비밀번호는 PASSWORD, 이름 홍길동, 전화 010-1234-5678). */
+    protected void apiSignUp(String email, String nickname) {
+        APIRequestContext client = newApiClient();
+        expectStatus(apiSend(client, "POST", "/api/auth/signup/email-code", "{\"email\":\"" + email + "\"}"), 202,
+                "인증번호 요청");
+        String code = sentSignupCode(email);
+        expectStatus(apiSend(client, "POST", "/api/auth/signup/email-code/verify",
+                "{\"email\":\"" + email + "\",\"code\":\"" + code + "\"}"), 200, "인증번호 확인");
+        expectStatus(apiSend(client, "POST", "/api/auth/signup", signupBody(nickname)), 201, "가입");
+    }
+
+    /** 가입하고 로그인한 API 사용자를 돌려준다(쿠키에 로그인 정보). */
+    protected APIRequestContext apiSignUpAndLogin(String email, String nickname) {
+        apiSignUp(email, nickname);
+        APIRequestContext client = newApiClient();
+        expectStatus(apiSend(client, "POST", "/api/auth/login",
+                "{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\",\"rememberMe\":false}"), 200, "로그인");
+        return client;
+    }
+
+    protected void apiCreateBlog(APIRequestContext user, String slug, String visibility, String joinPolicy) {
+        expectStatus(apiSend(user, "POST", "/api/blogs",
+                "{\"name\":\"블로그 " + slug + "\",\"slug\":\"" + slug + "\",\"visibility\":\"" + visibility
+                        + "\",\"joinPolicy\":\"" + joinPolicy + "\"}"), 201, "블로그 만들기 " + slug);
+    }
+
+    protected long apiWritePost(APIRequestContext user, String slug, String title, String content) {
+        APIResponse response = expectStatus(apiSend(user, "POST", "/api/blogs/" + slug + "/posts",
+                "{\"title\":\"" + title + "\",\"content\":\"" + content + "\"}"), 201, "글쓰기");
+        return ((Number) JsonPath.read(response.text(), "$.id")).longValue();
     }
 
     /** 주소가 조건을 만족할 때까지 기다린다 (예: 저장 뒤 글 화면으로 이동). */

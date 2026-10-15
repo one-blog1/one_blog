@@ -1,13 +1,10 @@
 package com.oneblog.e2e;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.playwright.Page;
-
-import jakarta.servlet.http.Cookie;
 
 /** 흐름 C: 권한 — 비회원 글쓰기, 남의 블로그 관리 화면 (US5, SEC-07, SEC-11). */
 class AccessControlE2ETest extends E2ETestSupport {
@@ -17,8 +14,7 @@ class AccessControlE2ETest extends E2ETestSupport {
 
     @Test
     void 비회원은_글을_쓰지_못하고_로그인_화면으로_간다() throws Exception {
-        Cookie owner = signUpAndLogin(OWNER, "주인");
-        createBlog(owner, "owner-blog", "PUBLIC").andExpect(status().isCreated());
+        apiCreateBlog(apiSignUpAndLogin(OWNER, "주인"), "owner-blog", "PUBLIC", "OPEN");
 
         Page anonymous = newPage(true);
         anonymous.navigate("/blog/owner-blog/write");
@@ -33,9 +29,8 @@ class AccessControlE2ETest extends E2ETestSupport {
 
     @Test
     void 다른_회원은_남의_블로그를_관리하지_못한다() throws Exception {
-        Cookie owner = signUpAndLogin(OWNER, "주인");
-        createBlog(owner, "owner-blog", "PUBLIC").andExpect(status().isCreated());
-        signUp(OTHER, "손님");
+        apiCreateBlog(apiSignUpAndLogin(OWNER, "주인"), "owner-blog", "PUBLIC", "OPEN");
+        apiSignUp(OTHER, "손님");
 
         Page other = newPage(true);
         loginViaUi(other, OTHER);

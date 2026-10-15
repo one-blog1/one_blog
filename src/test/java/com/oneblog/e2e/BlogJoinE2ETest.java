@@ -1,14 +1,11 @@
 package com.oneblog.e2e;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-
-import jakarta.servlet.http.Cookie;
 
 /** 흐름 E: 승인제 블로그에 참여 신청 → 블로그장 승인 → 멤버가 글쓰기 (US5, BLG-04~06, SEC-07). */
 class BlogJoinE2ETest extends E2ETestSupport {
@@ -18,9 +15,8 @@ class BlogJoinE2ETest extends E2ETestSupport {
 
     @Test
     void 참여_신청이_승인되면_글을_쓸_수_있다() throws Exception {
-        Cookie owner = signUpAndLogin(OWNER, "블로그장");
-        createBlog(owner, "join-blog", "PUBLIC", "APPROVAL").andExpect(status().isCreated());
-        signUp(APPLICANT, "신청자");
+        apiCreateBlog(apiSignUpAndLogin(OWNER, "블로그장"), "join-blog", "PUBLIC", "APPROVAL");
+        apiSignUp(APPLICANT, "신청자");
 
         // 신청자: 참여 신청 (승인 전에는 글쓰기 링크가 없다)
         Page applicant = newPage(true);

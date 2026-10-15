@@ -17,7 +17,7 @@ class AccountE2ETest extends E2ETestSupport {
 
     @Test
     void 비밀번호를_바꾸고_탈퇴한다() throws Exception {
-        signUp(EMAIL, "계정주인");
+        apiSignUp(EMAIL, "계정주인");
         Page page = newPage(true);
 
         // 틀린 비밀번호: 안내가 보이고 로그인 화면에 머문다

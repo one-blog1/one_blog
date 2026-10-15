@@ -1,13 +1,11 @@
 package com.oneblog.e2e;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.Page;
-
-import jakarta.servlet.http.Cookie;
 
 /** 흐름 D: 좋아요 → 글 수정 → 삭제 (US5, BRD-01, BRD-06). */
 class PostEditDeleteLikeE2ETest extends E2ETestSupport {
@@ -17,10 +15,10 @@ class PostEditDeleteLikeE2ETest extends E2ETestSupport {
 
     @Test
     void 좋아요를_누르고_글을_고친_뒤_지운다() throws Exception {
-        Cookie author = signUpAndLogin(AUTHOR, "글쓴이");
-        createBlog(author, "like-blog", "PUBLIC").andExpect(status().isCreated());
-        Long postId = writePost(author, "like-blog", "고칠 글", "처음 본문");
-        signUp(READER, "독자");
+        APIRequestContext author = apiSignUpAndLogin(AUTHOR, "글쓴이");
+        apiCreateBlog(author, "like-blog", "PUBLIC", "OPEN");
+        long postId = apiWritePost(author, "like-blog", "고칠 글", "처음 본문");
+        apiSignUp(READER, "독자");
         String postPath = "/blog/like-blog/posts/" + postId;
 
         // 다른 회원의 좋아요: 누르면 1, 다시 누르면 0

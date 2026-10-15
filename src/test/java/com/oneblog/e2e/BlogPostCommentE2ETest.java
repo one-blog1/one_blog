@@ -13,7 +13,7 @@ class BlogPostCommentE2ETest extends E2ETestSupport {
 
     @Test
     void 블로그를_만들고_글과_댓글을_쓴다() throws Exception {
-        signUp(EMAIL, "작가");
+        apiSignUp(EMAIL, "작가");
         Page page = newPage(true);
         loginViaUi(page, EMAIL);
 
