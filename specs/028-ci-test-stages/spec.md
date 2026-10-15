@@ -1,12 +1,12 @@
 # Feature Specification: 배포 단계별 테스트 (CI 단계 나누기 + 정적 분석)
 
-**Feature Branch**: `feature/ci-test-stages` | **Created**: 2026-10-15 | **Status**: Draft (Q1~Q3 답, SonarQube 서버 반영 2026-10-15)
+**Feature Branch**: `feature/ci-test-stages` | **Created**: 2026-10-15 | **Status**: Confirmed (specify 확인 2026-10-15)
 
 **결정 (2026-10-15)**:
 - Q1 스테이징은 만들지 않음
 - Q2 블루-그린 유지 + 운영 스모크 + 자동 되돌리기(카나리 없음)
 - Q3 품질 게이트를 통과하지 못하면 개선부터 한다. 받은 SonarQube 서버가 Community(PR 분석 없음, 브랜치 하나)라서 **merge 전이 아니라 merge 뒤 2단계에서 게이트를 보고, 실패하면 CI 실패 + `main` 배포를 막는다.** 고친 커밋을 새 feature 브랜치로 다시 merge한다(사용자 확인)
-- SonarQube는 받은 서버 `http://s4.java21.net:9000`(SonarQube Community)의 로컬 프로젝트(GitHub 연동 없음)를 쓴다. SonarQube Cloud는 쓰지 않는다
+- SonarQube는 받은 서버 `http://s4.java21.net:9000`(SonarQube Community)의 로컬 프로젝트(Project key `one-blog`, GitHub 연동 없음)를 쓴다. GitHub Secrets `SONAR_TOKEN`·`SONAR_HOST_URL` 등록 완료(사용자 확인). SonarQube Cloud는 쓰지 않는다
 
 **Input**: "매번 돌리지 말고 저 이미지대로 단계 설정해줘", "소나큐브 사용하는 법". 이미지(배포 단계마다 다른 테스트가 지킨다, Shift Left):
 1 PR/커밋 — 단위 테스트·정적 분석(SonarQube)·커버리지 → 2 main 머지 — 전체 테스트·통합 테스트·배포 파일 빌드 → 3 스테이징 — E2E·성능/부하·QA → 4 운영 — 스모크·카나리·모니터링/자동 롤백
@@ -73,7 +73,7 @@
 
 - `hotfix/*`도 1단계만 돈다. `main`에 merge하면 2단계(게이트 포함)가 돌고 성공해야 배포된다. hotfix가 게이트에 걸리면 고치는 커밋을 더해야 배포된다.
 - `develop`과 `main`이 서버의 프로젝트 하나(브랜치 하나)를 함께 쓴다. 분석은 마지막에 올린 것이 남는다. `main`은 `develop`을 merge한 것이라 내용이 같아 문제가 적다. hotfix가 `main`에 먼저 들어가면 잠깐 어긋나지만 `develop`에도 합치면서 맞춰진다.
-- 같은 프로젝트에 분석이 동시에 둘 올라가지 않게 2단계 분석은 한 번에 하나씩 돈다.
+- 버전 merge 직후 `develop`·`main` 분석이 거의 동시에 올라가도 서버가 순서대로 처리한다.
 - 단위 테스트로 나눈 13개 클래스 중 나중에 DB가 필요한 테스트가 생기면: 이름 규칙(`*IntegrationTest`)으로 2단계에 간다. 이름 규칙을 readme에 적는다.
 - SonarQube 서버가 꺼져 있거나 닿지 않을 때: 게이트 결과가 없으므로 2단계가 실패한다(배포 안 됨). 서버가 돌아오면 Actions에서 다시 실행한다. 테스트 실패와 분석 실패는 따로 표시한다.
 - 서버가 GitHub Actions(인터넷)에서 닿지 않으면 이 방식 전체가 안 된다: 구현 첫 작업에서 Actions로 연결을 확인한다.
