@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — Q1 스테이징, Q2 카나리, Q3 품질 게이트 미통과 처리
+- [x] No [NEEDS CLARIFICATION] markers remain — Q1 A(스테이징 없음), Q2 A(블루-그린 유지), Q3 B(merge 막음) 반영
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Q1~Q3 답을 받아 스펙에 반영한 뒤 plan으로 간다
+- 커버리지 조건을 게이트에서 처음엔 빼는 것은 사용자 확인 항목
