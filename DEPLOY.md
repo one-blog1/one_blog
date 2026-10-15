@@ -14,13 +14,13 @@ hotfix/<이름>  ──(확인)──▶  main  과  develop  둘 다
 ```
 
 - CI는 `main`, `develop`, `feature/**`, `hotfix/**`에 push할 때 돕니다. 배포는 `main`에서만 합니다.
-- CI는 두 단계입니다 (D-140, readme "테스트와 CI"): `feature/**`·`hotfix/**` push와 PR은 1단계 `unit`(단위 테스트만, DB 없이), `develop`·`main` push는 2단계 `full`(전체 테스트 + SonarQube 품질 게이트 + jar·Docker 실행 확인).
+- CI는 두 단계입니다 (D-140, readme "테스트와 CI"): `feature/**`·`hotfix/**` push와 PR은 1단계 `unit`(단위 테스트만, DB 없이), `develop`·`main` push는 2단계 `full`(전체 테스트 + E2E + SonarQube 품질 게이트 + jar·Docker 실행 확인).
 - feature 이름은 영어 기능 이름입니다 (예: 댓글 → `feature/comments`, D-137). 작업 브랜치는 PR로 합치고, 합친 뒤 지웁니다(PR로 합치면 GitHub가 자동으로 지움).
 - `feature/base`·`hotfix/base`는 묶음 자리로 둔 고정 브랜치입니다(지우지 않음, 작업하지 않음).
 
 ```
 develop에서 build.gradle.kts의 version을 올리고(배포마다 0.01씩, 예: 0.17 → 0.18. 규칙은 문서 저장소 releases/README.md, D-121) develop을 main에 merge해 push (D-136)
-  → CI (.github/workflows/ci.yml)의 full: 전체 테스트, SonarQube 분석·품질 게이트, jar 실행 확인, Docker 실행 확인
+  → CI (.github/workflows/ci.yml)의 full: 전체 테스트, E2E(브라우저로 핵심 흐름 7개), SonarQube 분석·품질 게이트, jar 실행 확인, Docker 실행 확인
   → CI가 성공하면 Deploy (.github/workflows/deploy.yml)
       0) 버전 확인: 태그 v<버전>(예: v0.18)이 아직 없을 때만 배포 (버전이 그대로면 CI만 돌고 끝)
       1) Docker 이미지 만들기 (태그 = 버전-커밋 앞 7자리)

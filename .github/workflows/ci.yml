@@ -2,10 +2,11 @@
 #
 # | 단계        | 언제                                          | job  | 하는 일                                                        |
 # | 1 빠른 확인 | feature/**·hotfix/** push, 모든 PR            | unit | 단위 테스트(DB 없이) + 커버리지 보고서. PR merge의 필수 검사   |
-# | 2 통합 확인 | develop·main push(= merge), 직접 실행         | full | 전체 테스트(MySQL) + 커버리지 + SonarQube 품질 게이트(push만)  |
-# |             |                                               |      | + 배포용 jar 실행 확인 + Docker 이미지 실행 확인               |
+# | 2 통합 확인 | develop·main push(= merge), 직접 실행         | full | 전체 테스트(MySQL) + E2E(브라우저로 핵심 흐름 7개) + 커버리지  |
+# |             |                                               |      | + SonarQube 품질 게이트(push만) + jar·Docker 실행 확인         |
 #
-# - 테스트 이름 규칙: *IntegrationTest = 통합(MySQL 필요, 2단계에서만), 나머지 = 단위 (build.gradle.kts)
+# - 테스트 이름 규칙: *IntegrationTest = 통합(MySQL 필요), *E2ETest = E2E(MySQL + Chromium), 둘 다 2단계에서만. 나머지 = 단위 (build.gradle.kts)
+# - 스테이징 서버는 따로 없다. E2E가 테스트 안에서 서버와 DB를 잠깐 띄워 실제 브라우저로 누른다(CI 안의 일회용 스테이징)
 # - SonarQube 서버는 Community라 PR 분석이 없다. 품질 게이트는 merge 뒤 develop·main에서 보고, 실패하면 CI 실패 → main이면 배포 안 됨.
 #   고치는 커밋을 새 feature 브랜치로 다시 merge한다 (스펙 028)
 # - 배포(deploy.yml)는 main push로 돈 이 workflow가 성공했을 때만 이어진다 = full 성공 (unit은 main push에서 건너뜀)
@@ -75,7 +76,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'))
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     services:
       mysql:
         image: mysql:8.4
@@ -115,7 +116,7 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_USERNAME: one_blog
           TEST_DB_PASSWORD: one_blog
-        run: ./gradlew test jacocoTestReport --no-daemon 2>&1 | tee gradle-test.log
+        run: ./gradlew test --no-daemon 2>&1 | tee gradle-test.log
 
       # 실패한 테스트·컴파일 오류를 실행 화면의 Annotations에 띄운다(로그·보고서를 받지 못하는 곳에서도 이유가 보이게)
       - name: 실패 내용 표시 (실패했을 때)
@@ -129,6 +130,34 @@ jobs:
           name: test-report
           path: build/reports/tests/test
           retention-days: 7
+
+      # E2E (US5): 테스트가 서버를 무작위 포트로 띄우고 Chromium(화면 없음)이 가입·글·참여·사진·계정 흐름을 눌러 본다
+      - name: E2E 테스트
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_USERNAME: one_blog
+          TEST_DB_PASSWORD: one_blog
+        run: ./gradlew playwrightInstall e2eTest --no-daemon 2>&1 | tee gradle-e2e.log
+
+      - name: E2E 실패 내용 표시 (실패했을 때)
+        if: failure()
+        run: python3 scripts/ci-test-annotation.py build/test-results/e2eTest gradle-e2e.log
+
+      # 흐름마다 마지막 화면 캡처(.png)와 trace(.zip). trace는 https://trace.playwright.dev 에 끌어다 놓으면 누른 순서대로 다시 볼 수 있다
+      - name: E2E 화면 기록 올리기 (실패했을 때)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-artifacts
+          path: |
+            build/e2e-artifacts
+            build/reports/tests/e2eTest
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: 커버리지 보고서 (전체 테스트 + E2E)
+        # -x test: 앞 단계에서 이미 돌았다(테스트를 다시 돌리지 않고 기록만 모은다)
+        run: ./gradlew jacocoTestReport -x test --no-daemon
 
       # SonarQube (merge 뒤 develop·main push에서만). 서버가 닿는지 먼저 본다: 안 닿으면 분석 오류 대신 이유를 바로 알린다
       - name: SonarQube 서버 연결 확인
@@ -154,7 +183,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          if ! ./gradlew sonar --no-daemon; then
+          if ! ./gradlew sonar -x test -x e2eTest --no-daemon; then
             echo "::error title=품질 게이트::SonarQube 분석이 실패했거나 품질 게이트를 통과하지 못했습니다. 서버의 one-blog 프로젝트에서 새 이슈를 보고, 새 feature 브랜치에서 고쳐 다시 merge해 주세요. 통과 전에는 버전을 올려 배포하지 않습니다"
             exit 1
           fi

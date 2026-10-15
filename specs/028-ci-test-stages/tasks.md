@@ -91,17 +91,17 @@
 
 **Independent Test**: 직접 실행한 `full`의 E2E 단계에서 7개 통과, 7분 안
 
-- [ ] T025 [US5] `build.gradle.kts`: `testImplementation("com.microsoft.playwright:playwright:1.63.0")`, `test`와 `unitTest`에서 `**/*E2ETest*` 제외, `e2eTest` 작업(`**/*E2ETest*`만), `playwrightInstall` 작업(JavaExec `com.microsoft.playwright.CLI` `install --with-deps chromium`), `jacocoTestReport`가 `test.exec`+`e2eTest.exec`(있으면)를 읽게. 이름 규칙 주석 갱신
-- [ ] T026 [US5] `src/test/java/com/oneblog/e2e/E2ETestSupport.java`: plan "테스트 코드"의 기반 클래스(RANDOM_PORT, 클래스당 Chromium, 테스트당 Context+trace, `open`·`loginViaUi`·`logoutViaUi`·`confirmModal`·`useTextareaEditor`·`newMember`·인증번호 읽기, 끝나면 trace·캡처를 `build/e2e-artifacts/`에)
-- [ ] T027 [P] [US5] `e2e/SignupLoginE2ETest.java` (흐름 A)
-- [ ] T028 [P] [US5] `e2e/BlogPostCommentE2ETest.java` (흐름 B)
-- [ ] T029 [P] [US5] `e2e/AccessControlE2ETest.java` (흐름 C)
-- [ ] T030 [P] [US5] `e2e/PostEditDeleteLikeE2ETest.java` (흐름 D)
-- [ ] T031 [P] [US5] `e2e/BlogJoinE2ETest.java` (흐름 E)
-- [ ] T032 [P] [US5] `e2e/PostImageE2ETest.java` (흐름 F, 진짜 에디터)
-- [ ] T033 [P] [US5] `e2e/AccountE2ETest.java` (흐름 G)
-- [ ] T034 [US5] `.github/workflows/ci.yml` `full`: 전체 테스트 단계를 `./gradlew test`로, 다음에 "E2E" 단계(`./gradlew playwrightInstall e2eTest`, 테스트 DB 환경변수, `timeout-minutes` 여유) → 실패 시 원인 표시(`build/test-results/e2eTest`)·`e2e-artifacts` 올리기 → "커버리지 보고서"(`./gradlew jacocoTestReport`) → SonarQube 단계. 맨 위 단계 표에 E2E
-- [ ] T035 [US5] readme "테스트와 CI": `...E2ETest` 이름 규칙, `playwrightInstall`·`e2eTest` 명령, trace 보는 법, 화면을 바꾸면 E2E도 고친다는 규칙. CLAUDE.md CI 줄에 E2E. 문서 저장소 7장·D-140에 E2E 한 줄
+- [x] T025 [US5] `build.gradle.kts`: `testImplementation("com.microsoft.playwright:playwright:1.63.0")`, `test`와 `unitTest`에서 `**/*E2ETest*` 제외, `e2eTest` 작업(`**/*E2ETest*`만), `playwrightInstall` 작업(JavaExec `com.microsoft.playwright.CLI` `install --with-deps chromium`), `jacocoTestReport`가 `test.exec`+`e2eTest.exec`(있으면)를 읽게. 이름 규칙 주석 갱신
+- [x] T026 [US5] `src/test/java/com/oneblog/e2e/E2ETestSupport.java`: plan "테스트 코드"의 기반 클래스(RANDOM_PORT, 클래스당 Chromium, 테스트당 Context+trace, `open`·`loginViaUi`·`logoutViaUi`·`confirmModal`·`useTextareaEditor`·`newMember`·인증번호 읽기, 끝나면 trace·캡처를 `build/e2e-artifacts/`에)
+- [x] T027 [P] [US5] `e2e/SignupLoginE2ETest.java` (흐름 A)
+- [x] T028 [P] [US5] `e2e/BlogPostCommentE2ETest.java` (흐름 B)
+- [x] T029 [P] [US5] `e2e/AccessControlE2ETest.java` (흐름 C)
+- [x] T030 [P] [US5] `e2e/PostEditDeleteLikeE2ETest.java` (흐름 D)
+- [x] T031 [P] [US5] `e2e/BlogJoinE2ETest.java` (흐름 E)
+- [x] T032 [P] [US5] `e2e/PostImageE2ETest.java` (흐름 F, 진짜 에디터)
+- [x] T033 [P] [US5] `e2e/AccountE2ETest.java` (흐름 G)
+- [x] T034 [US5] `.github/workflows/ci.yml` `full`: 전체 테스트 단계를 `./gradlew test`로, 다음에 "E2E" 단계(`./gradlew playwrightInstall e2eTest`, 테스트 DB 환경변수, `timeout-minutes` 여유) → 실패 시 원인 표시(`build/test-results/e2eTest`)·`e2e-artifacts` 올리기 → "커버리지 보고서"(`./gradlew jacocoTestReport`) → SonarQube 단계. 맨 위 단계 표에 E2E
+- [x] T035 [US5] readme "테스트와 CI": `...E2ETest` 이름 규칙, `playwrightInstall`·`e2eTest` 명령, trace 보는 법, 화면을 바꾸면 E2E도 고친다는 규칙. CLAUDE.md CI 줄에 E2E. 문서 저장소 7장·D-140에 E2E 한 줄
 
 **Checkpoint**: 직접 실행 `full`에서 E2E 7개 통과 (T022에서 함께 확인)
 

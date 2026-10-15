@@ -49,6 +49,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // E2E: 실제 브라우저(Chromium)로 화면을 눌러 보는 테스트 (028, D-140). 브라우저는 ./gradlew playwrightInstall 로 설치
+    testImplementation("com.microsoft.playwright:playwright:1.63.0")
 }
 
 // 빌드 정보(버전·빌드 시각)를 META-INF/build-info.properties로 넣는다. /api/health가 지금 버전을 알려 줄 때 쓴다 (D-120)
@@ -80,16 +82,43 @@ tasks.withType<Test> {
     }
 }
 
-// 테스트 이름 규칙 (028, D-140): *IntegrationTest = 서버·테스트 DB(MySQL)를 띄우는 통합 테스트, 나머지 *Test = DB 없는 단위 테스트.
-// ./gradlew test     전체 (CI 2단계 full, 로컬 기본)
+// 테스트 이름 규칙 (028, D-140)
+//   ...IntegrationTest = 서버·테스트 DB(MySQL)를 띄우는 통합 테스트
+//   ...E2ETest         = 실제 브라우저로 화면을 누르는 E2E 테스트 (테스트 DB + Chromium 필요)
+//   나머지 ...Test      = DB 없는 단위 테스트
 // ./gradlew unitTest 단위만, DB 없이 빠르게 (CI 1단계 unit: 기능 브랜치 push와 PR)
+// ./gradlew test     단위 + 통합 (E2E 제외. CI 2단계 full, 로컬 기본)
+// ./gradlew e2eTest  E2E만 (CI 2단계 full에서 test 다음)
 // DB가 필요한 테스트를 새로 만들면 이름을 ...IntegrationTest로 끝내야 1단계에서 빠진다
+tasks.test {
+    exclude("**/*E2ETest*")
+}
+
 val unitTest by tasks.registering(Test::class) {
-    description = "DB 없이 도는 단위 테스트만 (*IntegrationTest 제외)"
+    description = "DB 없이 도는 단위 테스트만 (*IntegrationTest, *E2ETest 제외)"
     group = "verification"
     testClassesDirs = sourceSets.test.get().output.classesDirs
     classpath = sourceSets.test.get().runtimeClasspath
-    exclude("**/*IntegrationTest*")
+    exclude("**/*IntegrationTest*", "**/*E2ETest*")
+}
+
+val e2eTest by tasks.registering(Test::class) {
+    description = "실제 브라우저로 핵심 흐름을 확인하는 E2E 테스트만 (*E2ETest). 테스트 DB와 Chromium(playwrightInstall)이 필요하다"
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    include("**/*E2ETest*")
+    // 실패 화면 캡처·trace를 남기는 폴더 (E2ETestSupport)
+    systemProperty("e2e.artifacts", layout.buildDirectory.dir("e2e-artifacts").get().asFile.absolutePath)
+}
+
+// Playwright가 쓰는 Chromium과 OS 라이브러리를 설치한다. CI는 E2E 전에, 로컬은 처음 한 번
+val playwrightInstall by tasks.registering(JavaExec::class) {
+    description = "E2E용 Chromium 설치 (Playwright CLI)"
+    group = "verification"
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass = "com.microsoft.playwright.CLI"
+    args("install", "--with-deps", "chromium")
 }
 
 // 커버리지 보고서 (XML은 SonarQube가 읽고, HTML은 사람이 본다)
@@ -97,6 +126,8 @@ val unitTest by tasks.registering(Test::class) {
 // build/reports/jacoco/jacocoUnitTestReport/ 단위 테스트 기준 (CI 1단계에서 올림. 통합 테스트가 대부분이라 숫자가 낮다)
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.test)
+    // E2E를 돌렸으면 그 기록도 합친다 (화면에서만 쓰이는 코드 경로까지 커버리지에 들어가게)
+    executionData.setFrom(fileTree(layout.buildDirectory.dir("jacoco")) { include("test.exec", "e2eTest.exec") })
     reports {
         xml.required = true
         html.required = true
@@ -117,7 +148,7 @@ val jacocoUnitTestReport by tasks.registering(JacocoReport::class) {
 
 // SonarQube 분석 (028, D-140). 서버 주소와 토큰은 여기 적지 않는다: 환경변수 SONAR_HOST_URL, SONAR_TOKEN (CI는 GitHub Secrets)
 // 서버가 Community라 브랜치 속성(sonar.branch.name)은 넣지 않는다(넣으면 분석이 실패). develop·main 결과가 프로젝트 하나에 쌓인다
-// sonar 작업은 테스트를 스스로 돌리지 않는다. 먼저 ./gradlew test jacocoTestReport 를 돌린 뒤 ./gradlew sonar
+// sonar 작업은 테스트를 스스로 돌리지 않는다. 먼저 ./gradlew test e2eTest jacocoTestReport 를 돌린 뒤 ./gradlew sonar
 sonar {
     properties {
         property("sonar.projectKey", "one-blog")
