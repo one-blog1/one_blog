@@ -54,3 +54,16 @@
 ## R7. 이 작업 환경의 제약
 
 - Gradle 배포판·Maven 저장소가 막혀 있어 여기서는 빌드·테스트를 돌릴 수 없다. 027처럼 브랜치를 push한 뒤 CI 결과로 확인한다(push는 사용자 확인 뒤).
+
+## R8. E2E 테스트 도구와 구조 (US5, 2026-10-15 추가)
+
+- **Decision**: Playwright for Java (`com.microsoft.playwright:playwright` 1.63.0, 2026-09-16 기준 최신)를 JUnit 5 테스트로 쓴다.
+  - 서버: `@SpringBootTest(webEnvironment = RANDOM_PORT)`로 테스트 안에서 실제 서버를 띄우고, 브라우저(Chromium, 화면 없이)가 `http://localhost:<포트>`의 화면을 연다. DB는 통합 테스트와 같은 테스트 DB(CI의 MySQL 서비스).
+  - 준비 코드 `E2ETestSupport`: 통합 테스트처럼 테스트마다 회원·인증 테이블을 비우고, 메일은 가짜(`MailService` 목)로 바꿔 보낸 인증번호를 읽는다. 흐름 A(가입) 말고는 회원·블로그를 화면 대신 빠른 길(API·저장소)로 미리 만들어 흐름 하나에 필요한 화면만 누른다.
+  - 이름 규칙 `...E2ETest`. Gradle `e2eTest` 작업만 이것을 돌리고, `test`·`unitTest`에서는 뺀다(브라우저가 필요해 로컬 전체 테스트가 무거워지지 않게).
+  - 브라우저 설치: Gradle `playwrightInstall` 작업(Playwright CLI `install --with-deps chromium`). CI에서 E2E 전에 한 번.
+  - 요소는 문구가 아니라 id로 찾는다. 기다림은 Playwright의 자동 대기(요소가 보이고 누를 수 있을 때까지)를 쓰고 고정 `sleep`은 쓰지 않는다.
+  - 실패하면 그 테스트의 화면 캡처와 기록(trace)을 `build/e2e-artifacts/`에 남겨 CI 결과물로 올린다.
+- **Rationale**: 기존 테스트가 Java·JUnit·Gradle이고, 테스트 DB 비우기·가짜 메일 같은 준비 코드를 그대로 쓸 수 있다. Node 도구 묶음(package.json 등)을 저장소에 새로 두지 않는다(constitution V). 서버를 테스트가 직접 띄워 따로 jar를 띄우고 기다리는 스크립트가 필요 없다.
+- **Alternatives**: Playwright(Node) + 띄운 jar(도구 두 벌), Selenium(대기 처리를 직접 해야 해서 잘 깨짐), Cypress(Node, Chromium 계열만, 다중 탭·회원 둘 흐름이 불편).
+- **커버리지**: `e2eTest`도 JaCoCo 기록을 남기고, `jacocoTestReport`가 `test`·`e2eTest` 기록을 합쳐 SonarQube에 넘긴다. 그래서 CI 순서는 전체 테스트 → E2E → 커버리지 보고서 → SonarQube.
