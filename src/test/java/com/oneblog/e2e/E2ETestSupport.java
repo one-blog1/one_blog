@@ -130,6 +130,21 @@ public abstract class E2ETestSupport extends PostTestSupport {
      */
     private void watch(Page page, int window) {
         page.onResponse(response -> {
+            if ("document".equals(response.request().resourceType())) {
+                // 화면(HTML) 응답이 어떤 쿠키를 주는지 (값은 가림). XSRF-TOKEN이 여기서 와야 화면의 POST가 통과한다
+                String setCookie = response.headerValue("set-cookie");
+                diag(window, "화면 " + pathOf(response.url()) + " → " + response.status() + ", Set-Cookie: "
+                        + (setCookie == null ? "없음" : setCookie.replaceAll("=[^;\\n]*", "=…").replace('\n', ' ')));
+            }
+            if (response.url().contains("/api/") && response.status() == 403) {
+                String body;
+                try {
+                    body = response.text();
+                } catch (RuntimeException e) {
+                    body = "(본문 못 읽음)";
+                }
+                diag(window, "403 본문: " + (body.length() > 200 ? body.substring(0, 200) : body));
+            }
             if (response.url().contains("/api/") && response.status() >= 400) {
                 diag(window, response.request().method() + " " + pathOf(response.url()) + " → " + response.status()
                         + " (X-XSRF-TOKEN " + (response.request().headerValue("x-xsrf-token") == null ? "없음" : "있음") + ")");
