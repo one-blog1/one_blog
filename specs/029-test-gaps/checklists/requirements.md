@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — 1개 (US6-12 배치 잠금 고치기 포함 여부)
+- [x] No [NEEDS CLARIFICATION] markers remain — US6-12 배치 잠금: 고친다(A, 2026-10-15)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- 남은 질문 1개(배치 잠금)는 사용자 답을 받아 spec에 반영한 뒤 `/speckit-plan`으로 간다.
+- 질문 1개(배치 잠금)는 사용자 답(A: 고친다)을 spec에 반영했다. 모든 항목 통과.
