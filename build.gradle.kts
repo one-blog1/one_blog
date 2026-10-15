@@ -80,6 +80,17 @@ tasks.withType<Test> {
         showCauses = true
         showStackTraces = false
     }
+    // 끝나면 "몇 개 실행, 몇 개 통과"를 한 줄 남긴다 (CI 로그에서 바로 보이게). 테스트를 하나도 못 찾으면 실패로 본다
+    // (이름 규칙이 어긋나 E2E·단위 테스트가 통째로 빠져도 초록불이 되지 않게, 028)
+    val taskName = name
+    afterSuite(KotlinClosure2<TestDescriptor, TestResult, Unit>({ suite, result ->
+        if (suite.parent == null) {
+            println("[$taskName] 테스트 ${result.testCount}개: 통과 ${result.successfulTestCount}, 실패 ${result.failedTestCount}, 건너뜀 ${result.skippedTestCount}")
+            if (result.testCount == 0L) {
+                throw GradleException("[$taskName] 실행된 테스트가 없습니다. 테스트 이름 규칙(...IntegrationTest, ...E2ETest)을 확인해 주세요")
+            }
+        }
+    }))
 }
 
 // 테스트 이름 규칙 (028, D-140)
