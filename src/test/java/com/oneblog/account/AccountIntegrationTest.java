@@ -226,4 +226,32 @@ class AccountIntegrationTest extends IntegrationTestSupport {
                 .getTokenValue();
         return new Cookie("REAUTH_TICKET", value);
     }
+
+    @Test
+    void 프로필_사진을_올려_바꾼다() throws Exception {
+        // USR-07, 6.3 (029 US6)
+        String body = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/api/files/profile-image")
+                        .file(new org.springframework.mock.web.MockMultipartFile("file", "me.png", "image/png",
+                                com.oneblog.file.TestImages.png()))
+                        .with(csrf()).cookie(alice))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Number fileId = com.jayway.jsonpath.JsonPath.read(body, "$.fileId");
+        String url = com.jayway.jsonpath.JsonPath.read(body, "$.url");
+
+        mvc.perform(put("/api/me/profile").with(csrf()).cookie(alice, reauth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nickname\":\"앨리스\",\"phone\":\"01012345678\",\"profileFileId\":" + fileId + "}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/me").cookie(alice)).andExpect(jsonPath("$.profileImageUrl").value(url));
+        mvc.perform(get(url)).andExpect(status().isOk());
+
+        // 비회원은 올릴 수 없다
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/api/files/profile-image")
+                        .file(new org.springframework.mock.web.MockMultipartFile("file", "me.png", "image/png",
+                                com.oneblog.file.TestImages.png()))
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
 }

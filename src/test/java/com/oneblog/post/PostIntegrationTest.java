@@ -173,4 +173,16 @@ class PostIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/blogs/secret-blog/posts").cookie(stranger)).andExpect(status().isForbidden());
         mvc.perform(get("/api/posts/" + id).cookie(owner)).andExpect(status().isOk());
     }
+
+    @Test
+    void 블로그_공지는_글_관리_권한이_있는_부블로그장도_쓴다() throws Exception {
+        // D-71, D-138: 블로그 공지는 글 관리 권한 (029 US6)
+        jdbc.update("UPDATE blog_members SET role = 'SUB_OWNER', can_manage_posts = 0, sub_owner_since = NOW(6) "
+                + "WHERE user_id = ?", userId("member@example.com"));
+        writePost(member, "open-blog", "{\"title\":\"부블로그장 공지\",\"content\":\"x\",\"notice\":true}")
+                .andExpect(status().isForbidden());
+        jdbc.update("UPDATE blog_members SET can_manage_posts = 1 WHERE user_id = ?", userId("member@example.com"));
+        writePost(member, "open-blog", "{\"title\":\"부블로그장 공지\",\"content\":\"x\",\"notice\":true}")
+                .andExpect(status().isCreated());
+    }
 }

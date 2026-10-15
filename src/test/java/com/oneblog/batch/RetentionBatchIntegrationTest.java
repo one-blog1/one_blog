@@ -148,6 +148,8 @@ class RetentionBatchIntegrationTest extends PostTestSupport {
         assertThat(count("SELECT COUNT(*) FROM blacklist_inquiries WHERE blog_id = ?", blogId)).isZero();
         assertThat(count("SELECT COUNT(*) FROM blogs WHERE id = ? AND slug IS NULL AND deleted_at IS NOT NULL", blogId))
                 .isEqualTo(1);
+        // 31일 뒤로 돌린 배치가 30분 무활동 로그인을 지웠으므로 다시 로그인한다
+        other = loginCookie("other@example.com");
         createBlog(other, "closing-blog", "PUBLIC").andExpect(status().isCreated());
     }
 

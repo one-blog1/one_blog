@@ -29,4 +29,15 @@ class BlogPagesIntegrationTest extends IntegrationTestSupport {
         mvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
         mvc.perform(get("/login.html")).andExpect(status().isOk());
     }
+
+    @Test
+    void 글쓰기_글_수정_블로그_관리_화면을_받는다() throws Exception {
+        // 화면 HTML은 비회원도 받는다. 볼 수 있는지·고칠 수 있는지는 API가 지킨다 (research R10, 029 US6)
+        for (String path : new String[] {"/blog/any-blog/write", "/blog/any-blog/posts/1/edit", "/blog/any-blog/manage"}) {
+            mvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                            .contentTypeCompatibleWith(org.springframework.http.MediaType.TEXT_HTML));
+        }
+    }
 }

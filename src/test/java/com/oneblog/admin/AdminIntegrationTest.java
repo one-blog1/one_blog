@@ -157,6 +157,13 @@ class AdminIntegrationTest extends PostTestSupport {
                 .andExpect(jsonPath("$.adminViewReason").value("관리자가 숨긴 블로그예요."));
         adminPost("/api/admin/blogs/" + blogId + "/hide", "{\"hidden\":false}").andExpect(status().isNoContent());
         mvc.perform(get("/api/blogs/open-blog")).andExpect(status().isOk());
+        // 관리자 조치는 모두 기록에 남는다 (SEC-09, ADM-06, 029 US6)
+        assertThat(actions("BLOG_HIDE")).isEqualTo(1);
+        assertThat(actions("BLOG_UNHIDE")).isEqualTo(1);
+    }
+
+    private int actions(String type) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM admin_actions WHERE action_type = ?", Integer.class, type);
     }
 
     @Test
@@ -175,7 +182,14 @@ class AdminIntegrationTest extends PostTestSupport {
                 .isEqualTo("ADMIN");
         // 관리자는 블로그 글 API로 지우지 않는다
         Long other = writePost(owner, "open-blog", "다른 글", "본문");
-        mvc.perform(delete("/api/posts/" + other).with(csrf()).cookie(admin)).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/posts/" + other).with(csrf()).cookie(admin))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("USE_ADMIN_API"));
+        assertThat(actions("POST_HIDE")).isEqualTo(1);
+        assertThat(actions("POST_UNHIDE")).isEqualTo(1);
+        assertThat(actions("POST_DELETE")).isEqualTo(1);
+        // 작성자에게 사유와 함께 알린다 (BRD-01)
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE type = 'POST_DELETED'", Integer.class))
+                .isEqualTo(1);
     }
 
     @Test
@@ -194,6 +208,7 @@ class AdminIntegrationTest extends PostTestSupport {
                 // 관리자 화면 "바로가기" 주소용 (/blog/{slug}/posts/{postId}#comment-{id})
                 .andExpect(jsonPath("$.items[0].blogSlug").value("open-blog"))
                 .andExpect(jsonPath("$.items[0].postId").value(postId.intValue()));
+        assertThat(actions("COMMENT_HIDE")).isEqualTo(1);
     }
 
     @Test
@@ -210,6 +225,8 @@ class AdminIntegrationTest extends PostTestSupport {
                 .andExpect(status().isForbidden());
         mvc.perform(delete("/api/admin/notices/" + id).with(csrf()).cookie(admin)).andExpect(status().isNoContent());
         mvc.perform(get("/api/notices/" + id)).andExpect(status().isNotFound());
+        assertThat(actions("NOTICE_CREATE")).isEqualTo(1);
+        assertThat(actions("NOTICE_DELETE")).isEqualTo(1);
     }
 
     @Test
@@ -296,5 +313,49 @@ class AdminIntegrationTest extends PostTestSupport {
         mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"member@example.com\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 관리자는_블로그와_글을_검색해_본다() throws Exception {
+        // ADM-02, ADM-03: 블로그장·멤버 수·글 수, 숨긴 글도 목록에 (029 US6)
+        createBlog(owner, "quiet-blog", "PRIVATE").andExpect(status().isCreated());
+        Long hiddenPost = writePost(owner, "open-blog", "숨긴 글", "본문");
+        adminPost("/api/admin/posts/" + hiddenPost + "/hide", "{\"hidden\":true}").andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/admin/blogs").param("q", "open").cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].slug").value("open-blog"))
+                .andExpect(jsonPath("$.items[0].ownerNickname").value("블로그장"))
+                .andExpect(jsonPath("$.items[0].memberCount").value(1))
+                .andExpect(jsonPath("$.items[0].postCount").value(2));
+        // 비공개 블로그도 관리자 목록에는 나온다
+        mvc.perform(get("/api/admin/blogs").param("q", "quiet").cookie(admin))
+                .andExpect(jsonPath("$.items[0].visibility").value("PRIVATE"));
+        mvc.perform(get("/api/admin/posts").param("q", "숨긴").cookie(admin))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].hidden").value(true))
+                .andExpect(jsonPath("$.items[0].blogSlug").value("open-blog"));
+        mvc.perform(get("/api/admin/blogs").cookie(owner)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/posts").cookie(owner)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 관리자는_일부_공개_블로그와_숨긴_글을_보고_기록이_남고_지운_글은_못_본다() throws Exception {
+        // ADM-02, D-106 (029 US6)
+        createBlog(owner, "link-blog", "UNLISTED").andExpect(status().isCreated());
+        mvc.perform(get("/api/blogs/link-blog").cookie(admin)).andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_actions WHERE target_type = 'BLOG' AND target_id = ?",
+                Integer.class, blogId("link-blog"))).isEqualTo(1);
+
+        adminPost("/api/admin/posts/" + postId + "/hide", "{\"hidden\":true}").andExpect(status().isNoContent());
+        mvc.perform(get("/api/posts/" + postId).cookie(admin)).andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_actions WHERE action_type = 'CONTENT_VIEW' "
+                + "AND target_type = 'POST' AND target_id = ?", Integer.class, postId)).isEqualTo(1);
+
+        mvc.perform(delete("/api/posts/" + writePost(owner, "open-blog", "지울 글", "본문")).with(csrf()).cookie(owner))
+                .andExpect(status().isNoContent());
+        Long deleted = jdbc.queryForObject("SELECT id FROM posts WHERE title = '지울 글'", Long.class);
+        mvc.perform(get("/api/posts/" + deleted).cookie(admin)).andExpect(status().isNotFound());
     }
 }

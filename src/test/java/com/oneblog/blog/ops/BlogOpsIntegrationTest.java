@@ -373,4 +373,123 @@ class BlogOpsIntegrationTest extends PostTestSupport {
                 Integer.class, me)).isZero();
         mvc.perform(get("/api/users/멤버회원")).andExpect(status().isNotFound());
     }
+
+    private Long requestTransfer() throws Exception {
+        mvc.perform(post("/api/blogs/open-blog/transfer").with(csrf()).cookie(owner)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"toUserId\":" + memberId() + "}"))
+                .andExpect(status().isOk());
+        return jdbc.queryForObject("SELECT id FROM blog_transfer_requests WHERE status = 'PENDING'", Long.class);
+    }
+
+    @Test
+    void 위임_요청을_확인하고_취소하고_거절한다() throws Exception {
+        // BLG-08 (029 US6)
+        mvc.perform(get("/api/blogs/open-blog/transfer").cookie(owner)).andExpect(status().isNoContent());
+        Long first = requestTransfer();
+        mvc.perform(get("/api/blogs/open-blog/transfer").cookie(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(first.intValue()))
+                .andExpect(jsonPath("$.toNickname").value("멤버회원"));
+        mvc.perform(get("/api/blogs/open-blog/transfer").cookie(member)).andExpect(status().isForbidden());
+
+        // 블로그장이 취소하면 받는 사람의 목록에서 빠진다
+        mvc.perform(delete("/api/blogs/open-blog/transfer").with(csrf()).cookie(owner)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/me/transfer-requests").cookie(member)).andExpect(jsonPath("$.length()").value(0));
+
+        // 다시 요청 → 받는 사람이 아닌 사람은 거절할 수 없고, 받는 사람이 거절하면 그대로이고 블로그장에게 알린다
+        Long second = requestTransfer();
+        mvc.perform(post("/api/transfer-requests/" + second + "/reject").with(csrf()).cookie(subscriber))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("TRANSFER_NOT_FOUND"));
+        mvc.perform(post("/api/transfer-requests/" + second + "/reject").with(csrf()).cookie(member))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/blogs/open-blog").cookie(owner)).andExpect(jsonPath("$.myRole").value("OWNER"));
+        assertThat(jdbc.queryForObject("SELECT status FROM blog_transfer_requests WHERE id = ?", String.class, second))
+                .isEqualTo("REJECTED");
+        assertThat(notifications("owner@example.com", "TRANSFER_RESULT")).isEqualTo(1);
+        mvc.perform(post("/api/transfer-requests/" + second + "/accept").with(csrf()).cookie(member))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("TRANSFER_ALREADY_PROCESSED"));
+    }
+
+    @Test
+    void 위임_요청은_7일이_지나면_자동_취소된다() throws Exception {
+        // BLG-08: 7일 안에 응답하지 않으면 자동 취소, 블로그장에게 알림 (029 US6)
+        Long id = requestTransfer();
+        LocalDateTime expires = jdbc.queryForObject("SELECT expires_at FROM blog_transfer_requests WHERE id = ?",
+                LocalDateTime.class, id);
+        dailyBatch.runAll(expires.minusMinutes(1));
+        assertThat(jdbc.queryForObject("SELECT status FROM blog_transfer_requests WHERE id = ?", String.class, id))
+                .isEqualTo("PENDING");
+        dailyBatch.runAll(expires.plusMinutes(1));
+        assertThat(jdbc.queryForObject("SELECT status FROM blog_transfer_requests WHERE id = ?", String.class, id))
+                .isEqualTo("EXPIRED");
+        assertThat(notifications("owner@example.com", "TRANSFER_RESULT")).isEqualTo(1);
+        // 미래 시각으로 돌린 배치가 30분 무활동 로그인을 지우므로 다시 로그인한다
+        member = loginCookie("member@example.com");
+        mvc.perform(post("/api/transfer-requests/" + id + "/accept").with(csrf()).cookie(member))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void 블로그_개수_제한에_걸린_멤버는_위임을_받을_수_없다() throws Exception {
+        // BLG-10, D-52, D-68: 받는 사람도 개수 제한을 넘을 수 없다 (029 US6)
+        for (String slug : new String[] {"m-pub-1", "m-pub-2", "m-pub-3"}) {
+            createBlog(member, slug, "PUBLIC").andExpect(status().isCreated());
+        }
+        Long id = requestTransfer();
+        mvc.perform(post("/api/transfer-requests/" + id + "/accept").with(csrf()).cookie(member))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("BLOG_LIMIT_EXCEEDED"));
+        mvc.perform(get("/api/blogs/open-blog").cookie(owner)).andExpect(jsonPath("$.myRole").value("OWNER"));
+    }
+
+    @Test
+    void 탈퇴_화면은_블로그장인_블로그를_보여_준다() throws Exception {
+        // USR-05, D-103: 운영 중·폐쇄 예정 블로그를 보여 주고, 멤버로만 있는 블로그는 빼고 (029 US6)
+        createBlog(owner, "closing-one", "PUBLIC").andExpect(status().isCreated());
+        mvc.perform(post("/api/blogs/closing-one/close").with(csrf()).cookie(owner)).andExpect(status().isOk());
+        mvc.perform(get("/api/me/withdrawal").cookie(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.slug == 'closing-one')].closing").value(
+                        org.hamcrest.Matchers.contains(true)));
+        mvc.perform(get("/api/me/withdrawal").cookie(member)).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/api/me/withdrawal")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 폐쇄_하루_전에도_알리고_폐쇄_예정_중에는_블로그장이_탈퇴할_수_없다() throws Exception {
+        // BLG-09 (1일 전 알림), USR-05 (폐쇄가 끝나야 탈퇴) (029 US6)
+        mvc.perform(post("/api/blogs/open-blog/close").with(csrf()).cookie(owner)).andExpect(status().isOk());
+        LocalDateTime scheduled = jdbc.queryForObject("SELECT close_scheduled_at FROM blogs WHERE slug = 'open-blog'",
+                LocalDateTime.class);
+        assertThat(notifications("member@example.com", "BLOG_CLOSING")).isEqualTo(1);
+        dailyBatch.runAll(scheduled.minusDays(1));
+        assertThat(notifications("member@example.com", "BLOG_CLOSING")).isEqualTo(2);
+        assertThat(notifications("sub@example.com", "BLOG_CLOSING")).isEqualTo(2);
+
+        // 미래 시각으로 돌린 배치가 30분 무활동 로그인을 지우므로 다시 로그인한다
+        owner = loginCookie("owner@example.com");
+        mvc.perform(post("/api/me/withdrawal").with(csrf()).cookie(owner).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("OWNED_BLOGS_REMAIN"));
+        dailyBatch.runAll(scheduled.plusMinutes(1));
+        owner = loginCookie("owner@example.com");
+        mvc.perform(post("/api/me/withdrawal").with(csrf()).cookie(owner).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void 권한을_박탈하면_대기_중인_위임은_취소된다() throws Exception {
+        // D-44: 관리자가 블로그장 권한을 박탈하면 그 블로그장이 보낸 위임 요청은 의미가 없어진다 (029 US6)
+        Long id = requestTransfer();
+        addMember("open-blog", "sub@example.com", "MEMBER");
+        jdbc.update("UPDATE blog_members SET role = 'SUB_OWNER', sub_owner_since = NOW(6) WHERE user_id = ?",
+                userId("sub@example.com"));
+        Cookie admin = createAdminAndLogin("admin01");
+        mvc.perform(post("/api/admin/blogs/" + blogId("open-blog") + "/owner-revoke").with(csrf()).cookie(admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"운영 방치\"}"))
+                .andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT status FROM blog_transfer_requests WHERE id = ?", String.class, id))
+                .isEqualTo("CANCELED");
+    }
 }

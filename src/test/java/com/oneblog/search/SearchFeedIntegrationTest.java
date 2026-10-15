@@ -163,12 +163,13 @@ class SearchFeedIntegrationTest extends PostTestSupport {
     @Test
     void 검색에는_일부_공개_숨김_폐쇄_블로그와_차단한_회원의_글이_나오지_않는다() throws Exception {
         // 6.1 "결과에서 제외", BLG-01: 일부 공개는 목록·검색·피드에 나오지 않는다 (029 US4)
+        // 한 회원은 공개(일부 공개 포함) 블로그를 3개까지 만들 수 있어 나눠 만든다 (BLG-10)
         blogNamed(alice, "제주 링크", "link-trip", "UNLISTED");
-        blogNamed(alice, "제주 숨김", "hidden-trip", "PUBLIC");
-        blogNamed(alice, "제주 폐쇄", "closed-trip", "PUBLIC");
+        blogNamed(bob, "제주 숨김", "hidden-trip", "PUBLIC");
+        blogNamed(bob, "제주 폐쇄", "closed-trip", "PUBLIC");
         idOf(writePost(alice, "link-trip", "{\"title\":\"제주도 여행 링크\",\"content\":\"본문\"}"));
-        idOf(writePost(alice, "hidden-trip", "{\"title\":\"제주도 여행 숨김\",\"content\":\"본문\"}"));
-        idOf(writePost(alice, "closed-trip", "{\"title\":\"제주도 여행 폐쇄\",\"content\":\"본문\"}"));
+        idOf(writePost(bob, "hidden-trip", "{\"title\":\"제주도 여행 숨김\",\"content\":\"본문\"}"));
+        idOf(writePost(bob, "closed-trip", "{\"title\":\"제주도 여행 폐쇄\",\"content\":\"본문\"}"));
         jdbc.update("UPDATE blogs SET is_hidden = 1 WHERE slug = 'hidden-trip'");
         jdbc.update("UPDATE blogs SET status = 'CLOSED' WHERE slug = 'closed-trip'");
 

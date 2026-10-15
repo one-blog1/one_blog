@@ -125,4 +125,23 @@ class FileUploadIntegrationTest extends IntegrationTestSupport {
         mvc.perform(get("/files/00000000-0000-0000-0000-000000000000.png")).andExpect(status().isNotFound());
         mvc.perform(get("/files/build.gradle.kts")).andExpect(status().isNotFound());
     }
+
+    @Test
+    void 올린_사진에서_위치_정보를_지운다() throws Exception {
+        // 6.3 위치 정보: 업로드할 때 EXIF(GPS 등)를 지운다. 단위 테스트(ImageMetadataStripperTest)와 달리 실제 업로드 경로 (029 US6)
+        byte[] withGps = ImageMetadataStripperTest.jpegWithExifGpsAndXmp();
+        String body = upload(login, "gps.jpg", "image/jpeg", withGps)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String url = com.jayway.jsonpath.JsonPath.read(body, "$.url");
+        String storedName = url.substring(url.lastIndexOf('/') + 1);
+        byte[] saved = java.nio.file.Files.readAllBytes(
+                java.nio.file.Path.of(fileProperties.storageDir()).toAbsolutePath().normalize().resolve(storedName));
+        byte[] served = mvc.perform(get(url)).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        for (byte[] data : new byte[][] {saved, served}) {
+            assertThat(new String(data, java.nio.charset.StandardCharsets.ISO_8859_1))
+                    .doesNotContain(new String(ImageMetadataStripperTest.GPS_MARK, java.nio.charset.StandardCharsets.ISO_8859_1))
+                    .contains("Exif");
+        }
+    }
 }

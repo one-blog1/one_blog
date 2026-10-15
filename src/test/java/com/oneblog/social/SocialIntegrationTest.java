@@ -175,4 +175,25 @@ class SocialIntegrationTest extends BlogTestSupport {
                     .doesNotContain("01055556789").doesNotContain("010-5555-6789");
         }
     }
+
+    @Test
+    void 블로그를_구독하면_블로그장에게_알린다() throws Exception {
+        // 3.6 "블로그 구독" 알림: 블로그장에게, 끌 수 있음 (029 US6)
+        createBlog(alice, "alice-blog", "PUBLIC").andExpect(status().isCreated());
+        mvc.perform(post("/api/blogs/alice-blog/subscription").with(csrf()).cookie(bob)).andExpect(status().isOk());
+        assertThat(subscribeNotices()).isEqualTo(1);
+
+        // 블로그장이 끄면 다른 회원이 구독해도 새로 만들지 않는다
+        mvc.perform(put("/api/me/notification-settings").with(csrf()).cookie(alice).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"retentionDays\":30,\"settings\":{\"BLOG_SUBSCRIBE\":false}}"))
+                .andExpect(status().isOk());
+        Cookie carol = signUpAndLogin("carol@example.com", "캐럴");
+        mvc.perform(post("/api/blogs/alice-blog/subscription").with(csrf()).cookie(carol)).andExpect(status().isOk());
+        assertThat(subscribeNotices()).isEqualTo(1);
+    }
+
+    private int subscribeNotices() {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM notifications n JOIN users u ON u.id = n.user_id "
+                + "WHERE u.email = 'alice@example.com' AND n.type = 'BLOG_SUBSCRIBE'", Integer.class);
+    }
 }
