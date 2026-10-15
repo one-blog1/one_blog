@@ -11,6 +11,7 @@
   - `hotfix/<이름>`: 운영 중인 버그 수정. `main`에서 만들고, 확인 후 `main`과 `develop` 양쪽에 합친 뒤 지웁니다
   - `feature/base`·`hotfix/base`: 묶음 자리로 둔 고정 브랜치. 지우지 않고 작업에도 쓰지 않습니다
   - push와 merge는 사용자가 확인한 뒤에만 합니다. 문서 저장소는 `main`에 바로 올립니다
+- CI 단계 (D-140): `feature/**`·`hotfix/**` push와 PR은 `unit`(단위 테스트만), `develop`·`main` push는 `full`(전체 테스트 + SonarQube 품질 게이트 + jar·Docker). PR은 `unit` 통과가 필수이고, 품질 게이트는 merge 뒤 `full`에서 봅니다(서버가 Community라 PR 분석 없음). 게이트가 실패하면 새 feature 브랜치로 고치고, 통과 전에는 버전을 올리지 않습니다. DB가 필요한 테스트는 이름을 `...IntegrationTest`로 끝냅니다
 - DB 구조는 Crowfoot ERD "One Blog 메인블로그"(https://crowfoot.java21.net/workspaces/58/models/655)를 따릅니다. 테이블은 기능을 만들 때 Flyway 마이그레이션으로 추가하고, 구조를 바꿀 때는 ERD를 먼저 고칩니다 (constitution IV).
 - 6장에서 상태가 "보류"인 항목은 구현하지 않습니다.
 - 요구사항을 바꾸면 해당 장과 8장 결정 기록을 함께 고칩니다 (문서 저장소).

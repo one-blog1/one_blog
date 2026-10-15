@@ -24,7 +24,7 @@ disable-model-invocation: false
 - 코드 저장소에 태그 `v<버전>`이 아직 없는가: `git ls-remote --tags origin`. 있으면 Deploy가 배포를 건너뛴다. 특히 옛 이름 태그 `v0.1.0`·`v0.2.0`·`v0.21`이 아직 남아 있으면(정리 전) 0.21로 올릴 때 `v0.21`에 걸려 배포되지 않으므로, 사용자에게 옛 태그 정리를 먼저 묻는다
 - 브랜치 규칙(D-136)대로 `develop`에서 올린다. `develop`과 `main`이 둘 다 원격과 같고(`git pull --ff-only`), 커밋하지 않은 변경이 없는가
 - 아직 `develop`에 합치지 않은 `feature/*`가 있으면, 이번 버전에 넣을지 사용자에게 묻는다(`git branch -r --no-merged origin/develop`)
-- `develop`의 마지막 CI가 성공했는가 (`gh run list --branch develop -L 1`)
+- `develop`의 마지막 CI가 성공했는가 (`gh run list --branch develop -L 1`). develop의 CI는 `full`이라 SonarQube 품질 게이트까지 포함한다(D-140). 게이트 실패로 빨간불이면 버전을 올리지 않고, 고칠 feature 브랜치부터 제안한다
 - 지난 버전 이후 바뀐 것이 있는가: `git fetch --tags` 후 `git log v<지난 버전>..origin/develop --oneline`. 바뀐 것이 없으면 그래도 올릴지 묻는다
 
 ## 2. 버전 올리고 배포

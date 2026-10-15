@@ -2,7 +2,11 @@ import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
 plugins {
     java
+    // 테스트 커버리지 보고서 (028, D-140). Gradle에 들어 있는 플러그인이라 버전이 없다
+    jacoco
     id("org.springframework.boot") version "4.1.1"
+    // SonarQube 분석 (028, D-140). 실행에 Java 21, Gradle 8.4 이상이 필요하다. 올릴 때 SonarScanner for Gradle 문서에서 최신 버전 확인
+    id("org.sonarqube") version "7.5.0.8588"
 }
 
 group = "com.oneblog"
@@ -73,6 +77,60 @@ tasks.withType<Test> {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         showCauses = true
         showStackTraces = false
+    }
+}
+
+// 테스트 이름 규칙 (028, D-140): *IntegrationTest = 서버·테스트 DB(MySQL)를 띄우는 통합 테스트, 나머지 *Test = DB 없는 단위 테스트.
+// ./gradlew test     전체 (CI 2단계 full, 로컬 기본)
+// ./gradlew unitTest 단위만, DB 없이 빠르게 (CI 1단계 unit: 기능 브랜치 push와 PR)
+// DB가 필요한 테스트를 새로 만들면 이름을 ...IntegrationTest로 끝내야 1단계에서 빠진다
+val unitTest by tasks.registering(Test::class) {
+    description = "DB 없이 도는 단위 테스트만 (*IntegrationTest 제외)"
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    exclude("**/*IntegrationTest*")
+}
+
+// 커버리지 보고서 (XML은 SonarQube가 읽고, HTML은 사람이 본다)
+// build/reports/jacoco/test/            전체 테스트 기준 (SonarQube에 넘김)
+// build/reports/jacoco/jacocoUnitTestReport/ 단위 테스트 기준 (CI 1단계에서 올림. 통합 테스트가 대부분이라 숫자가 낮다)
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.test)
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+val jacocoUnitTestReport by tasks.registering(JacocoReport::class) {
+    description = "단위 테스트(unitTest) 커버리지 보고서"
+    group = "verification"
+    dependsOn(unitTest)
+    executionData(layout.buildDirectory.file("jacoco/unitTest.exec"))
+    sourceSets(sourceSets.main.get())
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// SonarQube 분석 (028, D-140). 서버 주소와 토큰은 여기 적지 않는다: 환경변수 SONAR_HOST_URL, SONAR_TOKEN (CI는 GitHub Secrets)
+// 서버가 Community라 브랜치 속성(sonar.branch.name)은 넣지 않는다(넣으면 분석이 실패). develop·main 결과가 프로젝트 하나에 쌓인다
+// sonar 작업은 테스트를 스스로 돌리지 않는다. 먼저 ./gradlew test jacocoTestReport 를 돌린 뒤 ./gradlew sonar
+sonar {
+    properties {
+        property("sonar.projectKey", "one-blog")
+        property("sonar.projectName", "One Blog")
+        // 서버의 "새 코드" 기준이 이전 버전이면, 새 코드 = 이번 버전 동안 쌓인 변경. 버전을 올리면 기준이 넘어간다
+        property("sonar.projectVersion", version.toString())
+        // 품질 게이트 결과를 기다렸다가 실패면 이 작업도 실패한다 → CI 실패 → main이면 배포 안 됨 (스펙 Q3)
+        property("sonar.qualitygate.wait", "true")
+        property("sonar.qualitygate.timeout", "300")
+        property(
+            "sonar.coverage.jacoco.xmlReportPaths",
+            layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml").get().asFile.absolutePath
+        )
     }
 }
 

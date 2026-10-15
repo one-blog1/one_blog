@@ -14,19 +14,22 @@ hotfix/<이름>  ──(확인)──▶  main  과  develop  둘 다
 ```
 
 - CI는 `main`, `develop`, `feature/**`, `hotfix/**`에 push할 때 돕니다. 배포는 `main`에서만 합니다.
+- CI는 두 단계입니다 (D-140, readme "테스트와 CI"): `feature/**`·`hotfix/**` push와 PR은 1단계 `unit`(단위 테스트만, DB 없이), `develop`·`main` push는 2단계 `full`(전체 테스트 + SonarQube 품질 게이트 + jar·Docker 실행 확인).
 - feature 이름은 영어 기능 이름입니다 (예: 댓글 → `feature/comments`, D-137). 작업 브랜치는 PR로 합치고, 합친 뒤 지웁니다(PR로 합치면 GitHub가 자동으로 지움).
 - `feature/base`·`hotfix/base`는 묶음 자리로 둔 고정 브랜치입니다(지우지 않음, 작업하지 않음).
 
 ```
 develop에서 build.gradle.kts의 version을 올리고(배포마다 0.01씩, 예: 0.17 → 0.18. 규칙은 문서 저장소 releases/README.md, D-121) develop을 main에 merge해 push (D-136)
-  → CI (.github/workflows/ci.yml): 테스트, jar 실행 확인, Docker 실행 확인
+  → CI (.github/workflows/ci.yml)의 full: 전체 테스트, SonarQube 분석·품질 게이트, jar 실행 확인, Docker 실행 확인
   → CI가 성공하면 Deploy (.github/workflows/deploy.yml)
       0) 버전 확인: 태그 v<버전>(예: v0.18)이 아직 없을 때만 배포 (버전이 그대로면 CI만 돌고 끝)
       1) Docker 이미지 만들기 (태그 = 버전-커밋 앞 7자리)
-      2) 이미지 + 프록시(nginx) 이미지 + scripts/deploy.sh + deploy.env(Secrets로 만듦)를 SSH로 서버 ~/one-blog/ 에 올림
+      2) 이미지 + 프록시(nginx) 이미지 + scripts/deploy.sh·smoke-check.sh + deploy.env(Secrets로 만듦)를 SSH로 서버 ~/one-blog/ 에 올림
       3) 서버에서 scripts/deploy.sh 실행 (무중단, D-135)
            쉬는 색 2개(블루 8431·8432 / 그린 8433·8434)에 새 컨테이너 실행 → 둘 다 /api/health 확인
-           → 8430 프록시가 그 두 포트로 보내도록 전환(nginx reload) → 옛 색 컨테이너 정상 종료(30초까지)
+           → 8430 프록시가 그 두 포트로 보내도록 전환(nginx reload)
+           → 운영 확인: 프록시를 거쳐 smoke-check.sh(주소 9개, 30초까지). 실패하면 프록시를 옛 색으로 되돌리고 새 것을 -failed로 멈춰 둔 뒤 Actions를 실패로 표시 (D-140)
+           → 옛 색 컨테이너 정상 종료(30초까지)
            한 서버 안에서 색마다 앱 2개를 띄워 프록시가 번갈아 보낸다(앱 다중화). 평소 2개가 서비스하고 배포 때 쉬는 색 2개로 통째 전환(블루-그린 유지)
            새 버전이 상태 확인에 실패하면(2개 중 하나라도) 새 것만 멈춰 one-blog-<색>-<번호>-failed로 남기고 Actions를 실패로 표시 (지금 버전은 그대로 요청을 받음)
       4) 성공하면 그 커밋에 태그 v<버전>을 붙임
@@ -41,7 +44,7 @@ develop에서 build.gradle.kts의 version을 올리고(배포마다 0.01씩, 예
 
 **옛 이름 태그 주의**: 코드 저장소에 옛 이름 태그 `v0.1.0`·`v0.2.0`·`v0.21`(지금의 0.10·0.11·0.12, D-121)이 아직 남아 있으면, 버전을 0.21로 올렸을 때 `v0.21`이 이미 있다고 보고 배포를 건너뜁니다. 그 전에 옛 태그를 정리합니다.
 
-CI가 실패하면 배포하지 않습니다.
+CI가 실패하면 배포하지 않습니다. 품질 게이트 실패도 CI 실패입니다: 새 feature 브랜치에서 고쳐 develop에 다시 merge하고, 통과한 뒤 버전을 올립니다.
 
 **GitHub Secrets** (Settings → Secrets and variables → Actions)
 
@@ -160,7 +163,7 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 
 ## 4. 배포 전 확인
 
-- [ ] GitHub Actions의 **CI가 초록불**입니다 (테스트, jar 실행, Docker 실행을 모두 통과).
+- [ ] GitHub Actions의 **CI가 초록불**입니다 (develop의 full: 테스트, SonarQube 품질 게이트, jar 실행, Docker 실행을 모두 통과).
 - [ ] **HTTPS로 접속합니다.** `COOKIE_SECURE=true`이면 http에서는 로그인 쿠키가 저장되지 않아 로그인이 안 됩니다. 인증서 없이 잠깐 http로 띄워 볼 때만 `false`로 둡니다.
 - [ ] 프록시(바깥 nginx) 뒤 운영은 `FORWARD_HEADERS_STRATEGY=native`입니다(`deploy.yml` 기본, 0.19~). 두지 않으면 모든 요청이 프록시 IP(127.0.0.1)로 보여 요청 제한·조회수·관리자 로그가 뭉개집니다. 프록시 없이 직접 받는 환경에서만 Secret으로 `none`을 넣습니다 (IP를 속일 수 있음).
 - [ ] DB 계정에 테이블을 만들고 바꾸는 권한(CREATE, ALTER, INDEX, REFERENCES, DROP)이 있습니다. Flyway가 시작할 때 씁니다.
@@ -176,7 +179,7 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 ./scripts/smoke-check.sh https://실제-도메인
 ```
 
-`/api/health`가 200이 될 때까지 최대 2분 기다린 뒤 첫 화면, CSS·JS, 비회원 API, 로그인이 필요한 API가 예상한 대로 답하는지 봅니다. 로드밸런서의 상태 검사 주소도 `/api/health`로 둡니다. 정상이면 200, DB에 연결하지 못하면 503을 줍니다.
+배포 스크립트가 전환 직후 같은 확인을 프록시 주소로 자동으로 합니다(5-1, 실패 시 자동 되돌림). 바깥 도메인까지 보고 싶을 때 위 명령을 씁니다. `/api/health`가 200이 될 때까지 최대 2분 기다린 뒤 첫 화면, CSS·JS, 비회원 API, 로그인이 필요한 API가 예상한 대로 답하는지 봅니다. 로드밸런서의 상태 검사 주소도 `/api/health`로 둡니다. 정상이면 200, DB에 연결하지 못하면 503을 줍니다.
 
 ## 6. 업데이트할 때 지킬 것
 
@@ -185,6 +188,6 @@ java -jar build/libs/one-blog.jar     # 환경변수는 아래 3장
 1. **이미 있는 마이그레이션 파일은 고치지 않고, 바꿀 내용은 다음 번호의 새 파일로 더합니다** (지금 V1~V23, 다음은 `V24__...sql`). 한 글자만 바뀌어도 Flyway 검사합(checksum)이 달라져 서버가 시작하지 않습니다. ERD를 먼저 고칩니다 (constitution IV).
 2. **DB 변경은 옛 버전과 새 버전이 함께 돌 수 있게 합니다** (4장 무중단 배포). 컬럼을 지우거나 이름을 바꿀 때는 "새 컬럼 추가 → 코드 전환 → 다음 배포에서 옛 컬럼 삭제"로 나눕니다.
 3. **엔티티와 테이블을 같이 바꿉니다.** `ddl-auto: validate`라서 엔티티에 있는 컬럼이 테이블에 없으면 시작하지 않습니다.
-4. **develop에 merge하기 전(feature 브랜치)과 main에 merge하기 전에 CI가 초록불인지 봅니다** (D-136). 빨간불이면 배포하지 않습니다.
+4. **develop에 merge하기 전(feature 브랜치)과 main에 merge하기 전에 CI가 초록불인지 봅니다** (D-136). feature 브랜치는 단위 테스트(`unit`)만 돌므로, 통합 테스트가 걱정되면 Actions → CI → Run workflow로 그 브랜치의 `full`을 미리 돌립니다. 빨간불이면 배포하지 않습니다 (D-140).
 5. **새 환경변수는 기본값을 둡니다** (`${이름:기본값}`). 기본값이 없으면 배포 환경에 넣는 것을 잊었을 때 시작하지 않습니다. 새 값은 `.env.example`과 이 문서 3장에 적습니다.
 6. **새 화면(HTML)은 `SecurityConfig`의 허용 목록에 더합니다.** 빠지면 그 화면이 403이 됩니다.
