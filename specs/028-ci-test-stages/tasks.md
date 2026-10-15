@@ -85,6 +85,28 @@
 
 ---
 
+## Phase 6b: US5 - 핵심 흐름 E2E (P1, 2026-10-15 추가)
+
+**Goal**: `full`에서 실제 브라우저로 흐름 A~G 7개 확인, 실패하면 CI 실패 + 화면 캡처·trace 결과물
+
+**Independent Test**: 직접 실행한 `full`의 E2E 단계에서 7개 통과, 7분 안
+
+- [ ] T025 [US5] `build.gradle.kts`: `testImplementation("com.microsoft.playwright:playwright:1.63.0")`, `test`와 `unitTest`에서 `**/*E2ETest*` 제외, `e2eTest` 작업(`**/*E2ETest*`만), `playwrightInstall` 작업(JavaExec `com.microsoft.playwright.CLI` `install --with-deps chromium`), `jacocoTestReport`가 `test.exec`+`e2eTest.exec`(있으면)를 읽게. 이름 규칙 주석 갱신
+- [ ] T026 [US5] `src/test/java/com/oneblog/e2e/E2ETestSupport.java`: plan "테스트 코드"의 기반 클래스(RANDOM_PORT, 클래스당 Chromium, 테스트당 Context+trace, `open`·`loginViaUi`·`logoutViaUi`·`confirmModal`·`useTextareaEditor`·`newMember`·인증번호 읽기, 끝나면 trace·캡처를 `build/e2e-artifacts/`에)
+- [ ] T027 [P] [US5] `e2e/SignupLoginE2ETest.java` (흐름 A)
+- [ ] T028 [P] [US5] `e2e/BlogPostCommentE2ETest.java` (흐름 B)
+- [ ] T029 [P] [US5] `e2e/AccessControlE2ETest.java` (흐름 C)
+- [ ] T030 [P] [US5] `e2e/PostEditDeleteLikeE2ETest.java` (흐름 D)
+- [ ] T031 [P] [US5] `e2e/BlogJoinE2ETest.java` (흐름 E)
+- [ ] T032 [P] [US5] `e2e/PostImageE2ETest.java` (흐름 F, 진짜 에디터)
+- [ ] T033 [P] [US5] `e2e/AccountE2ETest.java` (흐름 G)
+- [ ] T034 [US5] `.github/workflows/ci.yml` `full`: 전체 테스트 단계를 `./gradlew test`로, 다음에 "E2E" 단계(`./gradlew playwrightInstall e2eTest`, 테스트 DB 환경변수, `timeout-minutes` 여유) → 실패 시 원인 표시(`build/test-results/e2eTest`)·`e2e-artifacts` 올리기 → "커버리지 보고서"(`./gradlew jacocoTestReport`) → SonarQube 단계. 맨 위 단계 표에 E2E
+- [ ] T035 [US5] readme "테스트와 CI": `...E2ETest` 이름 규칙, `playwrightInstall`·`e2eTest` 명령, trace 보는 법, 화면을 바꾸면 E2E도 고친다는 규칙. CLAUDE.md CI 줄에 E2E. 문서 저장소 7장·D-140에 E2E 한 줄
+
+**Checkpoint**: 직접 실행 `full`에서 E2E 7개 통과 (T022에서 함께 확인)
+
+---
+
 ## Phase 7: Polish
 
 - [x] T017 [P] `readme.md`: "테스트" 절 — 이름 규칙(`*IntegrationTest`=DB 필요, 나머지=단위), `unitTest`/`test` 명령, 커버리지 보고서 위치. "CI 단계" 표(contracts 요약). "SonarQube" 절 — 서버 주소, 프로젝트 `one-blog`, 게이트 실패 시 고치는 순서, VS Code 연결 모드(개인 토큰은 CI용과 따로). "브랜치 보호 켜는 법"(`develop`·`main`, 필수 검사 `unit`)
@@ -92,7 +114,7 @@
 - [x] T019 `CLAUDE.md`: 브랜치 절에 "PR은 `unit` 통과가 필수, 품질 게이트는 merge 뒤 `full`에서" 한 줄
 - [x] T020 문서 저장소 `docs/requirements/07-implementation.md`: 구현 표에 "CI 단계·정적 분석 | 1단계 unit(PR) / 2단계 full + SonarQube Community(merge 뒤 게이트) / 운영 스모크·자동 되돌리기 | — | D-140" 줄
 - [x] T021 문서 저장소 `docs/requirements/08-decision-log.md`: D-140 (결정·이유·이전 방식) 맨 위에 추가
-- [ ] T022 커밋 정리 후 **사용자 확인 받고** 브랜치 push → `unit` 결과 확인(SC-001 시간) → Actions에서 직접 실행으로 `full` 확인(SonarQube 단계 건너뜀, 265개 통과)
+- [ ] T022 커밋 정리 후 **사용자 확인 받고** 브랜치 push → `unit` 결과 확인(SC-001 시간) → Actions에서 직접 실행으로 `full` 확인(SonarQube 단계 건너뜀, 265개 + E2E 7개 통과, E2E가 깨지면 trace 보고 고침)
 - [ ] T023 사용자 확인 뒤 `develop`으로 PR → merge → `develop`의 `full`에서 서버 연결·분석·게이트 확인(quickstart 5). 사용자에게 브랜치 보호(`unit`) 켜기 요청
 - [ ] T024 기능 마침: `specs/028-ci-test-stages/`를 문서 저장소 `specs/`로 옮김, 문서 저장소 push(사용자 확인 뒤)
 
@@ -103,6 +125,7 @@
 - T002 → T003 → T004 → (US1 T006, US2 T007, US3 T009)
 - US1(T005~T006)과 US2(T007~T008)는 같은 파일이라 순서대로. US3의 ci.yml 작업(T010~T012)은 T007 뒤
 - US4(T013~T016)는 CI와 독립 — Phase 2 뒤 언제든
+- US5: T025 → T026 → T027~T033(서로 독립) → T034 → T035
 - Polish T017~T021은 각 이야기 뒤, T022~T024는 맨 끝 순서대로
 
 ## Parallel

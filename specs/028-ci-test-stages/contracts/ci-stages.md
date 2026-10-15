@@ -13,7 +13,7 @@
 
 - push의 `paths-ignore: ['**.md', '.claude/**', '.specify/**']`는 그대로.
 - `unit`: MySQL 없음. `./gradlew unitTest jacocoUnitTestReport`. 결과물 `unit-coverage`(HTML) 7일.
-- `full`: MySQL 8.4 → `./gradlew test jacocoTestReport` → `./gradlew sonar`(조건부) → bootJar → jar 실행 확인 → Docker 실행 확인 → `one-blog-jar` 14일. 실패 시 원인 표시·`test-report` 올리기는 지금 그대로.
+- `full`: MySQL 8.4 → `./gradlew test` → `./gradlew playwrightInstall e2eTest` → `./gradlew jacocoTestReport` → `./gradlew sonar`(조건부) → bootJar → jar 실행 확인 → Docker 실행 확인 → `one-blog-jar` 14일. 실패 시 원인 표시·`test-report` 올리기는 지금 그대로.
 
 ## 이름 (밖에서 기대하는 값)
 
@@ -23,6 +23,8 @@
 | job `unit` | 브랜치 보호 필수 검사 (`develop`, `main`) |
 | Gradle 작업 `test` | 전체 테스트 (readme, 로컬 습관) |
 | Gradle 작업 `unitTest` | 단위 테스트만 (DB 없이) |
+| Gradle 작업 `e2eTest`, `playwrightInstall` | E2E만(`...E2ETest`, 브라우저·테스트 DB 필요), 브라우저 설치 |
+| 결과물 `e2e-artifacts` | E2E 실패 시 화면 캡처·trace (7일) |
 | Secrets `SONAR_TOKEN`, `SONAR_HOST_URL` | `full`의 SonarQube 단계 (사용자 등록 완료) |
 | SonarQube Project key `one-blog` | `build.gradle.kts`의 `sonar` 블록 |
 
