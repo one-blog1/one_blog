@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -20,6 +21,7 @@ public class SchedulerLock {
     private final NamedParameterJdbcTemplate jdbc;
     private final String owner;
 
+    @Autowired
     public SchedulerLock(NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
         String host;
@@ -29,6 +31,12 @@ public class SchedulerLock {
             host = "unknown";
         }
         this.owner = host + ":" + ProcessHandle.current().pid();
+    }
+
+    /** 잠금 주인 이름을 정해 만든다. 테스트에서 서버 두 대를 흉내 낼 때 쓴다 (029 FR-010). */
+    SchedulerLock(NamedParameterJdbcTemplate jdbc, String owner) {
+        this.jdbc = jdbc;
+        this.owner = owner;
     }
 
     /** 잠금을 얻으면 true. 얻은 쪽만 작업하고 끝나면 release. */
