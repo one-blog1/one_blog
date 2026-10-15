@@ -85,6 +85,8 @@ public abstract class E2ETestSupport extends PostTestSupport {
         String name = info.getTestMethod().map(m -> m.getName()).orElse("test");
         for (int i = 0; i < contexts.size(); i++) {
             String file = name + "-" + (i + 1);
+            diag(i + 1, "끝 주소 " + pathOf(pages.get(i).url()) + ", 쿠키 "
+                    + contexts.get(i).cookies().stream().map(c -> c.name).toList());
             try {
                 pages.get(i).screenshot(new Page.ScreenshotOptions().setPath(dir.resolve(file + ".png")).setFullPage(true));
             } catch (RuntimeException ignored) {
@@ -115,9 +117,39 @@ public abstract class E2ETestSupport extends PostTestSupport {
             context.route("**/uicdn.toast.com/**", Route::abort);
         }
         Page page = context.newPage();
+        watch(page, contexts.size() + 1);
         contexts.add(context);
         pages.add(page);
         return page;
+    }
+
+    /**
+     * 진단 기록: 서버 API의 오류 응답, 브라우저 콘솔 오류, 끊긴 요청을 "[E2E]"로 시작하는 줄로 표준 출력에 남긴다.
+     * 테스트 결과 XML에 들어가고, CI의 scripts/ci-test-annotation.py가 실패한 클래스의 이 줄들을 주석으로 올린다
+     * (로그 파일을 받지 않아도 원인이 보이게). 일부러 막히는 요청(예: 비회원 401)도 함께 찍힌다.
+     */
+    private void watch(Page page, int window) {
+        page.onResponse(response -> {
+            if (response.url().contains("/api/") && response.status() >= 400) {
+                diag(window, response.request().method() + " " + pathOf(response.url()) + " → " + response.status()
+                        + " (X-XSRF-TOKEN " + (response.request().headerValue("x-xsrf-token") == null ? "없음" : "있음") + ")");
+            }
+        });
+        page.onConsoleMessage(message -> {
+            if ("error".equals(message.type())) {
+                diag(window, "콘솔 오류: " + message.text());
+            }
+        });
+        page.onPageError(error -> diag(window, "화면 스크립트 오류: " + error));
+        page.onRequestFailed(request -> {
+            if (!request.url().contains("uicdn.toast.com")) {   // 텍스트 칸 모드에서 일부러 막은 에디터는 빼고
+                diag(window, "요청 실패: " + request.method() + " " + request.url() + " " + request.failure());
+            }
+        });
+    }
+
+    private void diag(int window, String text) {
+        System.out.println("[E2E] 창" + window + " " + text);
     }
 
     protected String baseUrl() {

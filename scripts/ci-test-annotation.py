@@ -31,6 +31,17 @@ def main():
                     title = case.get('classname', '').split('.')[-1] + '.' + case.get('name', '')
                     print('::error title=' + esc_title(title) + '::' + esc(text)[:1500])
                     shown += 1
+    # E2E 진단: 실패가 있는 클래스의 표준 출력에서 "[E2E]" 줄(오류 응답·콘솔 오류·쿠키, E2ETestSupport)을 한 주석으로
+    for f in sorted(glob.glob(os.path.join(results_dir, 'TEST-*.xml'))):
+        root = ET.parse(f).getroot()
+        if not any(True for c in root.iter('testcase') for _ in list(c.iter('failure')) + list(c.iter('error'))):
+            continue
+        out = ''.join(e.text or '' for e in root.iter('system-out'))
+        lines = [l.strip() for l in out.splitlines() if l.strip().startswith('[E2E]')]
+        if lines:
+            title = 'E2E 진단 ' + (root.get('name') or '').split('.')[-1]
+            print('::warning title=' + esc_title(title) + '::' + esc('\n'.join(lines[-40:]))[:4000])
+
     if shown == 0 and os.path.exists(log_file):
         with open(log_file, encoding='utf-8', errors='replace') as log:
             lines = [l.strip() for l in log if 'error:' in l or 'FAILURE' in l or 'What went wrong' in l]
