@@ -87,16 +87,28 @@ class SignupIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 규칙에_맞지_않는_입력은_400() throws Exception {
+        // 한 칸씩만 틀리게 보내 그 칸의 규칙이 실제로 검사되는지 본다 (029 US1, SEC-02, 6.5)
         Cookie ticket = verifiedTicket();
-        String body = """
-                {"password":"short","passwordConfirm":"short","name":"홍길동","nickname":"<script>",
-                 "phone":"12345","agreeTerms":true,"agreePrivacy":true}
+        String template = """
+                {"password":"%s","passwordConfirm":"%s","name":"홍길동","nickname":"%s",
+                 "phone":"%s","agreeTerms":true,"agreePrivacy":true}
                 """;
-        mvc.perform(post("/api/auth/signup").with(csrf()).cookie(ticket)
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.fieldErrors").isArray());
+        String[][] cases = {
+                // 틀린 칸, 비밀번호, 닉네임, 전화번호
+                {"password", "short", "길동이", "010-1234-5678"},
+                {"password", "abcdefgh1", "길동이", "010-1234-5678"},
+                {"nickname", PASSWORD, "<script>", "010-1234-5678"},
+                {"phone", PASSWORD, "길동이", "12345"},
+        };
+        for (String[] c : cases) {
+            mvc.perform(post("/api/auth/signup").with(csrf()).cookie(ticket)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(template.formatted(c[1], c[1], c[2], c[3])))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                    .andExpect(jsonPath("$.fieldErrors.length()").value(1))
+                    .andExpect(jsonPath("$.fieldErrors[0].field").value(c[0]));
+        }
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users", Integer.class)).isZero();
     }
 

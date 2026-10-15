@@ -29,9 +29,10 @@ class ModerationIntegrationTest extends PostTestSupport {
 
     @BeforeEach
     void setUp() throws Exception {
-        owner = signUpAndLogin("owner@example.com", "블로그장");
-        member = signUpAndLogin("member@example.com", "멤버회원");
-        outsider = signUpAndLogin("out@example.com", "바깥사람");
+        // 블랙리스트는 이메일 또는 전화번호로 막으므로 회원마다 다른 번호를 쓴다 (029 R1)
+        owner = signUpAndLogin("owner@example.com", "블로그장", "김주인", "010-1111-0001");
+        member = signUpAndLogin("member@example.com", "멤버회원", "이멤버", "010-1111-0002");
+        outsider = signUpAndLogin("out@example.com", "바깥사람", "박바깥", "010-1111-0003");
         createBlog(owner, "open-blog", "PUBLIC").andExpect(status().isCreated());
         addMember("open-blog", "member@example.com", "MEMBER");
     }
@@ -55,7 +56,10 @@ class ModerationIntegrationTest extends PostTestSupport {
         Long postId = writePost(member, "open-blog", "멤버의 글", "본문");
         mvc.perform(post("/api/posts/" + postId + "/comments").with(csrf()).cookie(member)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"content\":\"멤버 댓글\"}"));
-        mvc.perform(post("/api/users/멤버회원/follow").with(csrf()).cookie(outsider));
+        mvc.perform(post("/api/users/멤버회원/follow").with(csrf()).cookie(outsider))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.following").value(true));
+        // 차단 전에 팔로우가 실제로 있어야 "차단하면 끊긴다"를 확인할 수 있다 (029 US1)
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM follows", Integer.class)).isEqualTo(1);
 
         mvc.perform(post("/api/users/멤버회원/block").with(csrf()).cookie(outsider))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.blocked").value(true));
@@ -132,10 +136,15 @@ class ModerationIntegrationTest extends PostTestSupport {
 
         mvc.perform(post("/api/blogs/open-blog/join").with(csrf()).cookie(member))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("BLACKLISTED"));
-        // 블랙리스트에 없는 사람은 문의할 것이 없다 (테스트 회원은 전화번호가 모두 같아 바깥사람의 번호를 바꾼다)
-        jdbc.update("UPDATE users SET phone = '01099990000' WHERE email = 'out@example.com'");
+        // 강퇴된 사람만 막힌다. 이메일·전화번호가 다른 회원은 참여할 수 있다 (029 US1)
+        mvc.perform(post("/api/blogs/open-blog/join").with(csrf()).cookie(outsider))
+                .andExpect(status().isCreated());
+        mvc.perform(delete("/api/blogs/open-blog/membership").with(csrf()).cookie(outsider))
+                .andExpect(status().isNoContent());
+        // 블랙리스트에 없는 사람은 문의할 것이 없다
         mvc.perform(post("/api/blogs/open-blog/blacklist-inquiries").with(csrf()).cookie(outsider)
-                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"풀어 주세요\"}")).andExpect(status().isConflict());
+                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"풀어 주세요\"}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NOT_BLACKLISTED"));
         mvc.perform(post("/api/blogs/open-blog/blacklist-inquiries").with(csrf()).cookie(member)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"번호가 바뀌었어요\"}"))
                 .andExpect(status().isCreated());
@@ -168,8 +177,9 @@ class ModerationIntegrationTest extends PostTestSupport {
                 .andExpect(jsonPath("$[0].targetNickname").value("멤버회원"))
                 .andReturn().getResponse().getContentAsString();
         Integer reportId = JsonPath.read(body, "$[0].id");
-        // 신고 대상 본인(멤버)은 신고를 볼 수 없다
-        mvc.perform(get("/api/blogs/open-blog/reports").cookie(member)).andExpect(status().isForbidden());
+        // 멤버 관리 권한이 없는 멤버는 신고 목록을 볼 수 없다 (본인 신고 제외 규칙은 아래 별도 테스트, D-95)
+        mvc.perform(get("/api/blogs/open-blog/reports").cookie(member))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").exists());
         mvc.perform(get("/api/admin/reports").cookie(createAdminAndLogin("admin01")))
                 .andExpect(jsonPath("$.items", hasSize(0)));
 
@@ -232,5 +242,29 @@ class ModerationIntegrationTest extends PostTestSupport {
         mvc.perform(post("/api/admin/blogs/" + blogId + "/close").with(csrf()).cookie(owner)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 신고_대상인_부블로그장은_자기_신고를_보지도_처리하지도_못한다() throws Exception {
+        // 멤버 관리 권한이 있어도 나에 대한 신고는 목록에 없고 처리할 수 없다 (D-95, 029 US1)
+        addMember("open-blog", "out@example.com", "SUB_OWNER");
+        jdbc.update("UPDATE blog_members SET can_manage_members = 1, sub_owner_since = NOW(6) WHERE user_id = ?",
+                userId("out@example.com"));
+        Long postId = writePost(outsider, "open-blog", "부블로그장 글", "본문");
+        report(member, "{\"targetType\":\"POST\",\"targetId\":" + postId + ",\"reason\":\"SPAM\"}")
+                .andExpect(status().isCreated());
+
+        mvc.perform(get("/api/blogs/open-blog/reports").cookie(outsider))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+        String body = mvc.perform(get("/api/blogs/open-blog/reports").cookie(owner))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andReturn().getResponse().getContentAsString();
+        Integer reportId = JsonPath.read(body, "$[0].id");
+        mvc.perform(post("/api/blogs/open-blog/reports/" + reportId + "/resolve").with(csrf()).cookie(outsider)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"result\":\"NO_ISSUE\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("CANNOT_HANDLE_OWN_REPORT"));
+        assertThat(jdbc.queryForObject("SELECT status FROM reports", String.class)).isEqualTo("PENDING");
     }
 }

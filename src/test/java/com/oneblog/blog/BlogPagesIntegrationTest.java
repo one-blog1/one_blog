@@ -23,6 +23,10 @@ class BlogPagesIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 없는_화면은_막힌다() throws Exception {
-        mvc.perform(get("/no-such-page.html")).andExpect(status().is4xxClientError());
+        // 정한 주소 밖은 보안 설정(anyRequest().denyAll())이 파일을 찾기 전에 막는다. 404가 아니라 401이어야
+        // denyAll이 빠졌을 때 이 테스트가 실패한다 (029 US1, SEC-11)
+        mvc.perform(get("/no-such-page.html")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/login.html")).andExpect(status().isOk());
     }
 }

@@ -25,8 +25,9 @@ class BlogJoinIntegrationTest extends BlogTestSupport {
 
     @BeforeEach
     void setUp() throws Exception {
-        owner = signUpAndLogin("owner@example.com", "블로그장");
-        alice = signUpAndLogin("alice@example.com", "앨리스");
+        // 블랙리스트는 이메일 또는 전화번호로 막으므로 회원마다 다른 번호를 쓴다 (029 R1)
+        owner = signUpAndLogin("owner@example.com", "블로그장", "김주인", "010-2222-0001");
+        alice = signUpAndLogin("alice@example.com", "앨리스", "앨리스", "010-2222-0002");
         createBlog(owner, "open-blog", "PUBLIC", "OPEN").andExpect(status().isCreated());
         createBlog(owner, "approval-blog", "PUBLIC", "APPROVAL").andExpect(status().isCreated());
     }
@@ -210,6 +211,11 @@ class BlogJoinIntegrationTest extends BlogTestSupport {
         apply(alice, "open-blog")
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLACKLISTED"));
+        // 이메일·전화번호가 다른 회원은 그대로 참여할 수 있다 (029 US1)
+        Cookie bob = signUpAndLogin("bob@example.com", "밥", "밥", "010-2222-0003");
+        apply(bob, "open-blog")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("MEMBER"));
     }
 
     @Test

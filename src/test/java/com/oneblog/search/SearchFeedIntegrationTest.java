@@ -32,7 +32,8 @@ class SearchFeedIntegrationTest extends PostTestSupport {
         alice = signUpAndLogin("alice@example.com", "앨리스");
         bob = signUpAndLogin("bob@example.com", "밥아저씨");
         postBlog(alice, """
-                {"name":"제주 여행 일기","slug":"jeju-trip","visibility":"PUBLIC","joinPolicy":"OPEN","tags":["여행"]}
+                {"name":"제주 여행 일기","slug":"jeju-trip","visibility":"PUBLIC","joinPolicy":"OPEN",
+                 "description":"바닷가 산책 기록","tags":["여행","캠핑"]}
                 """).andExpect(status().isCreated());
         createBlog(alice, "secret-trip", "PRIVATE").andExpect(status().isCreated());
         travelPost = idOf(writePost(alice, "jeju-trip",
@@ -73,6 +74,13 @@ class SearchFeedIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/search/blogs").param("q", "여행").param("sort", "popular"))
                 .andExpect(jsonPath("$.items[*].slug", contains("jeju-trip")))
                 .andExpect(jsonPath("$.sort").value("popular"));
+        // 이름에 없는 단어로 찾아야 태그·소개 검색이 실제로 동작하는지 알 수 있다 (029 US1, BLG-03, D-88)
+        mvc.perform(get("/api/search/blogs").param("q", "캠핑"))
+                .andExpect(jsonPath("$.items[*].slug", contains("jeju-trip")));
+        mvc.perform(get("/api/search/blogs").param("q", "산책"))
+                .andExpect(jsonPath("$.items[*].slug", contains("jeju-trip")));
+        mvc.perform(get("/api/search/blogs").param("q", "등산"))
+                .andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     @Test
