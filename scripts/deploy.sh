@@ -13,6 +13,7 @@
 #   3) 지금 쉬는 색(블루·그린)으로 새 컨테이너를 띄운다. 그동안 지금 버전이 계속 요청을 받는다
 #   4) 새 컨테이너의 /api/health 가 200이 될 때까지 기다린다. 실패하면 새 것만 치우고 실패로 끝낸다(지금 버전은 그대로)
 #   5) 프록시가 새 포트로 보내도록 바꾸고 다시 읽는다(nginx -s reload, 끊기는 요청 없음)
+#   5-1) 운영 확인(D-140): 프록시를 거쳐 CI와 같은 주소 9개를 본다(smoke-check.sh). 실패하면 프록시를 옛 색으로 되돌리고 실패로 끝낸다
 #   6) 옛 컨테이너를 정상 종료한다(처리 중인 요청을 마치도록 30초까지)
 #   7) 지금 것과 바로 전 것만 남기고 옛 이미지를 지운다
 # 처음 한 번: 8430을 쓰던 예전 단일 컨테이너(one-blog)를 내리고 프록시를 띄울 때만 몇 초 멈춘다
@@ -217,11 +218,11 @@ else
 fi
 
 if [ "$ACTIVE_COLOR" = blue ]; then
-  ACTIVE_NAMES=("${BLUE_NAMES[@]}")
+  ACTIVE_NAMES=("${BLUE_NAMES[@]}"); ACTIVE_PORTS=("${BLUE_PORTS[@]}")
 elif [ "$ACTIVE_COLOR" = green ]; then
-  ACTIVE_NAMES=("${GREEN_NAMES[@]}")
+  ACTIVE_NAMES=("${GREEN_NAMES[@]}"); ACTIVE_PORTS=("${GREEN_PORTS[@]}")
 else
-  ACTIVE_NAMES=()
+  ACTIVE_NAMES=(); ACTIVE_PORTS=()
 fi
 
 LEGACY=()
@@ -268,6 +269,9 @@ if [ "$NEXT_OK" != true ]; then
 fi
 
 # 5) 프록시 전환: upstream을 새 색의 포트 2개로 통째로 바꾼다
+# 프록시가 이미 떠 있었는지 기억한다. 처음 프록시를 띄우는 배포는 되돌릴 프록시 설정이 없다
+PROXY_WAS_RUNNING=false
+running "$PROXY" && PROXY_WAS_RUNNING=true
 write_upstream "${NEXT_PORTS[@]}"
 if running "$PROXY"; then
   "${DOCKER[@]}" exec "$PROXY" nginx -t > /dev/null 2>&1 || fail "프록시 설정 검사에 실패했습니다. 서버에서 docker exec $PROXY nginx -t 로 확인해 주세요."
@@ -294,7 +298,44 @@ else
   fi
   log "프록시 실행: $PROXY_PORT → ${NEXT_PORTS[*]}"
 fi
-health "$PROXY_PORT" || fail "프록시를 거친 상태 확인에 실패했습니다 ($PROXY_PORT)."
+
+# 5-1) 운영 확인 (D-140). 옛 컨테이너는 6)에서 내리기 전이라 아직 떠 있어 되돌릴 수 있다
+rollback_proxy() {   # 프록시를 옛 색 중 응답하는 포트로 되돌리고 새 컨테이너를 -failed로 멈춰 둔다. 되돌릴 곳이 없으면 1
+  local p n ok_ports=()
+  for p in "${ACTIVE_PORTS[@]}"; do health "$p" && ok_ports+=("$p"); done
+  if [ "$PROXY_WAS_RUNNING" != true ] || [ "${#ok_ports[@]}" -eq 0 ]; then
+    log "되돌릴 옛 버전이 없습니다 (첫 배포이거나 옛 컨테이너가 응답하지 않음)"
+    return 1
+  fi
+  write_upstream "${ok_ports[@]}"
+  if ! { "${DOCKER[@]}" exec "$PROXY" nginx -t > /dev/null 2>&1 && "${DOCKER[@]}" exec "$PROXY" nginx -s reload; }; then
+    log "프록시를 되돌리지 못했습니다. 서버에서 docker exec $PROXY nginx -t 로 확인해 주세요"
+    return 1
+  fi
+  log "프록시 되돌림: $PROXY_PORT → ${ok_ports[*]} (${ACTIVE_COLOR})"
+  for n in "${NEXT_NAMES[@]}"; do
+    "${DOCKER[@]}" stop -t 30 "$n" > /dev/null 2>&1 || true
+    "${DOCKER[@]}" rename "$n" "$n-failed" > /dev/null 2>&1 || "${DOCKER[@]}" rm -f "$n" > /dev/null 2>&1 || true
+  done
+  return 0
+}
+
+if [ -f "$DIR/smoke-check.sh" ]; then
+  SMOKE_OK=false
+  WAIT_SECONDS=30 bash "$DIR/smoke-check.sh" "http://127.0.0.1:$PROXY_PORT" && SMOKE_OK=true
+else
+  # 예전 배포물에는 smoke-check.sh가 없다. 상태 확인 주소 하나만 본다
+  log "smoke-check.sh가 없어 상태 확인 주소만 봅니다"
+  SMOKE_OK=false
+  health "$PROXY_PORT" && SMOKE_OK=true
+fi
+if [ "$SMOKE_OK" = true ]; then
+  log "운영 확인 통과"
+elif rollback_proxy; then
+  fail "운영 확인에 실패해 옛 버전(${ACTIVE_COLOR})으로 되돌렸습니다. 서버에서 docker logs ${NEXT_NAMES[0]}-failed 로 확인해 주세요."
+else
+  fail "운영 확인에 실패했고 되돌릴 옛 버전이 없습니다. 서버에서 docker logs ${NEXT_NAMES[0]} 로 확인해 주세요."
+fi
 
 # 6) 옛 컨테이너 정리 (처리 중인 요청을 마치도록 30초까지 기다림). 지금 색의 옛 컨테이너 2개 + 레거시
 for old in "${ACTIVE_NAMES[@]}" "${LEGACY[@]}"; do
