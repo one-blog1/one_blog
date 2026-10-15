@@ -47,6 +47,12 @@
       tag.append(a);
       tags.append(tag);
     });
+    // 휴대폰에서는 3개까지만 보이고 나머지 수를 "+N"으로 (app.css)
+    if (post.tags.length > 3) {
+      const more = el('li', 'tag tag-more', '+' + (post.tags.length - 3));
+      more.setAttribute('aria-hidden', 'true');
+      tags.append(more);
+    }
     return tags;
   }
 

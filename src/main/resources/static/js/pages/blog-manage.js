@@ -387,12 +387,19 @@
     const TYPE = { POST: '글', COMMENT: '댓글', USER: '멤버' };
     result.data.forEach(r => {
       const li = el('li');
-      li.append(el('strong', null, (TYPE[r.targetType] || r.targetType) + ' · ' + (r.targetNickname || '') + ' · ' + r.reasonLabel));
-      li.append(el('p', 'hint', snapshotText(r.snapshot)));
-      if (r.detail) {
-        li.append(el('p', 'hint', '신고 내용: ' + r.detail));
+      // 카드 제목 줄: 종류 이름표 · 대상 닉네임 · 사유(빨간 글씨)
+      const title = el('strong');
+      title.append(el('span', 'report-type', TYPE[r.targetType] || r.targetType), r.targetNickname || '',
+        el('span', 'report-reason', r.reasonLabel));
+      li.append(title);
+      const snapshot = snapshotText(r.snapshot);
+      if (snapshot) {
+        li.append(el('p', 'report-snapshot', snapshot)); // 멤버 신고는 신고된 글이 없다
       }
-      li.append(el('p', 'hint', '신고한 사람 ' + r.reporterNickname + ' · ' + formatTime(r.createdAt)));
+      if (r.detail) {
+        li.append(el('p', 'report-detail', '신고 내용: ' + r.detail));
+      }
+      li.append(el('p', 'report-meta', '신고한 사람 ' + r.reporterNickname + ' · ' + formatTime(r.createdAt)));
       const actions = el('div', 'row');
       const ok = el('button', 'link-button', '문제 없음');
       ok.type = 'button';
@@ -435,7 +442,10 @@
       list.replaceChildren();
       inquiries.data.forEach(i => {
         const li = el('li');
-        li.append(el('strong', null, i.nickname + ' · ' + (i.status === 'PENDING' ? '대기' : i.status === 'RELEASED' ? '해제함' : '거절함')));
+        const title = el('strong');
+        title.append(i.nickname, el('span', i.status === 'PENDING' ? 'inquiry-status pending' : 'inquiry-status',
+          i.status === 'PENDING' ? '대기' : i.status === 'RELEASED' ? '해제함' : '거절함'));
+        li.append(title);
         li.append(el('p', null, i.message));
         li.append(el('p', 'hint', '이름 ' + (i.nameMatched ? '일치' : '불일치') + ' · 전화번호 ' + (i.phoneMatched ? '일치' : '불일치')
           + ' · ' + formatTime(i.createdAt)));
