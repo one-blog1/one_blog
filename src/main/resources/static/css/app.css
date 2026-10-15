@@ -954,6 +954,15 @@ body.modal-open {
   background: var(--bg);
 }
 
+/* 휴대폰에서 칸이 너무 좁아지지 않게. 넓으면 표만 옆으로 민다 */
+.policy .post-body td {
+  min-width: 6em;
+}
+
+.policy .post-body td:last-child {
+  min-width: 13em;
+}
+
 /* 가입 화면 약관 동의 (USR-01, 4.6) */
 .agree-box {
   margin-top: 18px;
@@ -1823,6 +1832,38 @@ label.inline {
   font-size: 13px;
 }
 
+/* 글 목록에서 4번째부터 줄인 태그 수 "+N" (post-item.js). 휴대폰에서만 보인다 */
+.tag-more {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  /* 글 목록은 태그 3개까지 + "+N", 긴 태그는 말줄임. 블로그 소개 태그는 다 보이되 말줄임 */
+  .post-item .tag-list .tag:nth-child(n+4):not(.tag-more) {
+    display: none;
+  }
+
+  .post-item .tag-list .tag-more {
+    display: block;
+    color: var(--muted);
+  }
+
+  .post-item .tag,
+  #blog-tags .tag {
+    max-width: 12em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* 태그 지우기 ×: 모양은 그대로, 누르는 영역만 넓힌다 */
+  .tag-remove {
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 16px;
+  }
+}
+
 .cover-picker {
   display: flex;
   gap: 12px;
@@ -2054,6 +2095,22 @@ button.primary.inline-button {
   overflow-wrap: anywhere;
 }
 
+/* 받은 블로그장 위임 요청(내 블로그): 안내 글을 한 줄 다 쓰고, [수락]·[거절]은 그 아래 */
+#transfer-list li {
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+#transfer-list li:last-child {
+  border-bottom: none;
+}
+
+#transfer-list li > span {
+  flex-basis: 100%;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 /* ── 글 (004) ──────────────────────────────────────── */
 
 .post-area {
@@ -2234,7 +2291,11 @@ button.primary.inline-button {
   border-radius: var(--radius-field);
 }
 
+/* 표가 화면보다 넓으면 글자를 쪼개지 않고 표만 옆으로 밀어서 본다 (휴대폰) */
 .post-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
 }
 
@@ -2242,6 +2303,12 @@ button.primary.inline-button {
 .post-body td {
   padding: 6px 10px;
   border: 1px solid var(--line);
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.post-body th {
+  white-space: nowrap;
 }
 
 .post-body blockquote {
@@ -2619,6 +2686,59 @@ button.like-button[aria-pressed="true"] .icon {
 .admin-table td span {
   display: inline-flex;
   gap: 8px;
+}
+
+/* 휴대폰: 칸이 4개 이상인 관리자 표(.cards, admin.js)는 줄마다 카드. 칸 이름은 왼쪽, 처리 단추는 맨 아래 */
+@media (max-width: 600px) {
+  .admin-table.cards thead {
+    display: none;
+  }
+
+  .admin-table.cards,
+  .admin-table.cards tbody,
+  .admin-table.cards tr {
+    display: block;
+  }
+
+  .admin-table.cards tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .admin-table.cards td {
+    display: flex;
+    gap: 12px;
+    padding: 2px 0;
+    border: 0;
+  }
+
+  .admin-table.cards td::before {
+    content: attr(data-label);
+    flex: 0 0 5.5em;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .admin-table.cards td[data-label=""]::before {
+    content: none;
+  }
+
+  .admin-table.cards td[data-label=""] {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .admin-table.cards td span {
+    flex-wrap: wrap;
+  }
+
+  .admin-table.cards td .link-button {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
 }
 
 /* 메인 공지 줄: 한 줄에 공지 하나, 2초마다 다음 공지 (D-122, notice-strip.js) */
@@ -3146,6 +3266,109 @@ button.like-button[aria-pressed="true"] .icon {
   gap: 12px;
 }
 
+#profile-bio {
+  overflow-wrap: anywhere;
+}
+
+.profile-head > div {
+  min-width: 0;
+}
+
+/* 팔로우·내 정보 수정은 한 줄, 차단·신고는 오른쪽 끝 작은 글자 */
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.profile-actions > .primary {
+  margin-top: 0;
+}
+
+.profile-sub {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.profile-sub .link-button {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 휴대폰: 사진 왼쪽 + 이름·팔로워 오른쪽, 소개는 아래 상자, 단추는 같은 폭 */
+@media (max-width: 600px) {
+  .profile-head {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    column-gap: 16px;
+    row-gap: 0;
+    align-items: center;
+  }
+
+  .profile-head > div {
+    display: contents;
+  }
+
+  .profile-head .avatar.large {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 72px;
+    height: 72px;
+  }
+
+  #profile-nickname {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-counts {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    margin: 4px 0 0;
+    font-size: 14px;
+  }
+
+  #profile-bio:not(:empty) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin: 16px 0 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .profile-actions {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 14px;
+  }
+
+  .profile-actions > .primary,
+  .profile-actions > .button-link {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 40px;
+    text-align: center;
+  }
+
+  #follow-message {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+}
+
 .user-link {
   display: inline-flex;
   align-items: center;
@@ -3297,6 +3520,30 @@ form.search-row input {
   align-items: center;
   gap: 8px;
   margin: 8px 0;
+}
+
+/* 휴대폰: 최근 검색어를 테두리 칩으로, 글자와 ×의 누르는 영역을 넓힌다 */
+@media (max-width: 600px) {
+  #recent-list {
+    gap: 8px;
+  }
+
+  #recent-list .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 2px 0 12px;
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    font-size: 13px;
+  }
+
+  #recent-list .tag .link-button {
+    min-height: 32px;
+  }
+
+  #recent-list .tag .tag-remove {
+    min-width: 30px;
+    min-height: 32px;
+  }
 }
 
 .tabs button.hidden {
@@ -3462,6 +3709,228 @@ form.search-row input {
   white-space: nowrap;
 }
 
+/* 멤버 표의 전화번호·역할은 줄을 바꾸지 않는다 (010-****-5678이 둘로 갈라지지 않게) */
+#members-table td:nth-child(4),
+#members-table td:nth-child(5) {
+  white-space: nowrap;
+}
+
+/* 신고·해제 문의: 한 건씩 카드. 제목 줄(종류·대상·사유) → 신고된 내용(3줄) → 신고 내용 → 신고한 사람 → 처리 단추 */
+#report-list,
+#inquiry-list {
+  display: grid;
+  gap: 10px;
+}
+
+#report-list li,
+#inquiry-list li {
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+#report-list li > strong,
+#inquiry-list li > strong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.report-type {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--sun-soft);
+  color: var(--sun-strong);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.report-reason {
+  color: var(--error);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#report-list li > p,
+#inquiry-list li > p {
+  margin: 6px 0 0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+/* 신고된 글·댓글 내용: 회색 상자에 3줄까지. 위아래 여백은 테두리로 줘야 4번째 줄이 비치지 않는다 */
+#report-list .report-snapshot {
+  display: -webkit-box;
+  margin-top: 10px;
+  padding: 0 12px;
+  border-block: 10px solid var(--bg);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-soft);
+  font-size: 13px;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+#report-list .report-detail,
+#inquiry-list li > p:not(.hint) {
+  font-size: 14px;
+}
+
+#report-list .report-meta,
+#inquiry-list li > p.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+#report-list li > .row {
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+}
+
+#inquiry-list li > button {
+  margin: 12px 6px 0 0;
+}
+
+.inquiry-status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.inquiry-status.pending {
+  background: var(--sun-soft);
+  color: var(--sun-strong);
+}
+
+@media (max-width: 600px) {
+  /* 처리 단추는 테두리 단추로 (누르기 쉽게) */
+  #report-list li > .row .link-button,
+  #inquiry-list li > button {
+    min-height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  /* 멤버 표 → 카드: 1줄 닉네임·역할·[관리], 2줄 이름·전화, 3줄 이메일 */
+  #members-table thead {
+    display: none;
+  }
+
+  #members-table table,
+  #members-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  #members-table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 6px;
+    padding: 14px 16px;
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  #members-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  /* 줄바꿈 자리: ::after는 1줄 끝, ::before는 2줄 끝 */
+  #members-table tr::after {
+    content: "";
+    order: 4;
+    flex-basis: 100%;
+    height: 6px;
+  }
+
+  #members-table tr::before {
+    content: "";
+    order: 7;
+    flex-basis: 100%;
+    height: 0;
+  }
+
+  #members-table td:nth-child(1) {
+    order: 1;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  #members-table td:nth-child(5) {
+    order: 2;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  #members-table td:nth-child(6) {
+    order: 3;
+    margin-left: auto;
+  }
+
+  #members-table td:nth-child(2),
+  #members-table td:nth-child(3),
+  #members-table td:nth-child(4) {
+    color: var(--muted);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  #members-table td:nth-child(2) {
+    order: 5;
+    color: var(--text-soft);
+  }
+
+  #members-table td:nth-child(4) {
+    order: 6;
+  }
+
+  #members-table td:nth-child(4):not(:empty)::before {
+    content: "· ";
+  }
+
+  #members-table td:nth-child(3) {
+    order: 8;
+  }
+
+  /* [관리]는 늘 오른쪽 끝, 정지 표시는 그 왼쪽 */
+  #members-table .member-actions {
+    flex-direction: row-reverse;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  #members-table .member-actions > .link-button {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+}
+
 /* 멤버 관리 창: 상태·제재·권한·위임을 칸으로 나눈다 */
 .member-manage .manage-section + .manage-section {
   margin-top: 16px;
@@ -3553,6 +4022,93 @@ form.search-row input {
   white-space: normal;
   overflow-wrap: anywhere;
   font-weight: 600;
+}
+
+/* 휴대폰: 멤버 전체 보기 창도 카드. 1줄 닉네임·역할·[강제 퇴장], 2줄 글·댓글·경고 */
+@media (max-width: 600px) {
+  .member-stats thead {
+    display: none;
+  }
+
+  .member-stats,
+  .member-stats tbody {
+    display: grid;
+    gap: 8px;
+  }
+
+  .member-stats tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    border-radius: 12px;
+  }
+
+  .member-stats td {
+    display: block;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .member-stats tr::after {
+    content: "";
+    order: 4;
+    flex-basis: 100%;
+    height: 2px;
+  }
+
+  .member-stats td:nth-child(1) {
+    order: 1;
+  }
+
+  .member-stats td:nth-child(2) {
+    order: 2;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .member-stats td:nth-child(6) {
+    order: 3;
+    margin-left: auto;
+  }
+
+  .member-stats td:nth-child(6) .link-button {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+
+  .member-stats td:nth-child(3),
+  .member-stats td:nth-child(4),
+  .member-stats td:nth-child(5) {
+    order: 5;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .member-stats td:nth-child(3)::before {
+    content: "글 ";
+  }
+
+  .member-stats td:nth-child(4)::before {
+    content: "댓글 ";
+  }
+
+  .member-stats td:nth-child(5)::before {
+    content: "경고 ";
+  }
+
+  .member-stats .count-link {
+    min-width: 28px;
+    min-height: 28px;
+  }
 }
 
 .count-link {
@@ -3756,6 +4312,13 @@ a.icon-button:hover {
   transform: none;
 }
 
+/* 손가락으로 누르는 화면에서는 누른 뒤 이름표가 남아 있지 않게 (마우스가 없으면 hover가 붙어 남는다) */
+@media (hover: none) {
+  [data-tip]:hover::after {
+    content: none;
+  }
+}
+
 /* ── 닉네임 링크: 어디서나 누르면 그 회원 프로필 (D-116) ──── */
 
 a.user-name {
@@ -3798,6 +4361,26 @@ a.user-name:hover {
   .list-header .button-link {
     padding: 8px 14px;
     font-size: 14px;
+  }
+
+  /* 아이폰은 글자가 16px보다 작은 입력칸을 누르면 화면을 확대한다. 휴대폰에서는 모든 입력칸을 16px로 */
+  input[type="email"],
+  input[type="text"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="search"],
+  input:not([type]),
+  .header-search input[type="search"],
+  textarea,
+  textarea.editor-fallback,
+  select {
+    font-size: 16px;
+  }
+
+  /* 체크박스를 손가락으로 누르기 쉽게 */
+  .checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
   }
 }
 
