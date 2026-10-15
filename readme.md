@@ -59,11 +59,52 @@ Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 H
    `DB_USERNAME`, `DB_PASSWORD`는 Crowfoot 데이터베이스 탭의 값, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD`는 1번에서 만든 로컬 계정입니다.
 3. 테스트와 실행
    ```bash
-   ./gradlew test
+   ./gradlew unitTest   # 단위 테스트만, DB 없이 빠르게
+   ./gradlew test       # 전체 (1번의 테스트 DB 필요)
    ./gradlew bootRun
    ```
    http://localhost:8080 에 접속합니다. `MAIL_MODE=log`이면 인증번호가 메일 대신 서버 로그에 찍힙니다.
 
 블로그 대표 이미지 같은 업로드 파일은 `FILE_STORAGE_DIR`(기본 `./uploads`)에 저장되고 저장소에는 올라가지 않습니다. 블로그 생성 개수는 `BLOG_LIMIT_PUBLIC`(기본 3), `BLOG_LIMIT_PRIVATE`(기본 5)로 바꿀 수 있습니다.
+
+## 테스트와 CI
+
+**테스트 이름 규칙** (D-140): 이름이 `...IntegrationTest`로 끝나면 서버와 테스트 DB(MySQL)를 띄우는 통합 테스트, `...E2ETest`는 실제 브라우저(Chromium)로 화면을 누르는 E2E 테스트, 나머지 `...Test`는 DB 없는 단위 테스트입니다. DB가 필요한 테스트를 새로 만들면 이름을 `IntegrationTest`로 끝내야 CI 1단계에서 빠집니다. 테스트 코드는 `src/test/java/com/oneblog/` 아래에 기능 코드와 같은 폴더 구조로 있습니다.
+
+| 명령 | 도는 테스트 | 커버리지 보고서 |
+|---|---|---|
+| `./gradlew unitTest jacocoUnitTestReport` | 단위만 | `build/reports/jacoco/jacocoUnitTestReport/html/index.html` |
+| `./gradlew test jacocoTestReport` | 단위 + 통합 (E2E 제외) | `build/reports/jacoco/test/html/index.html` |
+| `./gradlew playwrightInstall` | (처음 한 번) E2E용 Chromium 설치 | |
+| `./gradlew e2eTest` | E2E만 (테스트 DB 필요, 화면 없이 돎) | `test`와 함께 돌린 뒤 `jacocoTestReport`에 합쳐짐 |
+
+테스트 결과 화면은 `build/reports/tests/<unitTest|test|e2eTest>/index.html`입니다.
+
+**E2E** (`src/test/java/com/oneblog/e2e/`, Playwright Java): 테스트가 서버를 무작위 포트로 띄우고 브라우저가 핵심 흐름 7개를 누릅니다 — 가입·로그인·로그아웃, 블로그·글·댓글, 권한(비회원 글쓰기·남의 관리 화면), 좋아요·글 수정·삭제, 참여 신청·승인·멤버 글쓰기, 에디터로 사진 넣기, 로그인 실패·비밀번호 변경·탈퇴.
+- 흐름마다 `build/e2e-artifacts/<클래스>/<테스트>-<번호>.zip`(trace)과 `.png`(마지막 화면)가 남습니다. trace는 https://trace.playwright.dev 에 끌어다 놓으면 누른 순서대로 다시 볼 수 있습니다. CI에서는 실패했을 때 `e2e-artifacts` 결과물로 올라옵니다.
+- 요소는 문구가 아니라 **id**로 찾습니다. **화면의 id나 흐름을 바꾸는 기능은 E2E도 같이 고칩니다.**
+- 글쓰기 에디터(Toast UI)는 외부 CDN이라, 사진 흐름 말고는 에디터를 막고 기본 입력 칸으로 씁니다. 사진 흐름이 CDN 때문에 실패하면 다시 실행합니다.
+
+**CI 단계** (`.github/workflows/ci.yml`, D-140)
+
+| 단계 | 언제 | job | 하는 일 |
+|---|---|---|---|
+| 1 빠른 확인 | `feature/**`·`hotfix/**` push, 모든 PR | `unit` | 단위 테스트 + 커버리지. 실패하면 PR merge가 막힘(브랜치 보호) |
+| 2 통합 확인 | `develop`·`main`에 merge(push), 직접 실행 | `full` | 전체 테스트 + E2E + 커버리지 + SonarQube 품질 게이트(push만) + jar·Docker 실행 확인 |
+| 운영 | `main`에서 버전을 올렸을 때 | Deploy | 전환 직후 운영 확인, 실패하면 옛 버전으로 자동 되돌림 ([DEPLOY.md](DEPLOY.md)) |
+
+스테이징 서버는 따로 두지 않고, E2E가 CI 안에서 서버와 DB를 잠깐 띄워 확인합니다. 기능 브랜치에서 통합 테스트·E2E를 미리 돌려 보려면 Actions → CI → Run workflow에서 그 브랜치를 고릅니다(SonarQube에는 올리지 않음).
+
+**SonarQube** (정적 분석): 서버 `http://s4.java21.net:9000`, 프로젝트 `one-blog`. 서버가 Community라 PR은 분석하지 않고, `develop`·`main`에 merge된 코드를 2단계에서 분석합니다.
+- 결과 보기: 서버에 로그인 → 프로젝트 `one-blog` → Issues(이슈, 심각도별), Measures(커버리지·중복), Security Hotspots. 이슈를 누르면 해당 줄과 고치는 방법이 나옵니다. 문제가 아닌 이슈는 "False Positive"·"Accept"로 표시합니다.
+- **품질 게이트 실패**: `develop`·`main`의 CI가 빨간색이 되고 `main`이면 배포되지 않습니다. 서버에서 새 이슈를 보고, 새 `feature` 브랜치에서 고쳐 다시 merge합니다. 게이트를 통과하기 전에는 버전을 올리지 않습니다.
+- 게이트는 "새 코드" 기준입니다. 분석의 버전이 서비스 버전이라, 새 코드 = 이번 버전 동안 쌓인 변경입니다(서버의 새 코드 기준이 "이전 버전"일 때). 게이트 조건은 서버 관리자가 정합니다.
+- 비밀값: GitHub Secrets `SONAR_TOKEN`(이 프로젝트 분석 전용 토큰), `SONAR_HOST_URL`. 서버가 http라 토큰이 암호화 없이 오가므로 다른 권한이 있는 토큰은 쓰지 않고, 의심되면 서버의 My Account → Security에서 폐기·재발급합니다.
+- **코드 쓰는 중에 미리 보기**: VS Code의 SonarQube for IDE 확장(Java는 Red Hat "Language Support for Java" 확장도 필요)에서 SonarQube Server 연결을 추가하고(서버 주소 + 개인 토큰, CI용과 따로) 프로젝트 `one-blog`에 묶으면 서버와 같은 규칙으로 바로 검사합니다.
+
+**브랜치 보호** (저장소 관리자가 한 번 켬): Settings → Rules → Rulesets → New branch ruleset
+1. Enforcement status: Active, Target branches: `develop`, `main`
+2. Bypass list: `Repository admin`과 Claude 세션이 push할 때 쓰는 Claude GitHub 앱 (update 스킬이 `develop`·`main`에 직접 push하므로 꼭 넣습니다)
+3. Rules: **Require status checks to pass** → `unit` (CI가 한 번 돈 뒤에 목록에 나옵니다). "Require a pull request before merging"은 켜지 않습니다
 
 검증 시나리오는 문서 저장소의 기능별 quickstart를 봅니다: [001 회원가입·로그인](https://github.com/one-blog1/one-blog_docs/blob/main/specs/001-signup-login/quickstart.md), [002 블로그 생성·목록](https://github.com/one-blog1/one-blog_docs/blob/main/specs/002-blog-create-list/quickstart.md).
