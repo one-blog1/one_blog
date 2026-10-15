@@ -257,4 +257,70 @@ class BlogOpsIntegrationTest extends PostTestSupport {
                 "SELECT COUNT(*) FROM users WHERE status = 'WITHDRAWN' AND nickname IS NULL AND name IS NULL",
                 Integer.class)).isEqualTo(1);
     }
+
+    @Test
+    void 권한을_모두_받은_부블로그장도_블로그장_전용_기능은_못_한다() throws Exception {
+        // 부블로그장 지정·위임·폐쇄·공유 링크는 블로그장만 (2장 권한표, D-71, D-138, 029 US2)
+        mvc.perform(put("/api/blogs/open-blog/members/" + memberId() + "/sub-owner").with(csrf()).cookie(owner)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"subOwner\":true,\"canEditInfo\":true,\"canManageMembers\":true,\"canManagePosts\":true}"))
+                .andExpect(status().isNoContent());
+        addMember("open-blog", "sub@example.com", "MEMBER");
+        String allPermissions = "{\"subOwner\":true,\"canEditInfo\":true,\"canManageMembers\":true,\"canManagePosts\":true}";
+
+        // 다른 멤버를 부블로그장으로 올리거나, 자기 권한을 바꾸지 못한다
+        mvc.perform(put("/api/blogs/open-blog/members/" + userId("sub@example.com") + "/sub-owner").with(csrf())
+                        .cookie(member).contentType(MediaType.APPLICATION_JSON).content(allPermissions))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+        mvc.perform(put("/api/blogs/open-blog/members/" + memberId() + "/sub-owner").with(csrf())
+                        .cookie(member).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"subOwner\":false,\"canEditInfo\":false,\"canManageMembers\":false,\"canManagePosts\":false}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+        mvc.perform(post("/api/blogs/open-blog/transfer").with(csrf()).cookie(member)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"toUserId\":" + userId("sub@example.com") + "}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+        mvc.perform(post("/api/blogs/open-blog/close").with(csrf()).cookie(member))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+        mvc.perform(post("/api/blogs/open-blog/share-link").with(csrf()).cookie(member))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+        // 블로그장이 폐쇄를 예약한 뒤 부블로그장이 철회하지 못한다
+        mvc.perform(post("/api/blogs/open-blog/close").with(csrf()).cookie(owner)).andExpect(status().isOk());
+        mvc.perform(delete("/api/blogs/open-blog/close").with(csrf()).cookie(member))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+
+        assertThat(jdbc.queryForObject("SELECT role FROM blog_members WHERE user_id = ?", String.class,
+                userId("sub@example.com"))).isEqualTo("MEMBER");
+        assertThat(jdbc.queryForObject("SELECT role FROM blog_members WHERE user_id = ?", String.class, memberId()))
+                .isEqualTo("SUB_OWNER");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM blog_transfer_requests", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT status FROM blogs WHERE slug = 'open-blog'", String.class))
+                .isEqualTo("CLOSING");
+    }
+
+    @Test
+    void 공유_링크를_다시_만들면_이전_링크로는_들어갈_수_없다() throws Exception {
+        // 블로그장이 링크를 새로 만들면 이전 링크는 막힌다 (BLG-01, 029 US2)
+        createBlog(owner, "link-blog", "UNLISTED").andExpect(status().isCreated());
+        String oldKey = jdbc.queryForObject("SELECT share_token FROM blogs WHERE slug = 'link-blog'", String.class);
+        mvc.perform(get("/api/blogs/link-blog").param("key", oldKey)).andExpect(status().isOk());
+
+        String body = mvc.perform(post("/api/blogs/link-blog/share-link").with(csrf()).cookie(owner))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String newKey = jdbc.queryForObject("SELECT share_token FROM blogs WHERE slug = 'link-blog'", String.class);
+        assertThat(newKey).isNotEqualTo(oldKey);
+        assertThat((String) com.jayway.jsonpath.JsonPath.read(body, "$.shareUrl")).endsWith("key=" + newKey);
+
+        mvc.perform(get("/api/blogs/link-blog").param("key", newKey))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("블로그 link-blog"));
+        String denied = mvc.perform(get("/api/blogs/link-blog").param("key", oldKey))
+                .andExpect(status().isForbidden())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(denied).doesNotContain("블로그 link-blog");
+
+        // 전체 공개 블로그에는 공유 링크가 없다
+        mvc.perform(post("/api/blogs/open-blog/share-link").with(csrf()).cookie(owner))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NOT_UNLISTED"));
+    }
 }

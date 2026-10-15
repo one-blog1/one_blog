@@ -267,4 +267,45 @@ class ModerationIntegrationTest extends PostTestSupport {
                 .andExpect(jsonPath("$.code").value("CANNOT_HANDLE_OWN_REPORT"));
         assertThat(jdbc.queryForObject("SELECT status FROM reports", String.class)).isEqualTo("PENDING");
     }
+
+    @Test
+    void 부블로그장끼리와_자기_자신은_제재할_수_없고_블로그장은_부블로그장을_제재한다() throws Exception {
+        // 제재 위계 (3.7, D-43, 029 US2)
+        addMember("open-blog", "out@example.com", "SUB_OWNER");
+        jdbc.update("UPDATE blog_members SET role = 'SUB_OWNER', can_manage_members = 1, sub_owner_since = NOW(6) "
+                + "WHERE user_id IN (?, ?)", userId("member@example.com"), userId("out@example.com"));
+
+        sanction(member, "out@example.com", "{\"type\":\"WARNING\",\"reason\":\"x\"}")
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CANNOT_SANCTION"));
+        sanction(member, "member@example.com", "{\"type\":\"WARNING\",\"reason\":\"x\"}")
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CANNOT_SANCTION_SELF"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM sanctions", Integer.class)).isZero();
+
+        sanction(owner, "member@example.com", "{\"type\":\"WARNING\",\"reason\":\"부블로그장 경고\"}")
+                .andExpect(status().isNoContent());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM sanctions", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void 블로그_신고와_관리자_신고는_서로의_API로_처리할_수_없다() throws Exception {
+        // 블로그장 글 신고는 관리자에게, 멤버 글 신고는 블로그장에게 간다. 서로의 처리 주소로는 처리되지 않는다 (D-96, 029 US2)
+        Long ownerPost = writePost(owner, "open-blog", "블로그장 글", "본문");
+        Long memberPost = writePost(member, "open-blog", "멤버 글", "본문");
+        report(outsider, "{\"targetType\":\"POST\",\"targetId\":" + ownerPost + ",\"reason\":\"SPAM\"}")
+                .andExpect(status().isCreated());
+        report(outsider, "{\"targetType\":\"POST\",\"targetId\":" + memberPost + ",\"reason\":\"SPAM\"}")
+                .andExpect(status().isCreated());
+        Long adminQueue = jdbc.queryForObject("SELECT id FROM reports WHERE blog_id IS NULL", Long.class);
+        Long blogQueue = jdbc.queryForObject("SELECT id FROM reports WHERE blog_id IS NOT NULL", Long.class);
+
+        mvc.perform(post("/api/blogs/open-blog/reports/" + adminQueue + "/resolve").with(csrf()).cookie(owner)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"result\":\"NO_ISSUE\"}"))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/api/admin/reports/" + blogQueue + "/resolve").with(csrf())
+                        .cookie(createAdminAndLogin("admin01"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"result\":\"NO_ISSUE\",\"reason\":\"x\"}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("BLOG_REPORT"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM reports WHERE status = 'PENDING'", Integer.class))
+                .isEqualTo(2);
+    }
 }

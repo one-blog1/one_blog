@@ -212,7 +212,7 @@ class BlogJoinIntegrationTest extends BlogTestSupport {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("BLACKLISTED"));
         // 이메일·전화번호가 다른 회원은 그대로 참여할 수 있다 (029 US1)
-        Cookie bob = signUpAndLogin("bob@example.com", "밥", "밥", "010-2222-0003");
+        Cookie bob = signUpAndLogin("bob@example.com", "밥아저씨", "최밥", "010-2222-0003");
         apply(bob, "open-blog")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("MEMBER"));

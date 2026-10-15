@@ -146,4 +146,24 @@ class LoginLogoutIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
+
+    @Test
+    void CSRF는_쿠키와_같은_값을_헤더로_보내야_통과한다() throws Exception {
+        // 테스트 도구의 csrf()를 쓰지 않고 화면과 같은 경로로 확인한다: 쿠키 XSRF-TOKEN → 헤더 X-XSRF-TOKEN (SEC-10, 029 US3)
+        MvcResult page = mvc.perform(get("/login.html")).andExpect(status().isOk()).andReturn();
+        Cookie xsrf = page.getResponse().getCookie("XSRF-TOKEN");
+        assertThat(xsrf).isNotNull();
+        assertThat(xsrf.isHttpOnly()).as("화면 스크립트가 읽어야 하므로 HttpOnly가 아니다").isFalse();
+        String body = "{\"email\":\"" + EMAIL + "\",\"password\":\"" + PASSWORD + "\"}";
+
+        mvc.perform(post("/api/auth/login").cookie(xsrf).header("X-XSRF-TOKEN", "wrong-" + xsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/auth/login").cookie(xsrf)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/auth/login").cookie(xsrf).header("X-XSRF-TOKEN", xsrf.getValue())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+    }
 }
