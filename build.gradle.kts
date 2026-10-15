@@ -85,7 +85,12 @@ tasks.withType<Test> {
     val taskName = name
     afterSuite(KotlinClosure2<TestDescriptor, TestResult, Unit>({ suite, result ->
         if (suite.parent == null) {
-            println("[$taskName] 테스트 ${result.testCount}개: 통과 ${result.successfulTestCount}, 실패 ${result.failedTestCount}, 건너뜀 ${result.skippedTestCount}")
+            val summary = "테스트 ${result.testCount}개: 통과 ${result.successfulTestCount}, 실패 ${result.failedTestCount}, 건너뜀 ${result.skippedTestCount}"
+            println("[$taskName] $summary")
+            // GitHub Actions에서는 실행 화면의 주석(Annotations)에도 남긴다
+            if (System.getenv("GITHUB_ACTIONS") == "true") {
+                println("::notice title=$taskName::$summary")
+            }
             if (result.testCount == 0L) {
                 throw GradleException("[$taskName] 실행된 테스트가 없습니다. 테스트 이름 규칙(...IntegrationTest, ...E2ETest)을 확인해 주세요")
             }
