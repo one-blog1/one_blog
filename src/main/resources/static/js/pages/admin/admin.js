@@ -38,8 +38,9 @@
     return b;
   }
 
+  // 칸이 4개 이상이면 휴대폰에서 줄마다 카드로 보인다(.cards). 칸 이름은 td의 data-label로 (app.css)
   function table(headers, rows) {
-    const t = el('table', 'admin-table');
+    const t = el('table', headers.length >= 4 ? 'admin-table cards' : 'admin-table');
     const head = el('tr');
     headers.forEach(h => head.append(el('th', null, h)));
     const thead = el('thead');
@@ -47,8 +48,9 @@
     const tbody = el('tbody');
     rows.forEach(cells => {
       const tr = el('tr');
-      cells.forEach(c => {
+      cells.forEach((c, i) => {
         const td = el('td');
+        td.dataset.label = headers[i] || '';
         if (c instanceof Node) {
           td.append(c);
         } else {
