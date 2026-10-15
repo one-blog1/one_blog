@@ -23,8 +23,9 @@ on:
   # 직접 실행: 아무 브랜치에서나 2단계(full)를 돌린다. SonarQube에는 올리지 않는다(develop 결과를 덮어쓰지 않게)
   workflow_dispatch:
 
+# 같은 브랜치의 새 push는 앞 실행을 취소한다. 이벤트별로 나눠서, 직접 실행(full)이 push의 unit을 취소하지 않게 한다
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
