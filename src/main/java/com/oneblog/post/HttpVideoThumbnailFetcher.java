@@ -4,9 +4,11 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -213,29 +215,23 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
         return null;
     }
 
-    /** 한 번 요청한 결과. 바이트 배열을 담아 넘기기만 하므로 값 비교가 필요 없어 일반 클래스로 둔다 (S6218). */
-    private static final class Fetched {
+    /** 한 번 요청한 결과: 받은 사진(없으면 null), 넘어갈 주소, 응답 상태. 배열은 내용으로 비교한다 (S6218). */
+    record Fetched(byte[] data, String location, int status) {
 
-        private final byte[] data;
-        private final String location;
-        private final int status;
-
-        Fetched(byte[] data, String location, int status) {
-            this.data = data;
-            this.location = location;
-            this.status = status;
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Fetched that && status == that.status
+                    && Objects.equals(location, that.location) && Arrays.equals(data, that.data);
         }
 
-        byte[] data() {
-            return data;
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(data), location, status);
         }
 
-        String location() {
-            return location;
-        }
-
-        int status() {
-            return status;
+        @Override
+        public String toString() {
+            return "Fetched[data=" + Arrays.toString(data) + ", location=" + location + ", status=" + status + "]";
         }
     }
 
