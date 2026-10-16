@@ -72,7 +72,7 @@
   - 비공개 블로그 글(블로그장으로 로그인): url·copy만 보임.
   - 일부 공개 블로그 글(공유 링크 key로 비회원 접속): url(key 포함)·copy만 보임(가짜 `navigator.share`면 device도), x·telegram·facebook 없음.
   - clipboard 권한이 필요하면 `E2ETestSupport.newPage`에 옵션을 더하지 말고 이 테스트에서 `page.context().grantPermissions(...)`를 쓴다.
-- [ ] T013 push → CI `unit`, 직접 실행 `full`(전체 테스트 + E2E). 실패하면 고친다.
+- [X] T013 push → CI `unit`, 직접 실행 `full`(전체 테스트 + E2E). 실패하면 고친다.
 - [ ] T014 사용자 확인 뒤 PR → `develop`. merge 뒤 `develop` 품질 게이트 확인 (게이트 실패면 Annotations 보고 새 브랜치에서).
 - [ ] T015 문서 저장소: 6.2 상태(2차 중 X·페이스북·텔레그램·기기 공유 완료, 인스타그램은 기기 공유, 카카오톡은 키 준비 뒤), 8장 D-142, roadmap에 031 줄과 "다음에 할 것"에 카카오톡 공유, 스펙 폴더 옮기기.
 
