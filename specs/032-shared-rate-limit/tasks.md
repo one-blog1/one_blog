@@ -22,7 +22,7 @@
 ## Phase 4: 문서·배포
 
 - [X] T009 `DEPLOY.md`: "로컬과 같은 DB를 쓰는 동안 … CODE_PEPPER 같은 값" 안내를 개발 DB 분리(2026-10-16) 기준으로 고친다.
-- [ ] T010 push → CI `unit`, 직접 실행 `full`.
+- [X] T010 push → CI `unit`, 직접 실행 `full`.
 - [ ] T011 PR → develop merge → `full`·품질 게이트 확인.
 - [ ] T012 develop → main merge(버전 그대로) → Deploy 직접 실행 → 성공 확인.
 - [ ] T013 문서 저장소: D-143, `security-status.md`(SEC-03 해결), 스펙 옮기기.
