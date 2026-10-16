@@ -1,7 +1,9 @@
 package com.oneblog.post;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -118,23 +120,22 @@ public class VideoThumbnailService {
         fileRepository.save(file);
     }
 
-    /** 확인을 마친 썸네일 바이트와 형식. 넘기기만 하므로 값 비교가 필요 없어 일반 클래스로 둔다 (S6218). */
-    static final class Thumbnail {
+    /** 확인을 마친 썸네일 바이트와 형식. 배열은 내용으로 비교한다 (S6218). */
+    record Thumbnail(byte[] data, ImageType type) {
 
-        private final byte[] data;
-        private final ImageType type;
-
-        Thumbnail(byte[] data, ImageType type) {
-            this.data = data;
-            this.type = type;
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Thumbnail that && type == that.type && Arrays.equals(data, that.data);
         }
 
-        byte[] data() {
-            return data;
+        @Override
+        public int hashCode() {
+            return 31 * Arrays.hashCode(data) + Objects.hashCode(type);
         }
 
-        ImageType type() {
-            return type;
+        @Override
+        public String toString() {
+            return "Thumbnail[type=" + type + ", data=" + Arrays.toString(data) + "]";
         }
     }
 

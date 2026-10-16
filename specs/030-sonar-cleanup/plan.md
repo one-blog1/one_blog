@@ -7,7 +7,7 @@
 ## 방법
 
 - **동작을 바꾸지 않는다.** 메서드를 옮기고 나누기만 하고, 조건 순서·예외·문구·SQL은 그대로 둔다. 확인은 기존 테스트(unit·전체·E2E)로.
-- **새 코드가 새 이슈를 만들지 않게** 한다(품질 게이트). 배열 필드 record는 equals/hashCode를 덧붙이지 않고 평범한 클래스로 바꿨다(덧붙이면 테스트가 안 닿는 새 코드가 생김).
+- **새 코드가 새 이슈를 만들지 않게** 한다(품질 게이트). 배열 필드 record는 처음에 평범한 클래스로 바꿨는데, merge 뒤 분석에서 "record로 쓰라"(S6206) 새 이슈 2개로 게이트가 실패했다. 그래서 `Thumbnail`·`Fetched`는 record로 되돌리고 배열 내용으로 비교하는 equals/hashCode/toString을 두고 단위 테스트(`ThumbnailRecordsTest`)로 확인한다. 접근자가 없는 `ImageMetadataStripper.Tiff`는 S6206 대상이 아니라 클래스로 둔다.
 - 빌드가 막힌 작업 환경이라 문법 검사만 하고, 컴파일·테스트는 push 뒤 CI(`unit`, 직접 실행 `full`)로 본다.
 
 ## 항목별 처리
@@ -25,7 +25,7 @@
 | B28 | `ViewCounter`: `Objects.requireNonNullElse(ip, "")` |
 | B29 | `SocialLoginHandlers`: `isEmpty()`로 먼저 확인 |
 | B30 | `BlogPolicy`: 슬러그 정규식 대신 글자 검사 반복문(규칙 같음: a~z·0~9·`-`, 앞뒤 `-`·`--` 금지) |
-| B31~B33 배열 record | 평범한 `final class` + 같은 이름의 접근자 |
+| B31~B33 배열 record | `Tiff`는 평범한 클래스. `Thumbnail`·`Fetched`는 record + 배열 내용으로 비교하는 equals/hashCode/toString (S6206 새 이슈 2개 정리, `feature/sonar-new-issues`) |
 | B34 | `BlogPageController` 수정 화면 경로를 `/posts/*/edit`로 (id를 쓰지 않음) |
 | B5·B15~B23 | 오탐 — [hotspots.md](hotspots.md) 2절 |
 | S3~S12 복잡도 | 메서드 나누기: `ImageMetadataStripper`(JPEG·WebP, 옛 코드와 56,014개 무작위 입력 결과 비교 0건 차이), 알림 링크(대상별), 배너 검증(도우미 3개), 마크다운 썸네일 영상, 댓글 목록, 로그인 확인(잠금·실패 기록), 프로필 사진, 참여 자동 거절 |
