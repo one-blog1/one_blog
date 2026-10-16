@@ -13,6 +13,8 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.stereotype.Component;
 
+import com.oneblog.common.text.Trim;
+
 /**
  * 카카오·네이버·구글 앱 설정 (D-126). 키(클라이언트 ID·시크릿)가 들어온 사이트만 켠다.
  * 키는 환경변수(.env, GitHub Secrets)로만 넣는다 (constitution III).
@@ -32,7 +34,7 @@ public class SocialClientRegistrations implements ClientRegistrationRepository, 
             @Value("${app.social.google.client-secret:}") String googleSecret,
             @Value("${app.public-base-url:}") String publicBaseUrl) {
         String base = publicBaseUrl == null || publicBaseUrl.isBlank()
-                ? "{baseUrl}" : publicBaseUrl.strip().replaceAll("/+$", "");
+                ? "{baseUrl}" : Trim.trailing(publicBaseUrl.strip(), "/");
         String redirect = base + "/login/oauth2/code/{registrationId}";
         if (has(kakaoId)) {
             // 비즈 앱으로 이메일을 받는다 (027). 카카오가 인증 표시를 주지 않으면 가입 화면에서 인증번호로 확인한다

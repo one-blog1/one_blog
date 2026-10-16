@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
@@ -31,12 +32,12 @@ public class LocalFileStorage implements FileStorage {
     }
 
     @Override
-    public InputStream open(String storedName) throws IOException {
+    public Optional<InputStream> open(String storedName) throws IOException {
         Path target = resolve(storedName);
         if (!Files.isRegularFile(target)) {
-            return null;
+            return Optional.empty();
         }
-        return Files.newInputStream(target);
+        return Optional.of(Files.newInputStream(target));
     }
 
     @Override

@@ -47,6 +47,16 @@ public class TagService {
     /** 블로그별 태그 이름 (태그를 만든 순서). 한 번의 조회로 여러 블로그를 읽는다 (research R8). */
     @Transactional(readOnly = true)
     public Map<Long, List<String>> findBlogTags(Collection<Long> blogIds) {
+        return queryBlogTags(blogIds);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> findBlogTags(Long blogId) {
+        return queryBlogTags(List.of(blogId)).getOrDefault(blogId, List.of());
+    }
+
+    // 같은 클래스 안에서 @Transactional 메서드를 부르면 프록시를 거치지 않으므로, 실제 조회는 어노테이션 없는 메서드에 둔다
+    private Map<Long, List<String>> queryBlogTags(Collection<Long> blogIds) {
         Map<Long, List<String>> result = new LinkedHashMap<>();
         if (blogIds.isEmpty()) {
             return result;
@@ -58,10 +68,6 @@ public class TagService {
                     result.computeIfAbsent(rs.getLong(1), id -> new ArrayList<>()).add(rs.getString(2));
                 });
         return result;
-    }
-
-    public List<String> findBlogTags(Long blogId) {
-        return findBlogTags(List.of(blogId)).getOrDefault(blogId, List.of());
     }
 
     /**

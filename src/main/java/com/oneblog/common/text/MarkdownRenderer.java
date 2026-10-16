@@ -109,27 +109,41 @@ public class MarkdownRenderer {
         Document document = Jsoup.parseBodyFragment(cleaned, BASE_URI);
         // 문서 순서대로: 요소마다 먼저 자기 글자 속 주소를 보고, 그 뒤에 그 요소 자체(사진·링크)를 본다
         for (Element element : document.body().getAllElements()) {
-            if (element.is("img")) {
-                if (element.attr("src").startsWith("/files/")) {
-                    return Optional.empty();
-                }
-                continue;
+            if (isUploadedImage(element)) {
+                return Optional.empty();
             }
-            if (element.is("a[href]")) {
-                Optional<VideoEmbeds.Embed> linked = VideoEmbeds.from(element.attr("href"));
-                if (linked.isPresent()) {
-                    return linked;
-                }
+            Optional<VideoEmbeds.Embed> found = videoIn(element);
+            if (found.isPresent()) {
+                return found;
             }
-            for (org.jsoup.nodes.TextNode text : element.textNodes()) {
-                Matcher matcher = URL_IN_TEXT.matcher(text.getWholeText());
-                while (matcher.find()) {
-                    // 문장 끝의 마침표·괄호는 주소가 아니다
-                    String url = matcher.group().replaceAll("[.,!?)\\]]+$", "");
-                    Optional<VideoEmbeds.Embed> found = VideoEmbeds.from(url);
-                    if (found.isPresent()) {
-                        return found;
-                    }
+        }
+        return Optional.empty();
+    }
+
+    /** 이 사이트에 올린 사진(/files/...). */
+    private static boolean isUploadedImage(Element element) {
+        return element.is("img") && element.attr("src").startsWith("/files/");
+    }
+
+    /** 요소가 영상 링크이거나, 요소 바로 안의 글자에 영상 주소가 있으면 그 영상. 사진은 빈 값. */
+    private static Optional<VideoEmbeds.Embed> videoIn(Element element) {
+        if (element.is("img")) {
+            return Optional.empty();
+        }
+        if (element.is("a[href]")) {
+            Optional<VideoEmbeds.Embed> linked = VideoEmbeds.from(element.attr("href"));
+            if (linked.isPresent()) {
+                return linked;
+            }
+        }
+        for (org.jsoup.nodes.TextNode text : element.textNodes()) {
+            Matcher matcher = URL_IN_TEXT.matcher(text.getWholeText());
+            while (matcher.find()) {
+                // 문장 끝의 마침표·괄호는 주소가 아니다
+                String url = Trim.trailing(matcher.group(), ".,!?)]");
+                Optional<VideoEmbeds.Embed> found = VideoEmbeds.from(url);
+                if (found.isPresent()) {
+                    return found;
                 }
             }
         }

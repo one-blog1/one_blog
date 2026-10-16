@@ -167,47 +167,54 @@ public class NotificationQueryService {
             return fallback;
         }
         MapSqlParameterSource args = new MapSqlParameterSource("id", targetId);
-        switch (targetType) {
-            case "COMMENT" -> {
-                List<Link> links = jdbc.query("SELECT c.id, c.deleted_at IS NOT NULL, p.id, p.deleted_at IS NOT NULL,"
-                        + " b.slug, b.status FROM comments c JOIN posts p ON p.id = c.post_id"
-                        + " LEFT JOIN blogs b ON b.id = p.blog_id WHERE c.id = :id", args, (rs, i) -> {
-                            if (rs.getBoolean(4) || rs.getString(5) == null || "CLOSED".equals(rs.getString(6))) {
-                                return new Link(null, null, "댓글이 달린 글이 삭제돼서 바로 갈 수 없어요.");
-                            }
-                            String post = postUrl(rs.getString(5), rs.getLong(3));
-                            return rs.getBoolean(2) ? new Link(post, "댓글이 있던 글로 가기", null)
-                                    : new Link(post + "#comment-" + rs.getLong(1), "댓글 위치로 가기", null);
-                        });
-                return links.isEmpty() ? new Link(null, null, "댓글을 찾을 수 없어요.") : links.get(0);
-            }
-            case "POST" -> {
-                List<Link> links = jdbc.query("SELECT p.id, p.deleted_at IS NOT NULL, b.slug, b.status"
-                        + " FROM posts p LEFT JOIN blogs b ON b.id = p.blog_id WHERE p.id = :id", args, (rs, i) -> {
-                            if (rs.getBoolean(2)) {
-                                return new Link(null, null, "글이 삭제돼서 바로 갈 수 없어요.");
-                            }
-                            if (rs.getString(3) == null) {
-                                return new Link("/notice.html?id=" + rs.getLong(1), "공지로 가기", null);
-                            }
-                            if ("CLOSED".equals(rs.getString(4))) {
-                                return new Link(null, null, "블로그가 폐쇄돼서 바로 갈 수 없어요.");
-                            }
-                            return new Link(postUrl(rs.getString(3), rs.getLong(1)), "글로 가기", null);
-                        });
-                return links.isEmpty() ? new Link(null, null, "글을 찾을 수 없어요.") : links.get(0);
-            }
-            case "BLOG" -> {
-                List<Link> links = jdbc.query("SELECT slug, status, deleted_at IS NOT NULL FROM blogs WHERE id = :id",
-                        args, (rs, i) -> "CLOSED".equals(rs.getString(2)) || rs.getBoolean(3)
-                                ? new Link(null, null, "블로그가 폐쇄돼서 바로 갈 수 없어요.")
-                                : new Link("/blog/" + encode(rs.getString(1)), "블로그로 가기", null));
-                return links.isEmpty() ? fallback : links.get(0);
-            }
-            default -> {
-                return fallback;
-            }
-        }
+        return switch (targetType) {
+            case "COMMENT" -> commentLink(args);
+            case "POST" -> postLink(args);
+            case "BLOG" -> blogLink(args, fallback);
+            default -> fallback;
+        };
+    }
+
+    /** 댓글 알림: 글이 없거나 폐쇄면 갈 수 없고, 댓글이 지워졌으면 글로, 남아 있으면 그 댓글 위치로. */
+    private Link commentLink(MapSqlParameterSource args) {
+        List<Link> links = jdbc.query("SELECT c.id, c.deleted_at IS NOT NULL, p.id, p.deleted_at IS NOT NULL,"
+                + " b.slug, b.status FROM comments c JOIN posts p ON p.id = c.post_id"
+                + " LEFT JOIN blogs b ON b.id = p.blog_id WHERE c.id = :id", args, (rs, i) -> {
+                    if (rs.getBoolean(4) || rs.getString(5) == null || "CLOSED".equals(rs.getString(6))) {
+                        return new Link(null, null, "댓글이 달린 글이 삭제돼서 바로 갈 수 없어요.");
+                    }
+                    String post = postUrl(rs.getString(5), rs.getLong(3));
+                    return rs.getBoolean(2) ? new Link(post, "댓글이 있던 글로 가기", null)
+                            : new Link(post + "#comment-" + rs.getLong(1), "댓글 위치로 가기", null);
+                });
+        return links.isEmpty() ? new Link(null, null, "댓글을 찾을 수 없어요.") : links.get(0);
+    }
+
+    /** 글 알림: 지운 글·폐쇄된 블로그면 갈 수 없고, 블로그가 없는 글은 메인 공지. */
+    private Link postLink(MapSqlParameterSource args) {
+        List<Link> links = jdbc.query("SELECT p.id, p.deleted_at IS NOT NULL, b.slug, b.status"
+                + " FROM posts p LEFT JOIN blogs b ON b.id = p.blog_id WHERE p.id = :id", args, (rs, i) -> {
+                    if (rs.getBoolean(2)) {
+                        return new Link(null, null, "글이 삭제돼서 바로 갈 수 없어요.");
+                    }
+                    if (rs.getString(3) == null) {
+                        return new Link("/notice.html?id=" + rs.getLong(1), "공지로 가기", null);
+                    }
+                    if ("CLOSED".equals(rs.getString(4))) {
+                        return new Link(null, null, "블로그가 폐쇄돼서 바로 갈 수 없어요.");
+                    }
+                    return new Link(postUrl(rs.getString(3), rs.getLong(1)), "글로 가기", null);
+                });
+        return links.isEmpty() ? new Link(null, null, "글을 찾을 수 없어요.") : links.get(0);
+    }
+
+    /** 블로그 알림: 폐쇄됐으면 갈 수 없고, 블로그가 없으면 보낼 때 정한 주소. */
+    private Link blogLink(MapSqlParameterSource args, Link fallback) {
+        List<Link> links = jdbc.query("SELECT slug, status, deleted_at IS NOT NULL FROM blogs WHERE id = :id",
+                args, (rs, i) -> "CLOSED".equals(rs.getString(2)) || rs.getBoolean(3)
+                        ? new Link(null, null, "블로그가 폐쇄돼서 바로 갈 수 없어요.")
+                        : new Link("/blog/" + encode(rs.getString(1)), "블로그로 가기", null));
+        return links.isEmpty() ? fallback : links.get(0);
     }
 
     private static String postUrl(String slug, long postId) {
@@ -235,6 +242,10 @@ public class NotificationQueryService {
 
     @Transactional(readOnly = true)
     public Settings settings(AuthenticatedUser principal) {
+        return loadSettings(principal);
+    }
+
+    private Settings loadSettings(AuthenticatedUser principal) {
         Long userId = member(principal);
         User user = userRepository.findById(userId).orElseThrow();
         Map<String, Boolean> saved = new HashMap<>();
@@ -279,7 +290,7 @@ public class NotificationQueryService {
                         .addValue("enabled", entry.getValue()));
             }
         }
-        return settings(principal);
+        return loadSettings(principal);
     }
 
     private static Long member(AuthenticatedUser principal) {

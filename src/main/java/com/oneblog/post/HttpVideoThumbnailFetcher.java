@@ -213,7 +213,30 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
         return null;
     }
 
-    private record Fetched(byte[] data, String location, int status) {
+    /** 한 번 요청한 결과. 바이트 배열을 담아 넘기기만 하므로 값 비교가 필요 없어 일반 클래스로 둔다 (S6218). */
+    private static final class Fetched {
+
+        private final byte[] data;
+        private final String location;
+        private final int status;
+
+        Fetched(byte[] data, String location, int status) {
+            this.data = data;
+            this.location = location;
+            this.status = status;
+        }
+
+        byte[] data() {
+            return data;
+        }
+
+        String location() {
+            return location;
+        }
+
+        int status() {
+            return status;
+        }
     }
 
     private Fetched fetchOnce(URI uri) {

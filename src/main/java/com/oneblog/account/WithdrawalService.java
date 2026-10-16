@@ -58,6 +58,10 @@ public class WithdrawalService {
     /** 탈퇴 전에 정리해야 할 블로그 (블로그장인 블로그, 폐쇄 예정 포함). */
     @Transactional(readOnly = true)
     public List<OwnedBlog> blockingBlogs(Long userId) {
+        return findBlockingBlogs(userId);
+    }
+
+    private List<OwnedBlog> findBlockingBlogs(Long userId) {
         return memberRepository.findMyBlogs(userId).stream()
                 .filter(row -> row[1] == BlogRole.OWNER)
                 .map(row -> (Blog) row[0])
@@ -77,7 +81,7 @@ public class WithdrawalService {
             throw new ValidationFailedException(List.of(
                     new ErrorResponse.FieldError("password", "비밀번호가 맞지 않습니다.")));
         }
-        if (!blockingBlogs(user.getId()).isEmpty()) {
+        if (!findBlockingBlogs(user.getId()).isEmpty()) {
             throw new ApiException(HttpStatus.CONFLICT, "OWNED_BLOGS_REMAIN",
                     "블로그장인 블로그가 있어 탈퇴할 수 없습니다. 블로그마다 위임하거나 폐쇄가 끝난 뒤에 탈퇴해 주세요.");
         }

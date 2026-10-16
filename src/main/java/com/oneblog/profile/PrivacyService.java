@@ -31,6 +31,10 @@ public class PrivacyService implements FollowGate {
 
     @Transactional(readOnly = true)
     public Privacy get(AuthenticatedUser principal) {
+        return load(principal);
+    }
+
+    private Privacy load(AuthenticatedUser principal) {
         User user = accountService.member(principal);
         return new Privacy(user.isShowBlogsOnProfile(), user.isShowFollowsOnProfile(), user.isAllowFollow());
     }
@@ -44,7 +48,7 @@ public class PrivacyService implements FollowGate {
                 r.showFollows() == null ? user.isShowFollowsOnProfile() : r.showFollows(),
                 r.allowFollow() == null ? user.isAllowFollow() : r.allowFollow());
         userRepository.saveAndFlush(user);
-        return get(principal);
+        return load(principal);
     }
 
     /** 팔로우를 받지 않는 회원은 새로 팔로우할 수 없다. 이미 한 팔로우를 끊는 것은 막지 않는다. */

@@ -2,6 +2,7 @@ package com.oneblog.file;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Optional;
 
 /**
  * 파일 바이트 저장소 (SCL-02). 1차는 서버 디스크(LocalFileStorage), 이중화 때 S3 구현으로 바꾼다 (D-75).
@@ -11,8 +12,8 @@ public interface FileStorage {
 
     void store(String storedName, byte[] content) throws IOException;
 
-    /** 없으면 null. */
-    InputStream open(String storedName) throws IOException;
+    /** 없으면 빈 값. */
+    Optional<InputStream> open(String storedName) throws IOException;
 
     void delete(String storedName) throws IOException;
 }
