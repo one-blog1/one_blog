@@ -6,7 +6,7 @@
 
 ## Summary
 
-글 화면의 "링크 복사" 버튼을 **공유** 버튼으로 바꾸고, 누르면 가운데 창에 공유 방법 목록을 띄운다.
+글 화면의 링크 복사 아이콘 버튼을 **공유** 아이콘 버튼으로 바꾸고, 누르면 가운데 창 위에 글 주소 칸·복사 버튼, 아래에 서비스 아이콘 줄(X · 텔레그램 · 페이스북 · 기기 공유)을 띄운다 (UI 확인 2026-10-16).
 - X·페이스북·텔레그램: 각 서비스 공유 주소로 가는 새 창 링크 (키·외부 스크립트 없음, R1·R2)
 - 기기 공유: 브라우저 공유 창(`navigator.share`), 지원하는 기기에서만 (R3)
 - 보이는 항목은 서버가 글 상세 응답에 넣는 `shareScope`(PUBLIC·LINK·MEMBERS)로 정한다 (R4)
@@ -15,11 +15,11 @@
 |---|---|
 | `post/ShareScope.java` (새) | 공유 범위 enum과 판단 규칙 `of(visibility, blogHidden, postHidden)` |
 | `post/dto/PostDetailResponse.java`, `post/PostService.java` | 응답에 `shareScope` 한 칸 |
-| `static/js/components/share.js` (새) | 공유 창: 항목 목록 만들기, 링크 복사, 기기 공유 |
+| `static/js/components/share.js` (새) | 공유 창: 주소 칸·복사, 아이콘 줄(항목 배열), 기기 공유 |
 | `static/js/pages/post/post.js` | 공유 버튼이 `share.js`를 부른다. 기존 `copyLink`는 `share.js`로 옮김 |
 | `static/post.html` | 지금의 링크 복사 아이콘 버튼을 공유 아이콘 버튼으로(이름 "공유", id 유지). 링크 복사는 공유 창 안 첫 항목으로 남김. `share.js` 불러오기 |
 | `static/js/lib/icons.js` | 공유 아이콘 하나 추가 |
-| `static/css/app.css` | 3부 "글(004)" 자리에 공유 목록 모양 |
+| `static/css/app.css` | 3부 "글(004)" 자리에 공유 창 모양(주소 칸, 아이콘 줄, 좁은 창) |
 
 DB·ERD·Flyway·보안 헤더(CSP)·설정 변경 없음.
 
