@@ -1,5 +1,6 @@
 package com.oneblog.notification;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -141,5 +142,53 @@ class NotificationIntegrationTest extends PostTestSupport {
         Integer notices = jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE type = 'NOTICE'", Integer.class);
         org.assertj.core.api.Assertions.assertThat(notices).isEqualTo(3);
         mvc.perform(get("/api/notifications").cookie(admin)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 관리자가_지운_댓글_알림은_사유와_지금_상태의_바로가기를_보여_준다() throws Exception {
+        // ADM-03, D-107: 관리자가 댓글을 지우면 사유와 함께 알린다. 바로가기는 열 때 계산한다
+        // (댓글이 지워졌으면 그 글로, 글까지 지워지면 없음). 남의 알림은 볼 수 없다 (029 US6)
+        Long commentId = comment(member, "{\"content\":\"광고 댓글\"}");
+        Cookie admin = createAdminAndLogin("admin01");
+        mvc.perform(post("/api/admin/comments/" + commentId + "/delete").with(csrf()).cookie(admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"광고\"}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/posts/" + postId + "/comments")).andExpect(jsonPath("$", hasSize(0)));
+        Long id = jdbc.queryForObject("SELECT n.id FROM notifications n JOIN users u ON u.id = n.user_id "
+                + "WHERE u.email = 'member@example.com' AND n.type = 'COMMENT_DELETED'", Long.class);
+
+        mvc.perform(get("/api/notifications/" + id).cookie(member))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.detail").value(containsString("광고")))
+                .andExpect(jsonPath("$.linkUrl").value(containsString("/posts/" + postId)))
+                .andExpect(jsonPath("$.linkUrl").value(org.hamcrest.Matchers.not(containsString("#comment-"))));
+        mvc.perform(get("/api/notifications/" + id).cookie(owner))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"));
+
+        mvc.perform(delete("/api/posts/" + postId).with(csrf()).cookie(owner)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/notifications/" + id).cookie(member))
+                .andExpect(jsonPath("$.linkUrl").doesNotExist())
+                .andExpect(jsonPath("$.linkUnavailable").isNotEmpty());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM admin_actions WHERE action_type = 'COMMENT_DELETE'",
+                Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    void 모두_읽음과_알림_설정_조회() throws Exception {
+        // SOC-04 읽음 처리, 6.7 보관 기간 (029 US6)
+        comment(member, "{\"content\":\"하나\"}");
+        comment(member, "{\"content\":\"둘\"}");
+        mvc.perform(get("/api/notifications/unread-count").cookie(owner)).andExpect(jsonPath("$.count").value(2));
+        mvc.perform(post("/api/notifications/read-all").with(csrf()).cookie(member)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/notifications/unread-count").cookie(owner)).andExpect(jsonPath("$.count").value(2));
+        mvc.perform(post("/api/notifications/read-all").with(csrf()).cookie(owner)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/notifications/unread-count").cookie(owner)).andExpect(jsonPath("$.count").value(0));
+
+        mvc.perform(get("/api/me/notification-settings").cookie(owner))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retentionDays").value(30))
+                .andExpect(jsonPath("$.items[?(@.type == 'COMMENT')].enabled").value(
+                        org.hamcrest.Matchers.contains(true)));
+        mvc.perform(get("/api/me/notification-settings")).andExpect(status().isUnauthorized());
     }
 }

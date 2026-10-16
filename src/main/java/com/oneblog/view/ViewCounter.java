@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -41,7 +42,8 @@ public class ViewCounter {
             return false;
         }
         String key = userId != null ? sha256("user:" + userId)
-                : sha256("guest:" + (ip == null ? "" : ip) + "|" + (userAgent == null ? "" : userAgent));
+                : sha256("guest:" + Objects.requireNonNullElse(ip, "") + "|"
+                        + Objects.requireNonNullElse(userAgent, ""));
         MapSqlParameterSource args = new MapSqlParameterSource().addValue("postId", postId).addValue("key", key)
                 .addValue("date", LocalDate.now(SEOUL));
         int inserted = jdbc.update("""

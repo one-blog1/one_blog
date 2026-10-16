@@ -74,7 +74,7 @@ public class AccountService {
     /** 내 정보 (비밀번호 재확인 뒤라 가리지 않은 값). 전화번호는 보기 좋게 하이픈. */
     @Transactional(readOnly = true)
     public AccountResponse account(AuthenticatedUser principal) {
-        return account(principal, true);
+        return loadAccount(principal, true);
     }
 
     /**
@@ -83,6 +83,10 @@ public class AccountService {
      */
     @Transactional(readOnly = true)
     public AccountResponse account(AuthenticatedUser principal, boolean full) {
+        return loadAccount(principal, full);
+    }
+
+    private AccountResponse loadAccount(AuthenticatedUser principal, boolean full) {
         User user = member(principal);
         return new AccountResponse(full ? user.getEmail() : Masking.email(user.getEmail()),
                 full ? user.getName() : Masking.name(user.getName()), user.getNickname(),
@@ -118,6 +122,20 @@ public class AccountService {
             throw nicknameUnavailable();
         }
 
+        updateProfileImage(user, request);
+
+        user.changeProfile(nickname, phone, bio);
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            // 거의 동시에 같은 닉네임으로 바꾼 경우 (uk_users_nickname)
+            throw nicknameUnavailable();
+        }
+        return loadAccount(principal, true);
+    }
+
+    /** 새 프로필 사진을 붙이거나(내가 올린 프로필용 파일만), 지우라고 하면 지운다. 바꾼 사진은 정리 대상으로. */
+    private void updateProfileImage(User user, ProfileUpdateRequest request) {
         if (request.profileFileId() != null) {
             StoredFile file = fileRepository.findById(request.profileFileId())
                     .filter(f -> !f.isDeleted() && f.getPurpose() == FilePurpose.PROFILE
@@ -132,15 +150,6 @@ public class AccountService {
             retireProfileImage(user);
             user.changeProfileImage(null);
         }
-
-        user.changeProfile(nickname, phone, bio);
-        try {
-            userRepository.saveAndFlush(user);
-        } catch (DataIntegrityViolationException e) {
-            // 거의 동시에 같은 닉네임으로 바꾼 경우 (uk_users_nickname)
-            throw nicknameUnavailable();
-        }
-        return account(principal);
     }
 
     @Transactional

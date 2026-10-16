@@ -185,6 +185,7 @@ jobs:
           esac
 
       - name: SonarQube 분석·품질 게이트
+        id: sonar
         if: github.event_name == 'push'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -194,6 +195,16 @@ jobs:
             echo "::error title=품질 게이트::SonarQube 분석이 실패했거나 품질 게이트를 통과하지 못했습니다. 서버의 one-blog 프로젝트에서 새 이슈를 보고, 새 feature 브랜치에서 고쳐 다시 merge해 주세요. 통과 전에는 버전을 올려 배포하지 않습니다"
             exit 1
           fi
+
+      # 게이트가 실패하면 실패한 조건·새 코드 이슈·검토 전 핫스팟을 Annotations에 띄운다(서버 화면을 열지 않아도 보이게).
+      # 직접 실행(workflow_dispatch)에서는 분석 없이 서버의 지금 상태(develop 기준)를 보여 준다. 보고만 하고 실패시키지 않는다
+      - name: SonarQube 결과 보기
+        if: always() && (github.event_name == 'workflow_dispatch' || steps.sonar.outcome == 'failure')
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_REPORT_TOKEN: ${{ secrets.SONAR_REPORT_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: python3 scripts/sonar-report.py one-blog
 
       - name: 배포용 jar 만들기
         run: ./gradlew bootJar --no-daemon && ls -l build/libs

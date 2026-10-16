@@ -419,4 +419,22 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("email"));
     }
+
+    @Test
+    void 가입을_그만두면_가입_대기_정보가_지워진다() throws Exception {
+        // 022: 가입 화면에서 그만두기 (029 US6)
+        Cookie pending = callback(google("g-900", "quit@gmail.com", true)).getCookie(SocialCookies.PENDING);
+        assertThat(pending).isNotNull();
+        mvc.perform(get("/api/auth/social/pending").cookie(pending)).andExpect(status().isOk());
+
+        MvcResult canceled = mvc.perform(post("/api/auth/social/cancel").with(csrf()).cookie(pending))
+                .andExpect(status().isNoContent())
+                .andReturn();
+        Cookie cleared = canceled.getResponse().getCookie(SocialCookies.PENDING);
+        assertThat(cleared).isNotNull();
+        assertThat(cleared.getMaxAge()).isZero();
+        assertThat(cleared.getValue()).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE email = 'quit@gmail.com'", Integer.class))
+                .isZero();
+    }
 }

@@ -172,4 +172,86 @@ class AccountIntegrationTest extends IntegrationTestSupport {
         Cookie admin = createAdminAndLogin("admin01");
         mvc.perform(get("/api/me/account").cookie(admin)).andExpect(status().isForbidden());
     }
+
+    @Test
+    void 비밀번호를_바꿀_때도_같은_규칙을_검사한다() throws Exception {
+        // SEC-02: 가입·변경·재설정 모두 같은 규칙. 특수문자가 빠진 8자 (029 US3)
+        mvc.perform(put("/api/me/password").with(csrf()).cookie(alice, reauth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newPassword\":\"abcdefgh1\",\"newPasswordConfirm\":\"abcdefgh1\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("newPassword"));
+    }
+
+    @Test
+    void 재확인은_10분이_지나면_다시_해야_한다() throws Exception {
+        // D-102 (029 US3). 티켓은 서명한 JWT라 저장된 시각을 바꿀 수 없다. 발급 값과, 만료가 지난 티켓을 따로 본다
+        String token = reauth.getValue();
+        String payload = new String(java.util.Base64.getUrlDecoder().decode(token.split("\\.")[1]),
+                java.nio.charset.StandardCharsets.UTF_8);
+        Number iat = com.jayway.jsonpath.JsonPath.read(payload, "$.iat");
+        Number exp = com.jayway.jsonpath.JsonPath.read(payload, "$.exp");
+        assertThat(exp.longValue() - iat.longValue()).isEqualTo(600);
+        assertThat(reauth.getMaxAge()).isEqualTo(600);
+
+        Long userId = jdbc.queryForObject("SELECT id FROM users WHERE email = 'alice@example.com'", Long.class);
+        Long sessionId = jdbc.queryForObject("SELECT MIN(id) FROM refresh_tokens WHERE user_id = ?", Long.class, userId);
+        String profile = "{\"nickname\":\"앨리스\",\"phone\":\"01012345678\"}";
+        // 같은 키·같은 내용으로 만든 티켓: 아직 유효하면 통과(만드는 법 확인), 만료가 지났으면 거부
+        mvc.perform(put("/api/me/profile").with(csrf()).cookie(alice, reauthTicket(userId, sessionId, 60))
+                        .contentType(MediaType.APPLICATION_JSON).content(profile))
+                .andExpect(status().isOk());
+        mvc.perform(put("/api/me/profile").with(csrf()).cookie(alice, reauthTicket(userId, sessionId, -1))
+                        .contentType(MediaType.APPLICATION_JSON).content(profile))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("REAUTH_REQUIRED"));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder;
+
+    /** 지금부터 secondsLeft초 뒤 만료되는 재확인 티켓 (음수면 이미 만료). */
+    private Cookie reauthTicket(Long userId, Long sessionId, long secondsLeft) {
+        java.time.Instant expires = java.time.Instant.now().plusSeconds(secondsLeft);
+        var claims = org.springframework.security.oauth2.jwt.JwtClaimsSet.builder()
+                .subject(String.valueOf(userId))
+                .issuedAt(expires.minusSeconds(600))
+                .expiresAt(expires)
+                .claim("sid", String.valueOf(sessionId))
+                .claim("typ", "REAUTH")
+                .build();
+        String value = jwtEncoder.encode(org.springframework.security.oauth2.jwt.JwtEncoderParameters.from(
+                org.springframework.security.oauth2.jwt.JwsHeader.with(
+                        org.springframework.security.oauth2.jose.jws.MacAlgorithm.HS256).build(), claims))
+                .getTokenValue();
+        return new Cookie("REAUTH_TICKET", value);
+    }
+
+    @Test
+    void 프로필_사진을_올려_바꾼다() throws Exception {
+        // USR-07, 6.3 (029 US6)
+        String body = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/api/files/profile-image")
+                        .file(new org.springframework.mock.web.MockMultipartFile("file", "me.png", "image/png",
+                                com.oneblog.file.TestImages.png()))
+                        .with(csrf()).cookie(alice))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Number fileId = com.jayway.jsonpath.JsonPath.read(body, "$.fileId");
+        String url = com.jayway.jsonpath.JsonPath.read(body, "$.url");
+
+        mvc.perform(put("/api/me/profile").with(csrf()).cookie(alice, reauth).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nickname\":\"앨리스\",\"phone\":\"01012345678\",\"profileFileId\":" + fileId + "}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/me").cookie(alice)).andExpect(jsonPath("$.profileImageUrl").value(url));
+        mvc.perform(get(url)).andExpect(status().isOk());
+
+        // 비회원은 올릴 수 없다
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/api/files/profile-image")
+                        .file(new org.springframework.mock.web.MockMultipartFile("file", "me.png", "image/png",
+                                com.oneblog.file.TestImages.png()))
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
 }

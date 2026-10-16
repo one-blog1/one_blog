@@ -47,17 +47,8 @@ public final class ImageMetadataStripper {
         out.write(data, 0, 2);
         int pos = 2;
         while (pos < data.length) {
-            if (u8(data, pos) != 0xFF) {
-                throw new IllegalArgumentException("JPEG 구간 표시가 없습니다.");
-            }
-            // 채움 바이트(0xFF 여러 개) 건너뛰기
             int markerPos = pos;
-            while (pos < data.length && u8(data, pos) == 0xFF) {
-                pos++;
-            }
-            if (pos >= data.length) {
-                throw new IllegalArgumentException("JPEG가 중간에 끝났습니다.");
-            }
+            pos = skipMarkerFill(data, pos);
             int marker = u8(data, pos);
             pos++;
             if (marker == EOI) {
@@ -71,15 +62,7 @@ public final class ImageMetadataStripper {
                 out.write(marker);
                 continue;
             }
-            if (pos + 2 > data.length) {
-                throw new IllegalArgumentException("JPEG 구간 길이가 없습니다.");
-            }
-            int length = u16be(data, pos);
-            if (length < 2 || pos + length > data.length) {
-                throw new IllegalArgumentException("JPEG 구간 길이가 잘못됐습니다.");
-            }
-            int segmentStart = pos + 2;
-            int segmentEnd = pos + length;
+            int segmentEnd = pos + segmentLength(data, pos);
             if (marker == SOS) {
                 // 압축된 그림 데이터부터 끝까지는 그대로 복사한다
                 out.write(0xFF);
@@ -87,29 +70,61 @@ public final class ImageMetadataStripper {
                 out.write(data, pos, data.length - pos);
                 return out.toByteArray();
             }
-            if (marker == APP13) {
-                pos = segmentEnd;
-                continue;
-            }
-            if (marker == APP1) {
-                byte[] payload = Arrays.copyOfRange(data, segmentStart, segmentEnd);
-                if (startsWith(payload, EXIF_HEADER)) {
-                    if (removeExifGps(payload, EXIF_HEADER.length)) {
-                        out.write(0xFF);
-                        out.write(APP1);
-                        out.write(data, pos, 2);
-                        out.write(payload, 0, payload.length);
-                    }
-                    // 구조가 이상하면 Exif 구간 전체를 뺀다
-                }
-                // XMP 등 다른 APP1은 뺀다
-                pos = segmentEnd;
-                continue;
-            }
-            out.write(data, markerPos, segmentEnd - markerPos);
+            copySegment(out, data, marker, markerPos, pos, segmentEnd);
             pos = segmentEnd;
         }
         throw new IllegalArgumentException("JPEG에 그림 데이터가 없습니다.");
+    }
+
+    /** 구간 표시(0xFF, 앞의 채움 0xFF 포함)를 건너뛰고 표시 종류 바이트의 위치를 돌려준다. */
+    private static int skipMarkerFill(byte[] data, int start) {
+        if (u8(data, start) != 0xFF) {
+            throw new IllegalArgumentException("JPEG 구간 표시가 없습니다.");
+        }
+        int pos = start;
+        while (pos < data.length && u8(data, pos) == 0xFF) {
+            pos++;
+        }
+        if (pos >= data.length) {
+            throw new IllegalArgumentException("JPEG가 중간에 끝났습니다.");
+        }
+        return pos;
+    }
+
+    /** pos에서 시작하는 구간 길이(길이 칸 2바이트 포함). 없거나 파일 밖이면 예외. */
+    private static int segmentLength(byte[] data, int pos) {
+        if (pos + 2 > data.length) {
+            throw new IllegalArgumentException("JPEG 구간 길이가 없습니다.");
+        }
+        int length = u16be(data, pos);
+        if (length < 2 || pos + length > data.length) {
+            throw new IllegalArgumentException("JPEG 구간 길이가 잘못됐습니다.");
+        }
+        return length;
+    }
+
+    /** 길이가 있는 구간 하나를 옮긴다: APP13(Photoshop)은 빼고, APP1은 Exif면 GPS만 지워 넣고, 나머지는 그대로. */
+    private static void copySegment(ByteArrayOutputStream out, byte[] data, int marker, int markerPos, int pos,
+            int segmentEnd) {
+        if (marker == APP13) {
+            return;
+        }
+        if (marker == APP1) {
+            copyExifWithoutGps(out, data, pos, segmentEnd);
+            return;
+        }
+        out.write(data, markerPos, segmentEnd - markerPos);
+    }
+
+    /** APP1 구간: Exif면 GPS만 지워 넣는다. XMP 등 다른 APP1과 구조가 이상한 Exif는 구간 전체를 뺀다. */
+    private static void copyExifWithoutGps(ByteArrayOutputStream out, byte[] data, int pos, int segmentEnd) {
+        byte[] payload = Arrays.copyOfRange(data, pos + 2, segmentEnd);
+        if (startsWith(payload, EXIF_HEADER) && removeExifGps(payload, EXIF_HEADER.length)) {
+            out.write(0xFF);
+            out.write(APP1);
+            out.write(data, pos, 2);
+            out.write(payload, 0, payload.length);
+        }
     }
 
     /**
@@ -190,8 +205,21 @@ public final class ImageMetadataStripper {
         };
     }
 
-    /** TIFF 구조를 읽고 지우는 도우미. 위치는 TIFF 시작 기준. */
-    private record Tiff(byte[] buf, int base, boolean little) {
+    /**
+     * TIFF 구조를 읽고 지우는 도우미. 위치는 TIFF 시작 기준.
+     * 배열을 고쳐 쓰는 작업 도구라 값 비교(record의 equals)가 필요 없어 일반 클래스로 둔다 (S6218).
+     */
+    private static final class Tiff {
+
+        private final byte[] buf;
+        private final int base;
+        private final boolean little;
+
+        Tiff(byte[] buf, int base, boolean little) {
+            this.buf = buf;
+            this.base = base;
+            this.little = little;
+        }
 
         boolean inRange(long offset, long size) {
             return offset >= 0 && size >= 0 && base + offset + size <= buf.length;
@@ -265,15 +293,7 @@ public final class ImageMetadataStripper {
         while (pos + 8 <= riffEnd) {
             String fourcc = new String(data, pos, 4, StandardCharsets.ISO_8859_1);
             long size = u32le(data, pos + 4);
-            long padded = size + (size & 1);
-            if (pos + 8 + padded > data.length) {
-                if (pos + 8 + size == data.length) {
-                    padded = size; // 마지막 덩어리의 채움 바이트가 빠진 파일도 받는다
-                } else {
-                    throw new IllegalArgumentException("WebP 덩어리 길이가 잘못됐습니다.");
-                }
-            }
-            int chunkEnd = (int) (pos + 8 + padded);
+            int chunkEnd = (int) (pos + 8 + paddedChunkSize(data, pos, size));
             if (!fourcc.equals("EXIF") && !fourcc.equals("XMP ")) {
                 if (fourcc.equals("VP8X") && size >= 1) {
                     vp8xFlagIndex = out.size() + 8;
@@ -282,7 +302,23 @@ public final class ImageMetadataStripper {
             }
             pos = chunkEnd;
         }
-        byte[] result = out.toByteArray();
+        return finishWebp(out.toByteArray(), vp8xFlagIndex);
+    }
+
+    /** 덩어리 크기에 짝수 맞춤 채움 바이트를 더한 값. 마지막 덩어리의 채움 바이트가 빠진 파일도 받는다. */
+    private static long paddedChunkSize(byte[] data, int pos, long size) {
+        long padded = size + (size & 1);
+        if (pos + 8 + padded <= data.length) {
+            return padded;
+        }
+        if (pos + 8 + size == data.length) {
+            return size;
+        }
+        throw new IllegalArgumentException("WebP 덩어리 길이가 잘못됐습니다.");
+    }
+
+    /** VP8X의 EXIF·XMP 표시를 끄고 RIFF 크기를 새 길이로 고친다. */
+    private static byte[] finishWebp(byte[] result, int vp8xFlagIndex) {
         if (vp8xFlagIndex >= 0) {
             result[vp8xFlagIndex] = (byte) (result[vp8xFlagIndex] & ~0x0C); // EXIF(0x08)·XMP(0x04) 표시 끄기
         }

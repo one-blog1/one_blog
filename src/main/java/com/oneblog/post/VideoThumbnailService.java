@@ -1,7 +1,9 @@
 package com.oneblog.post;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -66,8 +68,7 @@ public class VideoThumbnailService {
     /** 이 글의 영상 썸네일을 본문에 맞춘다. 실패해도 예외를 밖으로 내지 않는다 (글 저장은 이미 끝났음). */
     public void refresh(Long postId) {
         try {
-            Plan plan = readTx.execute(status -> plan(postId));
-            if (plan == null || plan.keep()) {
+            if (!(readTx.execute(status -> plan(postId)) instanceof Plan plan) || plan.keep()) {
                 return;
             }
             if (plan.key() == null) {
@@ -119,7 +120,24 @@ public class VideoThumbnailService {
         fileRepository.save(file);
     }
 
+    /** 확인을 마친 썸네일 바이트와 형식. 배열은 내용으로 비교한다 (S6218). */
     record Thumbnail(byte[] data, ImageType type) {
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Thumbnail(byte[] otherData, ImageType otherType)
+                    && type == otherType && Arrays.equals(data, otherData);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Arrays.hashCode(data) + Objects.hashCode(type);
+        }
+
+        @Override
+        public String toString() {
+            return "Thumbnail[type=" + type + ", data=" + Arrays.toString(data) + "]";
+        }
     }
 
     /** 받은 바이트가 jpg·png·gif·webp 사진인지 앞부분으로 확인하고 위치 정보를 지운다. 아니면 빈 값. */

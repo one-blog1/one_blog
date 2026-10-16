@@ -2,7 +2,6 @@ package com.oneblog.blog;
 
 import java.util.Locale;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
@@ -17,8 +16,6 @@ public class BlogPolicy {
     public static final int SLUG_MIN = 3;
     public static final int SLUG_MAX = 30;
 
-    /** 영문 소문자·숫자를 -로 이음. -로 시작·끝나거나 --가 들어가면 안 됨. */
-    private static final Pattern SLUG = Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
 
     private final Set<String> reservedSlugs;
 
@@ -32,7 +29,21 @@ public class BlogPolicy {
 
     public boolean isValidSlugFormat(String slug) {
         return slug != null && slug.length() >= SLUG_MIN && slug.length() <= SLUG_MAX
-                && SLUG.matcher(slug).matches();
+                && isSlugChars(slug);
+    }
+
+    /** 영문 소문자·숫자를 -로 이음. -로 시작·끝나거나 --가 들어가면 안 됨 (정규식 ^[a-z0-9]+(-[a-z0-9]+)*$ 와 같음). */
+    private static boolean isSlugChars(String slug) {
+        if (slug.startsWith("-") || slug.endsWith("-") || slug.contains("--")) {
+            return false;
+        }
+        for (int i = 0; i < slug.length(); i++) {
+            char c = slug.charAt(i);
+            if (!(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-')) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean isReservedSlug(String slug) {

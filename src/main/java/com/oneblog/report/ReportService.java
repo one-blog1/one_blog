@@ -251,6 +251,7 @@ public class ReportService {
         String result = request.result() == null ? "" : request.result();
         switch (result) {
             case "NO_ISSUE" -> {
+                // 문제없음: 제재 없이 아래에서 신고만 닫는다
             }
             case "WARNING", "SUSPENSION", "KICK" -> {
                 if (report.authorId() == null) {
@@ -291,6 +292,7 @@ public class ReportService {
         String reason = request.reason() == null || request.reason().isBlank() ? "신고 처리" : request.reason().strip();
         switch (result) {
             case "NO_ISSUE" -> {
+                // 문제없음: 제재 없이 아래에서 신고만 닫는다
             }
             case "CONTENT_DELETED" -> {
                 if ("POST".equals(report.targetType())) {

@@ -51,13 +51,17 @@ public class BlogCloseService {
         if (blog.isClosing()) {
             throw new ApiException(HttpStatus.CONFLICT, "ALREADY_CLOSING", "이미 폐쇄 예정인 블로그입니다.");
         }
-        schedule(blog, "OWNER", LocalDateTime.now());
+        scheduleClose(blog, "OWNER", LocalDateTime.now());
         return blog.getCloseScheduledAt();
     }
 
     /** 폐쇄 예약과 즉시 알림. 관리자 강제 폐쇄·블로그장 권한 박탈(013)도 쓴다. */
     @Transactional
     public void schedule(Blog blog, String reason, LocalDateTime now) {
+        scheduleClose(blog, reason, now);
+    }
+
+    private void scheduleClose(Blog blog, String reason, LocalDateTime now) {
         LocalDateTime at = BlogClock.closeAt(now);
         blog.scheduleClose(at, reason);
         blogRepository.saveAndFlush(blog);

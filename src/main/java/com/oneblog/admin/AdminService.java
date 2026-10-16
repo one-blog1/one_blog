@@ -71,7 +71,7 @@ public class AdminService {
                 FROM users u WHERE u.role = 'USER'
                   AND (u.email LIKE :q OR u.name LIKE :q OR u.nickname LIKE :q)
                 """;
-        long total = jdbc.queryForObject("SELECT COUNT(*) " + where, p, Long.class);
+        long total = count("SELECT COUNT(*) " + where, p);
         List<UserRow> rows = jdbc.query("""
                 SELECT u.id, u.email, u.name, u.nickname, u.phone, u.status, u.role, u.created_at,
                   (SELECT COUNT(*) FROM blog_members m WHERE m.user_id = u.id AND m.status = 'ACTIVE' AND m.role = 'OWNER') owned,
@@ -138,7 +138,7 @@ public class AdminService {
         MapSqlParameterSource p = new MapSqlParameterSource("q", AdminQueries.likePattern(q))
                 .addValue("limit", params.size()).addValue("offset", (long) params.zeroBasedPage() * params.size());
         String where = " FROM blogs b WHERE b.deleted_at IS NULL AND (b.name LIKE :q OR b.slug LIKE :q) ";
-        long total = jdbc.queryForObject("SELECT COUNT(*)" + where, p, Long.class);
+        long total = count("SELECT COUNT(*)" + where, p);
         List<BlogRow> rows = jdbc.query("""
                 SELECT b.id, b.slug, b.name, b.visibility, b.status, b.is_hidden, b.member_count, b.created_at,
                   (SELECT u.nickname FROM blog_members m JOIN users u ON u.id = m.user_id
@@ -175,7 +175,7 @@ public class AdminService {
                  FROM posts p LEFT JOIN blogs b ON b.id = p.blog_id JOIN users u ON u.id = p.user_id
                  WHERE p.title LIKE :q OR u.nickname LIKE :q
                 """;
-        long total = jdbc.queryForObject("SELECT COUNT(*)" + where, p, Long.class);
+        long total = count("SELECT COUNT(*)" + where, p);
         List<PostRow> rows = jdbc.query("SELECT p.id, b.slug, b.name, p.title, u.nickname, p.post_type, p.is_hidden,"
                 + " p.deleted_at IS NOT NULL AS deleted, p.created_at" + where
                 + " ORDER BY p.created_at DESC, p.id DESC LIMIT :limit OFFSET :offset", p,
@@ -221,7 +221,7 @@ public class AdminService {
                  LEFT JOIN blogs b ON b.id = p.blog_id
                  WHERE c.content LIKE :q OR u.nickname LIKE :q
                 """;
-        long total = jdbc.queryForObject("SELECT COUNT(*)" + where, p, Long.class);
+        long total = count("SELECT COUNT(*)" + where, p);
         List<CommentRow> rows = jdbc.query("SELECT c.id, c.post_id, b.slug, p.title, c.content, u.nickname,"
                 + " c.is_hidden, c.deleted_at IS NOT NULL AS deleted, c.created_at" + where
                 + " ORDER BY c.created_at DESC, c.id DESC LIMIT :limit OFFSET :offset", p,
@@ -266,11 +266,9 @@ public class AdminService {
     public Stats stats(int days) {
         int range = Math.max(1, Math.min(days, 90));
         MapSqlParameterSource p = new MapSqlParameterSource("from", LocalDate.now().minusDays(range - 1L));
-        long users = jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE role = 'USER' AND status = 'ACTIVE'", p,
-                Long.class);
-        long blogs = jdbc.queryForObject("SELECT COUNT(*) FROM blogs WHERE status <> 'CLOSED' AND deleted_at IS NULL", p,
-                Long.class);
-        long posts = jdbc.queryForObject("SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL", p, Long.class);
+        long users = count("SELECT COUNT(*) FROM users WHERE role = 'USER' AND status = 'ACTIVE'", p);
+        long blogs = count("SELECT COUNT(*) FROM blogs WHERE status <> 'CLOSED' AND deleted_at IS NULL", p);
+        long posts = count("SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL", p);
         Map<LocalDate, long[]> byDay = new LinkedHashMap<>();
         for (int i = 0; i < range; i++) {
             byDay.put(LocalDate.now().minusDays(range - 1L - i), new long[2]);
@@ -314,5 +312,11 @@ public class AdminService {
                         rs.getString("target_type"), rs.getLong("target_id"), rs.getString("detail"),
                         rs.getString("ip_address"), Times.toOffset(rs.getTimestamp("created_at").toLocalDateTime())));
         return AdminPage.of(rows, params.page(), params.size(), total);
+    }
+
+    /** COUNT(*) 한 값. 결과가 없거나 null이면 0. */
+    private long count(String sql, MapSqlParameterSource args) {
+        Long value = jdbc.queryForObject(sql, args, Long.class);
+        return value == null ? 0 : value;
     }
 }

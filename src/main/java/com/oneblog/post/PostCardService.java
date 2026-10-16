@@ -45,11 +45,15 @@ public class PostCardService {
         Map<Long, Post> byId = new HashMap<>();
         postRepository.findByIdIn(postIds).forEach(p -> byId.put(p.getId(), p));
         List<Post> posts = postIds.stream().map(byId::get).filter(Objects::nonNull).toList();
-        return toCards(posts);
+        return buildCards(posts);
     }
 
     @Transactional(readOnly = true)
     public List<PostCard> toCards(List<Post> posts) {
+        return buildCards(posts);
+    }
+
+    private List<PostCard> buildCards(List<Post> posts) {
         if (posts.isEmpty()) {
             return List.of();
         }

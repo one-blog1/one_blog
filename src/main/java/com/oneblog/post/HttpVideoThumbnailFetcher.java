@@ -4,15 +4,18 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.json.JsonParserFactory;
 import org.springframework.http.HttpHeaders;
@@ -52,15 +55,25 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
     private final boolean enabled;
     private final RestClient client;
 
+    @Autowired
     public HttpVideoThumbnailFetcher(@Value("${app.video-thumbnail.enabled:true}") boolean enabled) {
+        this(enabled, defaultClient());
+    }
+
+    /** HTTP 클라이언트를 받아 만든다. 테스트가 가짜 응답(리다이렉트·큰 사진)을 넣을 때 쓴다 (029 research R6). 동작은 같다. */
+    HttpVideoThumbnailFetcher(boolean enabled, RestClient client) {
         this.enabled = enabled;
+        this.client = client;
+    }
+
+    private static RestClient defaultClient() {
         HttpClient http = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(2))
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(http);
         factory.setReadTimeout(Duration.ofSeconds(3));
-        this.client = RestClient.builder()
+        return RestClient.builder()
                 .requestFactory(factory)
                 .defaultHeader(HttpHeaders.USER_AGENT, USER_AGENT)
                 .build();
@@ -202,7 +215,25 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
         return null;
     }
 
-    private record Fetched(byte[] data, String location, int status) {
+    /** 한 번 요청한 결과: 받은 사진(없으면 null), 넘어갈 주소, 응답 상태. 배열은 내용으로 비교한다 (S6218). */
+    record Fetched(byte[] data, String location, int status) {
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Fetched(byte[] otherData, String otherLocation, int otherStatus)
+                    && status == otherStatus && Objects.equals(location, otherLocation)
+                    && Arrays.equals(data, otherData);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(Arrays.hashCode(data), location, status);
+        }
+
+        @Override
+        public String toString() {
+            return "Fetched[data=" + Arrays.toString(data) + ", location=" + location + ", status=" + status + "]";
+        }
     }
 
     private Fetched fetchOnce(URI uri) {

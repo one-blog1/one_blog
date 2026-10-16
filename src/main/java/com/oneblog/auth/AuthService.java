@@ -3,6 +3,7 @@ package com.oneblog.auth;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,7 +57,8 @@ public class AuthService {
         this.signupPolicy = signupPolicy;
         this.rateLimiter = rateLimiter;
         this.turnstile = turnstile;
-        this.dummyHash = passwordEncoder.encode("dummy-password-for-timing!1");
+        // 없는 이메일도 비밀번호 비교 시간을 같게 하려는 가짜 해시. 원문은 시작할 때마다 무작위로 만들고 어디에도 두지 않는다 (SEC-01)
+        this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     /**
@@ -65,7 +67,7 @@ public class AuthService {
      */
     @Transactional(noRollbackFor = ApiException.class)
     public LoginResult login(String rawEmail, String password, boolean rememberMe, String ip, String captchaToken) {
-        return issue(authenticateMember(rawEmail, password, ip, captchaToken), rememberMe);
+        return issue(checkMember(rawEmail, password, ip, captchaToken), rememberMe);
     }
 
     /**
@@ -74,6 +76,10 @@ public class AuthService {
      */
     @Transactional(noRollbackFor = ApiException.class)
     public User authenticateMember(String rawEmail, String password, String ip, String captchaToken) {
+        return checkMember(rawEmail, password, ip, captchaToken);
+    }
+
+    private User checkMember(String rawEmail, String password, String ip, String captchaToken) {
         rateLimiter.check("login", String.valueOf(ip), LOGIN_PER_IP, LOGIN_WINDOW);
         String email = signupPolicy.normalizeEmail(rawEmail);
         User user = userRepository.findByEmail(email).orElse(null);
@@ -111,39 +117,48 @@ public class AuthService {
     private void authenticate(User user, String password, String ip, String captchaToken, String failMessage,
             boolean lockable) {
         LocalDateTime now = LocalDateTime.now();
-        if (lockable && user != null && user.isLocked(now)) {
-            long seconds = Math.max(1, Duration.between(now, user.getLockedUntil()).toSeconds());
-            throw ApiException.withRetryAfter(HttpStatus.LOCKED, "LOGIN_LOCKED",
-                    "로그인을 5번 틀려 잠시 잠겼습니다. 잠시 후 다시 시도해 주세요.", seconds);
-        }
-        if (lockable && user != null && user.getFailedLoginCount() >= CAPTCHA_AFTER_FAILURES
-                && !turnstile.verify(captchaToken, ip)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "CAPTCHA_REQUIRED", "사람인지 확인해 주세요.");
+        if (lockable && user != null) {
+            checkLockAndCaptcha(user, now, ip, captchaToken);
         }
         boolean passwordMatches = passwordEncoder.matches(password == null ? "" : password,
                 user != null ? user.getPasswordHash() : dummyHash);
         if (user == null || !user.isActive()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", failMessage);
         }
-        if (!passwordMatches && !lockable) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", failMessage);
-        }
         if (!passwordMatches) {
-            boolean locked = user.recordLoginFailure(now, MAX_LOGIN_FAILURES, LOCK_DURATION);
-            userRepository.saveAndFlush(user);
-            if (locked) {
-                throw ApiException.withRetryAfter(HttpStatus.LOCKED, "LOGIN_LOCKED",
-                        "로그인을 5번 틀려 5분 동안 잠겼습니다.", LOCK_DURATION.toSeconds());
-            }
-            if (user.getFailedLoginCount() >= CAPTCHA_AFTER_FAILURES && turnstile.enabled()) {
-                throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED_CAPTCHA", failMessage);
-            }
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", failMessage);
+            throw lockable ? recordFailure(user, now, failMessage)
+                    : new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", failMessage);
         }
         if (user.getFailedLoginCount() > 0 || user.getLockedUntil() != null) {
             user.clearLoginFailures();
             userRepository.saveAndFlush(user);
         }
+    }
+
+    /** 잠긴 계정이면 막고, 여러 번 틀린 계정은 사람 확인을 요구한다. */
+    private void checkLockAndCaptcha(User user, LocalDateTime now, String ip, String captchaToken) {
+        if (user.isLocked(now)) {
+            long seconds = Math.max(1, Duration.between(now, user.getLockedUntil()).toSeconds());
+            throw ApiException.withRetryAfter(HttpStatus.LOCKED, "LOGIN_LOCKED",
+                    "로그인을 5번 틀려 잠시 잠겼습니다. 잠시 후 다시 시도해 주세요.", seconds);
+        }
+        if (user.getFailedLoginCount() >= CAPTCHA_AFTER_FAILURES && !turnstile.verify(captchaToken, ip)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "CAPTCHA_REQUIRED", "사람인지 확인해 주세요.");
+        }
+    }
+
+    /** 틀린 횟수를 저장하고 돌려줄 실패 응답을 고른다 (잠김, 사람 확인 필요, 그냥 실패). */
+    private ApiException recordFailure(User user, LocalDateTime now, String failMessage) {
+        boolean locked = user.recordLoginFailure(now, MAX_LOGIN_FAILURES, LOCK_DURATION);
+        userRepository.saveAndFlush(user);
+        if (locked) {
+            return ApiException.withRetryAfter(HttpStatus.LOCKED, "LOGIN_LOCKED",
+                    "로그인을 5번 틀려 5분 동안 잠겼습니다.", LOCK_DURATION.toSeconds());
+        }
+        if (user.getFailedLoginCount() >= CAPTCHA_AFTER_FAILURES && turnstile.enabled()) {
+            return new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED_CAPTCHA", failMessage);
+        }
+        return new ApiException(HttpStatus.UNAUTHORIZED, "LOGIN_FAILED", failMessage);
     }
 
     private LoginResult issue(User user, boolean rememberMe) {

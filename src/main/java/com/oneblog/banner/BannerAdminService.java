@@ -47,6 +47,10 @@ public class BannerAdminService {
             Boolean visible, Integer imagePosX, Integer imagePosY) {
     }
 
+    /** 요청 본문이 없을 때: 모든 값이 빠진 요청과 같다. */
+    private static final BannerRequest EMPTY_REQUEST =
+            new BannerRequest(null, null, null, null, null, null, null, null);
+
     public record BannerRow(Long id, String kind, String kindLabel, String title, String caption, String linkUrl,
             Long imageFileId, String imageUrl, int imagePosX, int imagePosY, boolean visible, int sortOrder) {
     }
@@ -185,38 +189,52 @@ public class BannerAdminService {
     }
 
     /** currentImage: 고칠 때 지금 사진(그대로 두면 다시 검사하지 않아도 됨). */
-    private Clean validate(BannerRequest body, Long currentImage) {
+    private Clean validate(BannerRequest request, Long currentImage) {
+        BannerRequest body = request == null ? EMPTY_REQUEST : request;
         List<ErrorResponse.FieldError> errors = new ArrayList<>();
-        BannerKind kind = BannerKind.parse(body == null ? null : body.kind());
+        BannerKind kind = BannerKind.parse(body.kind());
         if (kind == null) {
             errors.add(new ErrorResponse.FieldError("kind", "종류는 광고, 공지, 이벤트 중에서 골라 주세요."));
         }
-        String title = body == null || body.title() == null ? "" : body.title().strip();
+        String title = stripped(body.title(), "");
         if (title.isEmpty() || title.length() > TITLE_MAX) {
             errors.add(new ErrorResponse.FieldError("title", "제목은 1~" + TITLE_MAX + "자로 적어 주세요."));
         }
-        String caption = body == null || body.caption() == null ? null : body.caption().strip();
-        if (caption != null && caption.isEmpty()) {
-            caption = null;
-        }
+        String caption = blankToNull(stripped(body.caption(), null));
         if (caption != null && caption.length() > CAPTION_MAX) {
             errors.add(new ErrorResponse.FieldError("caption", "작은 글씨는 " + CAPTION_MAX + "자까지 적어 주세요."));
         }
-        String link = body == null || body.linkUrl() == null ? "" : body.linkUrl().strip();
+        String link = stripped(body.linkUrl(), "");
         if (!BannerLinks.isValid(link)) {
             errors.add(new ErrorResponse.FieldError("linkUrl",
                     "링크는 https://로 시작하는 주소나 /로 시작하는 우리 사이트 주소로 적어 주세요."));
         }
-        Long imageFileId = body == null ? null : body.imageFileId();
-        if (imageFileId == null || !(imageFileId.equals(currentImage) || usableImage(imageFileId))) {
+        Long imageFileId = body.imageFileId();
+        if (!imageAllowed(imageFileId, currentImage)) {
             errors.add(new ErrorResponse.FieldError("imageFileId", "배너 사진을 올려 주세요."));
         }
-        int posX = position(body == null ? null : body.imagePosX(), "imagePosX", errors);
-        int posY = position(body == null ? null : body.imagePosY(), "imagePosY", errors);
+        int posX = position(body.imagePosX(), "imagePosX", errors);
+        int posY = position(body.imagePosY(), "imagePosY", errors);
         if (!errors.isEmpty()) {
             throw new ValidationFailedException(errors);
         }
-        return new Clean(kind, title, caption, link, imageFileId, body.visible() == null || body.visible(), posX, posY);
+        boolean visible = body.visible() == null || body.visible();
+        return new Clean(kind, title, caption, link, imageFileId, visible, posX, posY);
+    }
+
+    /** 앞뒤 공백을 지운 값. 값이 없으면 missing. */
+    private static String stripped(String value, String missing) {
+        return value == null ? missing : value.strip();
+    }
+
+    /** 빈 문자열은 없음(null)으로. */
+    private static String blankToNull(String value) {
+        return value == null || value.isEmpty() ? null : value;
+    }
+
+    /** 배너 사진: 지금 쓰는 사진 그대로이거나 새로 올린 쓸 수 있는 사진. */
+    private boolean imageAllowed(Long imageFileId, Long currentImage) {
+        return imageFileId != null && (imageFileId.equals(currentImage) || usableImage(imageFileId));
     }
 
     /** 사진 위치 0~100(%). 빼면 가운데 50. */

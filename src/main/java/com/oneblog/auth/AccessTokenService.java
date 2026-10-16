@@ -87,13 +87,14 @@ public class AccessTokenService {
         }
         try {
             Jwt jwt = decoder.decode(token);
+            Instant expiresAt = jwt.getExpiresAt();
             if (!TYPE_REAUTH.equals(jwt.getClaimAsString(CLAIM_TYPE))
                     || !String.valueOf(userId).equals(jwt.getSubject())
                     || !String.valueOf(sessionId).equals(jwt.getClaimAsString(CLAIM_SESSION_ID))
-                    || jwt.getExpiresAt() == null || !jwt.getExpiresAt().isAfter(Instant.now())) {
+                    || expiresAt == null || !expiresAt.isAfter(Instant.now())) {
                 return Optional.empty();
             }
-            return Optional.of(jwt.getExpiresAt());
+            return Optional.of(expiresAt);
         } catch (JwtException e) {
             return Optional.empty();
         }

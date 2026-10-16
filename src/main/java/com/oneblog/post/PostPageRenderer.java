@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.oneblog.blog.Blog;
 import com.oneblog.blog.BlogAccessService;
 import com.oneblog.blog.BlogRepository;
+import com.oneblog.common.text.Trim;
 import com.oneblog.common.web.ApiException;
 import com.oneblog.file.FilePurpose;
 import com.oneblog.file.StoredFileRepository;
@@ -46,7 +47,7 @@ public class PostPageRenderer {
         this.accessService = accessService;
         this.fileRepository = fileRepository;
         this.userDisplay = userDisplay;
-        this.baseUrl = baseUrl == null ? "" : baseUrl.replaceAll("/+$", "");
+        this.baseUrl = baseUrl == null ? "" : Trim.trailing(baseUrl, "/");
     }
 
     /**
@@ -102,13 +103,12 @@ public class PostPageRenderer {
 
     /** 목록 썸네일과 같은 사진: 본문 첫 미디어가 영상이면 그 썸네일(D-128), 아니면 첫 사진. */
     private String firstImage(Post post) {
-        for (Object[] row : fileRepository.findVideoThumbRows(List.of(post.getId()))) {
-            return "/files/" + row[1];
+        List<Object[]> thumbs = fileRepository.findVideoThumbRows(List.of(post.getId()));
+        if (!thumbs.isEmpty()) {
+            return "/files/" + thumbs.get(0)[1];
         }
-        for (Object[] row : fileRepository.findImageRows(List.of(post.getId()), FilePurpose.POST)) {
-            return "/files/" + row[1];
-        }
-        return null;
+        List<Object[]> images = fileRepository.findImageRows(List.of(post.getId()), FilePurpose.POST);
+        return images.isEmpty() ? null : "/files/" + images.get(0)[1];
     }
 
     private String template() {

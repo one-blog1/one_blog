@@ -83,17 +83,8 @@ public class BlogJoinService {
             throw new ApiException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 이 블로그의 멤버입니다.");
         }
         // 블랙리스트(BLG-11)에 걸리면 막고, 블로그장이 차단한 회원은 자동 거절한다 (SOC-05, D-36)
-        for (JoinGate gate : gates) {
-            if (gate.check(blog, principal.id()) == JoinGate.Decision.AUTO_REJECT) {
-                JoinStatusResponse current = currentStatus(blog.getId(), principal.id());
-                if ("REJECTED".equals(current.status())) {
-                    throw new ApiException(HttpStatus.CONFLICT, "REAPPLY_TOO_SOON", "거절된 신청은 7일 뒤에 다시 신청할 수 있습니다.");
-                }
-                BlogJoinRequest request = requestRepository.saveAndFlush(BlogJoinRequest.pending(blog.getId(), principal.id()));
-                Long ownerId = memberRepository.findOwnerId(blog.getId());
-                request.reject(ownerId == null ? principal.id() : ownerId);
-                return currentStatus(blog.getId(), principal.id());
-            }
+        if (gateRejects(blog, principal.id())) {
+            return autoReject(blog, principal.id());
         }
         if (membership.isPresent() && membership.get().getStatus() == BlogMemberStatus.KICKED && gates.isEmpty()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "JOIN_BLOCKED", "이 블로그에는 참여할 수 없습니다.");
@@ -114,6 +105,28 @@ public class BlogJoinService {
         requestRepository.save(BlogJoinRequest.pending(blog.getId(), principal.id()));
         listeners.forEach(l -> l.requested(blog, principal.id()));
         return JoinStatusResponse.of("PENDING");
+    }
+
+    /** 참여 관문(블랙리스트·차단) 중 하나라도 자동 거절이면 true. 앞에서부터 보고 처음 거절에서 멈춘다. */
+    private boolean gateRejects(Blog blog, Long userId) {
+        for (JoinGate gate : gates) {
+            if (gate.check(blog, userId) == JoinGate.Decision.AUTO_REJECT) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 자동 거절: 신청을 남기고 바로 블로그장 이름으로 거절한다. 거절된 지 7일이 안 됐으면 다시 신청할 수 없다. */
+    private JoinStatusResponse autoReject(Blog blog, Long userId) {
+        JoinStatusResponse current = currentStatus(blog.getId(), userId);
+        if ("REJECTED".equals(current.status())) {
+            throw new ApiException(HttpStatus.CONFLICT, "REAPPLY_TOO_SOON", "거절된 신청은 7일 뒤에 다시 신청할 수 있습니다.");
+        }
+        BlogJoinRequest request = requestRepository.saveAndFlush(BlogJoinRequest.pending(blog.getId(), userId));
+        Long ownerId = memberRepository.findOwnerId(blog.getId());
+        request.reject(ownerId == null ? userId : ownerId);
+        return currentStatus(blog.getId(), userId);
     }
 
     /** 대기 중인 내 신청 취소. */

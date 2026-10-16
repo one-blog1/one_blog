@@ -23,6 +23,26 @@ class BlogPagesIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void 없는_화면은_막힌다() throws Exception {
-        mvc.perform(get("/no-such-page.html")).andExpect(status().is4xxClientError());
+        // 정한 주소 밖은 보안 설정(anyRequest().denyAll())이 파일을 찾기 전에 막는다. 404가 아니라 401이어야
+        // denyAll이 빠졌을 때 이 테스트가 실패한다 (029 US1, SEC-11)
+        mvc.perform(get("/no-such-page.html")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/login.html")).andExpect(status().isOk());
+    }
+
+    @Test
+    void 글쓰기_글_수정_블로그_관리_화면을_받는다() throws Exception {
+        // 화면 HTML은 비회원도 받는다. 볼 수 있는지·고칠 수 있는지는 API가 지킨다 (research R10, 029 US6)
+        String[][] pages = {
+                {"/blog/any-blog/write", "/post-edit.html"},
+                {"/blog/any-blog/posts/1/edit", "/post-edit.html"},
+                {"/blog/any-blog/manage", "/blog-manage.html"},
+        };
+        for (String[] page : pages) {
+            mvc.perform(get(page[0]))
+                    .andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl(page[1]));
+            mvc.perform(get(page[1])).andExpect(status().isOk());
+        }
     }
 }

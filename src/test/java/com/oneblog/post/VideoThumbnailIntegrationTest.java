@@ -140,6 +140,19 @@ class VideoThumbnailIntegrationTest extends PostTestSupport {
                 .andExpect(jsonPath("$.items[1].thumbnailUrl").isEmpty());
     }
 
+    @Test
+    void 이_메가바이트를_넘는_썸네일은_버리고_글은_저장된다() throws Exception {
+        // D-128, 6.3: 영상 썸네일은 2MB 이하 사진만 (029 US4). 앞부분은 진짜 PNG라 크기 때문에만 버려진다
+        byte[] png = TestImages.png();
+        byte[] big = java.util.Arrays.copyOf(png, HttpVideoThumbnailFetcher.MAX_BYTES + 1);
+        when(fetcher.fetch("youtube:ccccccccccc")).thenReturn(Optional.of(big));
+        Long post = writePost(owner, "thumb-blog", "큰 썸네일", "https://youtu.be/ccccccccccc");
+        assertThat(post).isNotNull();
+        assertThat(thumbs(post, false)).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM files WHERE purpose = 'VIDEO_THUMB'", Integer.class))
+                .isZero();
+    }
+
     @Autowired
     private VideoThumbnailBackfill backfill;
 

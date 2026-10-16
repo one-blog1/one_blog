@@ -169,4 +169,14 @@ class CommentLikeIntegrationTest extends PostTestSupport {
         comment(bob, "관리자 댓글", null).andExpect(status().isForbidden());
         mvc.perform(post("/api/posts/" + postId + "/like").with(csrf()).cookie(bob)).andExpect(status().isForbidden());
     }
+
+    @Test
+    void 비공개_블로그의_글은_멤버가_아니면_좋아요를_누를_수_없다() throws Exception {
+        // 좋아요는 공개 글이나 참여한 블로그의 글에만 (2장 권한표, 029 US2)
+        createBlog(owner, "secret-like", "PRIVATE").andExpect(status().isCreated());
+        Long secret = writePost(owner, "secret-like", "비밀", "본문");
+        mvc.perform(post("/api/posts/" + secret + "/like").with(csrf()).cookie(alice))
+                .andExpect(status().isForbidden());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM post_likes", Integer.class)).isZero();
+    }
 }

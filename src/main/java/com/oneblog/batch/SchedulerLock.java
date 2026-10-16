@@ -4,7 +4,9 @@ import java.net.InetAddress;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -20,6 +22,7 @@ public class SchedulerLock {
     private final NamedParameterJdbcTemplate jdbc;
     private final String owner;
 
+    @Autowired
     public SchedulerLock(NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
         String host;
@@ -28,7 +31,15 @@ public class SchedulerLock {
         } catch (Exception e) {
             host = "unknown";
         }
-        this.owner = host + ":" + ProcessHandle.current().pid();
+        // 운영 컨테이너는 호스트 네트워크라 호스트 이름이 같고 java가 모두 PID 1이다. 앱마다 다른 이름이 되도록
+        // 뜰 때 정한 무작위 값을 붙인다. 그래야 "잡은 쪽만 푼다"가 지켜진다 (029 FR-010)
+        this.owner = host + ":" + ProcessHandle.current().pid() + ":" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    /** 잠금 주인 이름을 정해 만든다. 테스트에서 서버 두 대를 흉내 낼 때 쓴다 (029 FR-010). */
+    SchedulerLock(NamedParameterJdbcTemplate jdbc, String owner) {
+        this.jdbc = jdbc;
+        this.owner = owner;
     }
 
     /** 잠금을 얻으면 true. 얻은 쪽만 작업하고 끝나면 release. */
@@ -56,8 +67,18 @@ public class SchedulerLock {
     }
 
     public void release(String name) {
-        jdbc.update("UPDATE shedlock SET lock_until = :now WHERE name = :name AND locked_by = :by",
-                new MapSqlParameterSource().addValue("name", name).addValue("now", Timestamp.from(Instant.now()))
+        release(name, Instant.now());
+    }
+
+    /**
+     * holdUntil까지는 잠금을 남겨 두고 푼다 (이미 지났으면 바로). 일을 금방 끝낸 서버가 바로 풀면, 조금 늦게 온
+     * 다른 서버가 같은 일을 한 번 더 할 수 있다. 그래서 일정 시간은 잠가 둔다 (ShedLock의 lockAtLeastFor, 029 FR-010).
+     */
+    public void release(String name, Instant holdUntil) {
+        Instant now = Instant.now();
+        Instant until = holdUntil.isAfter(now) ? holdUntil : now;
+        jdbc.update("UPDATE shedlock SET lock_until = :until WHERE name = :name AND locked_by = :by",
+                new MapSqlParameterSource().addValue("name", name).addValue("until", Timestamp.from(until))
                         .addValue("by", owner));
     }
 }

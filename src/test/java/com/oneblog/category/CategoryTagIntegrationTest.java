@@ -193,4 +193,18 @@ class CategoryTagIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/tags/없는태그/posts")).andExpect(jsonPath("$.items", hasSize(0)));
         mvc.perform(get("/tags/여행")).andExpect(forwardedUrl("/tag.html"));
     }
+
+    @Test
+    void 카테고리는_글_관리_권한이_있는_부블로그장만_관리한다() throws Exception {
+        // D-71, D-138 (029 US6)
+        jdbc.update("UPDATE blog_members SET role = 'SUB_OWNER', can_manage_posts = 0, can_manage_members = 1, "
+                + "can_edit_info = 1, sub_owner_since = NOW(6) WHERE user_id = ?", userId("member@example.com"));
+        mvc.perform(post("/api/blogs/open-blog/categories").with(csrf()).cookie(member)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"권한없음\"}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
+        jdbc.update("UPDATE blog_members SET can_manage_posts = 1 WHERE user_id = ?", userId("member@example.com"));
+        mvc.perform(post("/api/blogs/open-blog/categories").with(csrf()).cookie(member)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"권한있음\"}"))
+                .andExpect(status().isCreated());
+    }
 }
