@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.oneblog.post.ShareScope;
 
 /**
  * 글 상세. contentHtml은 서버가 거른 HTML이라 화면이 innerHTML로 넣어도 된다 (SEC-06).
@@ -32,12 +33,14 @@ public record PostDetailResponse(
         boolean canDelete,
         boolean canComment,
         /** 관리자라서 보이는 글(숨긴 글, 숨김·비공개·일부 공개 블로그의 글)이면 그 이유 (D-106). */
-        @JsonInclude(JsonInclude.Include.NON_NULL) String adminViewReason) {
+        @JsonInclude(JsonInclude.Include.NON_NULL) String adminViewReason,
+        /** 공유 창에 보일 항목 (031): PUBLIC·LINK·MEMBERS. */
+        ShareScope shareScope) {
 
     /** 이번 요청에서 센 조회수를 더한 응답 (014). */
     public PostDetailResponse withViewCount(int count) {
         return new PostDetailResponse(id, blogSlug, blogName, title, contentHtml, content, authorId, authorName, notice,
                 categoryId, categoryName, tags, count, likeCount, commentCount, liked, createdAt, updatedAt, canEdit,
-                canDelete, canComment, adminViewReason);
+                canDelete, canComment, adminViewReason, shareScope);
     }
 }

@@ -161,7 +161,8 @@ public class PostService {
                 post.getLikeCount(), post.getCommentCount(), view.liked, Times.toOffset(post.getCreatedAt()),
                 Times.toOffset(post.getUpdatedAt()), author, canDelete && !admin, principal != null && !admin,
                 post.isHidden() ? "관리자가 숨긴 글이에요." : (access.adminView()
-                        ? BlogQueryService.adminViewReason(blog) : null));
+                        ? BlogQueryService.adminViewReason(blog) : null),
+                ShareScope.of(blog.getVisibility(), blog.isHidden(), post.isHidden()));
     }
 
     /**

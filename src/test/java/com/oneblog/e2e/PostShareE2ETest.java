@@ -1,0 +1,166 @@
+package com.oneblog.e2e;
+
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import org.junit.jupiter.api.Test;
+
+import com.microsoft.playwright.APIRequestContext;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+
+/**
+ * 글 공유 창 (031, BRD-07, 6.2): 위에 주소 칸·복사, 아래에 X·텔레그램·페이스북·기기 공유 아이콘.
+ * 보이는 아이콘은 블로그 공개 범위(서버의 shareScope)로 정한다: 공개는 모두, 일부 공개는 기기 공유만, 비공개는 없음.
+ */
+class PostShareE2ETest extends E2ETestSupport {
+
+    private static final String OWNER = "e2e-share@example.com";
+    private static final String NICKNAME = "공유하는사람";
+    private static final String BODY = "본문";
+    private static final String OPEN = "OPEN";
+    private static final String SHARE_BUTTON = "#share-button";
+    private static final String MODAL = ".modal";
+    private static final String DEVICE = "device";
+    private static final String COPY = "copy";
+    private static final String URL_FIELD = "url";
+    private static final String PUBLIC = "PUBLIC";
+    private static final String HREF = "href";
+    /** 기기 공유 창(navigator.share)이 없는 브라우저(CI의 리눅스 Chromium)에서 가짜를 넣고, 넘어온 값을 기록한다. */
+    private static final String FAKE_DEVICE_SHARE = """
+            Object.defineProperty(navigator, 'share', { configurable: true,
+              value: async (data) => { window.__shared = data; } });
+            """;
+
+    @Test
+    void 공개_글은_주소_복사와_SNS_아이콘을_보여_준다() {
+        APIRequestContext owner = apiSignUpAndLogin(OWNER, NICKNAME);
+        apiCreateBlog(owner, "share-open", PUBLIC, OPEN);
+        long postId = apiWritePost(owner, "share-open", "공유할 글", BODY);
+
+        Page page = newPage(true);
+        page.navigate("/blog/share-open/posts/" + postId);
+        String url = page.url();
+        String encoded = encode(url);
+        String title = encode("공유할 글");
+
+        page.locator(SHARE_BUTTON).click();
+        assertThat(item(page, URL_FIELD)).hasValue(url);
+        // 화면은 encodeURIComponent로 넣는다 (정규식은 브라우저가 JS 방식으로 읽어 Java의 Pattern.quote를 쓰지 않는다)
+        assertThat(item(page, "x")).hasAttribute(HREF, "https://x.com/intent/tweet?text=" + title + "&url=" + encoded);
+        assertThat(item(page, "telegram")).hasAttribute(HREF, "https://t.me/share/url?url=" + encoded + "&text=" + title);
+        assertThat(item(page, "facebook")).hasAttribute(HREF, "https://www.facebook.com/sharer/sharer.php?u=" + encoded);
+        for (String key : List.of("x", "telegram", "facebook")) {
+            assertThat(item(page, key)).hasAttribute("target", "_blank");
+            assertThat(item(page, key)).hasAttribute("rel", "noopener noreferrer");
+        }
+        // 기기 공유 창이 없는 브라우저에서는 보이지 않는다
+        assertThat(item(page, DEVICE)).hasCount(0);
+
+        // Esc로 닫고, 다시 열어 복사 (지금까지의 링크 복사와 같은 안내)
+        page.keyboard().press("Escape");
+        assertThat(page.locator(MODAL)).hasCount(0);
+        BrowserContext context = page.context();
+        context.grantPermissions(List.of("clipboard-read", "clipboard-write"));
+        page.locator(SHARE_BUTTON).click();
+        item(page, COPY).click();
+        assertThat(page.locator(MODAL)).hasCount(0);
+        assertThat(page.locator("#post-message"))
+                .hasText("링크를 복사했어요.");
+    }
+
+    @Test
+    void 자동_복사가_막히면_창을_닫지_않고_주소를_선택해_둔다() {
+        APIRequestContext owner = apiSignUpAndLogin(OWNER, NICKNAME);
+        apiCreateBlog(owner, "share-nocopy", PUBLIC, OPEN);
+        long postId = apiWritePost(owner, "share-nocopy", "복사가 막힌 글", BODY);
+
+        Page page = newPage(true);
+        // 클립보드 쓰기를 막는 브라우저(권한 거부·인앱 브라우저)를 흉내 낸다
+        page.addInitScript("""
+                Object.defineProperty(navigator, 'clipboard', { configurable: true,
+                  value: { writeText: () => Promise.reject(new Error('blocked')) } });
+                """);
+        page.navigate("/blog/share-nocopy/posts/" + postId);
+        String url = page.url();
+
+        page.locator(SHARE_BUTTON).click();
+        item(page, COPY).click();
+        assertThat(page.locator(".modal .share-copy-fail")).hasText("자동 복사가 안 돼요. 선택된 주소를 직접 복사해 주세요.");
+        assertThat(page.locator(MODAL)).hasCount(1);
+        assertThat(item(page, URL_FIELD)).isFocused();
+        org.assertj.core.api.Assertions.assertThat(page.evaluate("document.activeElement.selectionStart === 0 "
+                + "&& document.activeElement.selectionEnd === document.activeElement.value.length")).isEqualTo(true);
+        assertThat(item(page, URL_FIELD)).hasValue(url);
+        assertThat(page.locator("#post-message")).isEmpty();
+    }
+
+    @Test
+    void 기기_공유는_제목과_주소를_넘긴다() {
+        APIRequestContext owner = apiSignUpAndLogin(OWNER, NICKNAME);
+        apiCreateBlog(owner, "share-device", PUBLIC, OPEN);
+        long postId = apiWritePost(owner, "share-device", "기기로 보낼 글", BODY);
+
+        Page page = newPage(true);
+        page.addInitScript(FAKE_DEVICE_SHARE);
+        page.navigate("/blog/share-device/posts/" + postId);
+        String url = page.url();
+
+        page.locator(SHARE_BUTTON).click();
+        item(page, DEVICE).click();
+        assertThat(page.locator(MODAL)).hasCount(0);
+        org.assertj.core.api.Assertions.assertThat(page.evaluate("window.__shared && window.__shared.title"))
+                .isEqualTo("기기로 보낼 글");
+        org.assertj.core.api.Assertions.assertThat(page.evaluate("window.__shared && window.__shared.url"))
+                .isEqualTo(url);
+    }
+
+    @Test
+    void 일부_공개와_비공개_글은_SNS_아이콘을_숨긴다() {
+        APIRequestContext owner = apiSignUpAndLogin(OWNER, NICKNAME);
+        apiCreateBlog(owner, "share-link", "UNLISTED", OPEN);
+        long linked = apiWritePost(owner, "share-link", "링크로만 볼 글", BODY);
+        apiCreateBlog(owner, "share-secret", "PRIVATE", OPEN);
+        long secret = apiWritePost(owner, "share-secret", "멤버만 볼 글", BODY);
+        String key = jdbc.queryForObject("SELECT share_token FROM blogs WHERE slug = 'share-link'", String.class);
+
+        // 일부 공개: 링크를 받은 비회원. 주소 칸에는 key가 그대로, SNS는 없고 기기 공유만
+        Page guest = newPage(true);
+        guest.addInitScript(FAKE_DEVICE_SHARE);
+        guest.navigate("/blog/share-link/posts/" + linked + "?key=" + key);
+        assertThat(guest.locator("#post-title")).hasText("링크로만 볼 글");
+        assertThat(guest).hasURL(Pattern.compile("[?]key=" + key + "$"));
+        String linkUrl = guest.url();
+        guest.locator(SHARE_BUTTON).click();
+        assertThat(item(guest, URL_FIELD)).hasValue(linkUrl);
+        assertThat(item(guest, DEVICE)).isVisible();
+        assertThat(guest.locator(".modal [data-share=x], .modal [data-share=telegram], .modal [data-share=facebook]"))
+                .hasCount(0);
+        assertThat(guest.locator(".modal .share-note")).isVisible();
+
+        // 비공개: 블로그장. 주소 칸·복사만
+        Page member = newPage(true);
+        member.addInitScript(FAKE_DEVICE_SHARE);
+        loginViaUi(member, OWNER);
+        member.navigate("/blog/share-secret/posts/" + secret);
+        member.locator(SHARE_BUTTON).click();
+        assertThat(item(member, COPY)).isVisible();
+        assertThat(member.locator(".modal .share-item")).hasCount(0);
+        assertThat(member.locator(".modal .share-note")).isVisible();
+    }
+
+    /** 공유 창 안의 요소 (contracts/share-ui.md의 data-share 값). */
+    private static Locator item(Page page, String key) {
+        return page.locator(".modal [data-share=" + key + "]");
+    }
+
+    /** 화면의 encodeURIComponent와 같게 (공백은 %20). */
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+    }
+}

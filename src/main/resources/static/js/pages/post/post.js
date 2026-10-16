@@ -71,23 +71,18 @@
       $('delete-button').classList.remove('hidden');
       $('delete-button').addEventListener('click', () => remove(post, blogUrl));
     }
-    $('share-button').addEventListener('click', () => copyLink());
+    // 공유 창: 주소 칸·복사와 서비스 아이콘 (031). 주소는 지금 화면 그대로(일부 공개면 key 포함, BLG-01)
+    $('share-button').addEventListener('click', () => window.share.open({
+      title: post.title,
+      url: window.location.origin + window.location.pathname + keyQuery(),
+      scope: post.shareScope,
+      message: $('post-message')
+    }));
     $('post').classList.remove('hidden');
     // 글 목록에서 "읽음"으로 보이게 이 기기에 기억한다 (019, D-123)
     window.ui.markRead(post.id);
     // 댓글·좋아요·신고(006, 013)가 이 정보를 이어서 쓴다
     document.dispatchEvent(new CustomEvent('post:loaded', { detail: post }));
-  }
-
-  async function copyLink() {
-    // 공유 링크에는 일부 공개 블로그의 key가 그대로 들어간다 (BLG-01)
-    const url = window.location.origin + window.location.pathname + keyQuery();
-    try {
-      await navigator.clipboard.writeText(url);
-      $('post-message').textContent = '링크를 복사했어요.';
-    } catch (e) {
-      $('post-message').textContent = url;
-    }
   }
 
   async function remove(post, blogUrl) {
