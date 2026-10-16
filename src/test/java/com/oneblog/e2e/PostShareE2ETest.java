@@ -27,6 +27,9 @@ class PostShareE2ETest extends E2ETestSupport {
     private static final String SHARE_BUTTON = "#share-button";
     private static final String MODAL = ".modal";
     private static final String DEVICE = "device";
+    private static final String COPY = "copy";
+    private static final String URL_FIELD = "url";
+    private static final String PUBLIC = "PUBLIC";
     private static final String HREF = "href";
     /** 기기 공유 창(navigator.share)이 없는 브라우저(CI의 리눅스 Chromium)에서 가짜를 넣고, 넘어온 값을 기록한다. */
     private static final String FAKE_DEVICE_SHARE = """
@@ -37,7 +40,7 @@ class PostShareE2ETest extends E2ETestSupport {
     @Test
     void 공개_글은_주소_복사와_SNS_아이콘을_보여_준다() {
         APIRequestContext owner = apiSignUpAndLogin(OWNER, NICKNAME);
-        apiCreateBlog(owner, "share-open", "PUBLIC", OPEN);
+        apiCreateBlog(owner, "share-open", PUBLIC, OPEN);
         long postId = apiWritePost(owner, "share-open", "공유할 글", BODY);
 
         Page page = newPage(true);
@@ -47,7 +50,7 @@ class PostShareE2ETest extends E2ETestSupport {
         String title = encode("공유할 글");
 
         page.locator(SHARE_BUTTON).click();
-        assertThat(item(page, "url")).hasValue(url);
+        assertThat(item(page, URL_FIELD)).hasValue(url);
         // 화면은 encodeURIComponent로 넣는다 (정규식은 브라우저가 JS 방식으로 읽어 Java의 Pattern.quote를 쓰지 않는다)
         assertThat(item(page, "x")).hasAttribute(HREF, "https://x.com/intent/tweet?text=" + title + "&url=" + encoded);
         assertThat(item(page, "telegram")).hasAttribute(HREF, "https://t.me/share/url?url=" + encoded + "&text=" + title);
@@ -65,16 +68,42 @@ class PostShareE2ETest extends E2ETestSupport {
         BrowserContext context = page.context();
         context.grantPermissions(List.of("clipboard-read", "clipboard-write"));
         page.locator(SHARE_BUTTON).click();
-        item(page, "copy").click();
+        item(page, COPY).click();
         assertThat(page.locator(MODAL)).hasCount(0);
         assertThat(page.locator("#post-message"))
-                .hasText(Pattern.compile("링크를 복사했어요[.]|^http"));
+                .hasText("링크를 복사했어요.");
+    }
+
+    @Test
+    void 자동_복사가_막히면_창을_닫지_않고_주소를_선택해_둔다() {
+        APIRequestContext owner = apiSignUpAndLogin(OWNER, NICKNAME);
+        apiCreateBlog(owner, "share-nocopy", PUBLIC, OPEN);
+        long postId = apiWritePost(owner, "share-nocopy", "복사가 막힌 글", BODY);
+
+        Page page = newPage(true);
+        // 클립보드 쓰기를 막는 브라우저(권한 거부·인앱 브라우저)를 흉내 낸다
+        page.addInitScript("""
+                Object.defineProperty(navigator, 'clipboard', { configurable: true,
+                  value: { writeText: () => Promise.reject(new Error('blocked')) } });
+                """);
+        page.navigate("/blog/share-nocopy/posts/" + postId);
+        String url = page.url();
+
+        page.locator(SHARE_BUTTON).click();
+        item(page, COPY).click();
+        assertThat(page.locator(".modal .share-copy-fail")).hasText("자동 복사가 안 돼요. 선택된 주소를 직접 복사해 주세요.");
+        assertThat(page.locator(MODAL)).hasCount(1);
+        assertThat(item(page, URL_FIELD)).isFocused();
+        org.assertj.core.api.Assertions.assertThat(page.evaluate("document.activeElement.selectionStart === 0 "
+                + "&& document.activeElement.selectionEnd === document.activeElement.value.length")).isEqualTo(true);
+        assertThat(item(page, URL_FIELD)).hasValue(url);
+        assertThat(page.locator("#post-message")).isEmpty();
     }
 
     @Test
     void 기기_공유는_제목과_주소를_넘긴다() {
         APIRequestContext owner = apiSignUpAndLogin(OWNER, NICKNAME);
-        apiCreateBlog(owner, "share-device", "PUBLIC", OPEN);
+        apiCreateBlog(owner, "share-device", PUBLIC, OPEN);
         long postId = apiWritePost(owner, "share-device", "기기로 보낼 글", BODY);
 
         Page page = newPage(true);
@@ -108,7 +137,7 @@ class PostShareE2ETest extends E2ETestSupport {
         assertThat(guest).hasURL(Pattern.compile("[?]key=" + key + "$"));
         String linkUrl = guest.url();
         guest.locator(SHARE_BUTTON).click();
-        assertThat(item(guest, "url")).hasValue(linkUrl);
+        assertThat(item(guest, URL_FIELD)).hasValue(linkUrl);
         assertThat(item(guest, DEVICE)).isVisible();
         assertThat(guest.locator(".modal [data-share=x], .modal [data-share=telegram], .modal [data-share=facebook]"))
                 .hasCount(0);
@@ -120,7 +149,7 @@ class PostShareE2ETest extends E2ETestSupport {
         loginViaUi(member, OWNER);
         member.navigate("/blog/share-secret/posts/" + secret);
         member.locator(SHARE_BUTTON).click();
-        assertThat(item(member, "copy")).isVisible();
+        assertThat(item(member, COPY)).isVisible();
         assertThat(member.locator(".modal .share-item")).hasCount(0);
         assertThat(member.locator(".modal .share-note")).isVisible();
     }

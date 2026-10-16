@@ -43,13 +43,13 @@
     }
   }
 
-  async function copy(p) {
-    // 지금까지의 "링크 복사"와 같다: 안 되면 주소를 그대로 보여 준다
+  /** 클립보드에 넣는다. 브라우저가 막으면(권한 거부, 인앱 브라우저, http 등) false. */
+  async function writeClipboard(text) {
     try {
-      await navigator.clipboard.writeText(p.url);
-      say(p, '링크를 복사했어요.');
+      await navigator.clipboard.writeText(text);
+      return true;
     } catch (e) {
-      say(p, p.url);
+      return false;
     }
   }
 
@@ -64,7 +64,7 @@
     }
   }
 
-  function linkRow(p, close) {
+  function linkRow(p, close, failNote) {
     const row = document.createElement('div');
     row.className = 'share-link';
     const input = document.createElement('input');
@@ -79,9 +79,16 @@
     button.className = 'primary';
     button.dataset.share = 'copy';
     button.textContent = '복사';
-    button.addEventListener('click', () => {
-      close();
-      copy(p);
+    button.addEventListener('click', async () => {
+      if (await writeClipboard(p.url)) {
+        close();
+        say(p, '링크를 복사했어요.');
+        return;
+      }
+      // 자동 복사가 막히면 창을 닫지 않고, 주소를 선택해 두어 바로 직접 복사하게 한다
+      input.focus();
+      input.select();
+      failNote.textContent = '자동 복사가 안 돼요. 선택된 주소를 직접 복사해 주세요.';
     });
     row.append(input, button);
     return row;
@@ -131,7 +138,10 @@
     const p = Object.assign({}, options);
     const modal = window.modal.open({ title: '공유' });
     modal.body.parentElement.classList.add('modal-narrow');
-    modal.body.append(linkRow(p, modal.close));
+    const failNote = document.createElement('p');
+    failNote.className = 'message error share-copy-fail';
+    failNote.setAttribute('role', 'status');
+    modal.body.append(linkRow(p, modal.close, failNote), failNote);
 
     const shown = TARGETS.filter(t => t.show(p.scope));
     if (shown.length) {

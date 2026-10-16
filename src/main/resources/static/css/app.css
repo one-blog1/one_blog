@@ -2346,6 +2346,11 @@ button.primary.inline-button {
   font-size: 14px;
 }
 
+/* 자동 복사가 막혔을 때 주소 칸 바로 아래 안내 */
+.share-copy-fail:not(:empty) {
+  margin: -12px 0 16px;
+}
+
 .share-link button.primary {
   flex: none;
   width: auto;
