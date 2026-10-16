@@ -5,6 +5,7 @@
 보고만 하고 실패시키지 않는다(늘 0으로 끝남).
 
 쓰는 법: SONAR_HOST_URL, SONAR_TOKEN 환경 변수를 두고 ./scripts/sonar-report.py [프로젝트 키(기본 one-blog)]
+SONAR_REPORT_TOKEN(조회용 사용자 토큰)이 있으면 그것을 쓴다. 분석 전용 토큰(SONAR_TOKEN)은 핫스팟 조회가 거절된다.
 """
 import base64
 import json
@@ -16,7 +17,7 @@ import urllib.request
 
 PROJECT = sys.argv[1] if len(sys.argv) > 1 else "one-blog"
 HOST = os.environ.get("SONAR_HOST_URL", "").rstrip("/")
-TOKEN = os.environ.get("SONAR_TOKEN", "")
+TOKEN = os.environ.get("SONAR_REPORT_TOKEN") or os.environ.get("SONAR_TOKEN", "")
 MAX_LINES = 50          # 한 annotation에 적는 최대 줄 수
 MAX_FILE_NOTES = 10     # 파일 위치에 따로 띄우는 이슈 수 (GitHub는 단계마다 annotation 수를 제한함)
 
@@ -97,7 +98,7 @@ def main():
             part()
         except urllib.error.HTTPError as e:
             note("warning", "SonarQube 보고", f"{part.__name__}: 서버가 {e.code}로 거절했습니다"
-                 " (토큰 권한 확인: 이 프로젝트 Browse 권한이 필요)")
+                 " (조회용 사용자 토큰을 SONAR_REPORT_TOKEN에 넣으면 보입니다, readme 참고)")
         except (urllib.error.URLError, OSError, KeyError, ValueError) as e:
             note("warning", "SonarQube 보고", f"{part.__name__}: {e}")
 

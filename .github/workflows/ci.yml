@@ -202,6 +202,7 @@ jobs:
         if: always() && (github.event_name == 'workflow_dispatch' || steps.sonar.outcome == 'failure')
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_REPORT_TOKEN: ${{ secrets.SONAR_REPORT_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: python3 scripts/sonar-report.py one-blog
 

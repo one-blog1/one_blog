@@ -97,7 +97,7 @@ Spring Boot 4.1 · Java 21 · Spring Security · MySQL 8.4 · Flyway · 정적 H
 
 **SonarQube** (정적 분석): 서버 `http://s4.java21.net:9000`, 프로젝트 `one-blog`. 서버가 Community라 PR은 분석하지 않고, `develop`·`main`에 merge된 코드를 2단계에서 분석합니다.
 - 결과 보기: 서버에 로그인 → 프로젝트 `one-blog` → Issues(이슈, 심각도별), Measures(커버리지·중복), Security Hotspots. 이슈를 누르면 해당 줄과 고치는 방법이 나옵니다. 문제가 아닌 이슈는 "False Positive"·"Accept"로 표시합니다.
-- **품질 게이트 실패**: `develop`·`main`의 CI가 빨간색이 되고 `main`이면 배포되지 않습니다. 실패한 조건·새 코드 이슈·검토 전 핫스팟은 그 실행의 Annotations에 뜹니다(`scripts/sonar-report.py`, 서버를 열지 않아도 됨). 직접 실행(Run workflow)에서도 서버의 지금 상태를 같은 방식으로 보여 줍니다. 새 `feature` 브랜치에서 고쳐 다시 merge합니다. 게이트를 통과하기 전에는 버전을 올리지 않습니다.
+- **품질 게이트 실패**: `develop`·`main`의 CI가 빨간색이 되고 `main`이면 배포되지 않습니다. 실패한 조건·새 코드 이슈·검토 전 핫스팟은 그 실행의 Annotations에 뜹니다(`scripts/sonar-report.py`, 서버를 열지 않아도 됨). 직접 실행(Run workflow)에서도 서버의 지금 상태를 같은 방식으로 보여 줍니다. 핫스팟까지 보려면 서버에서 만든 사용자 토큰(User token)을 GitHub Secrets `SONAR_REPORT_TOKEN`에 넣습니다(분석 전용 `SONAR_TOKEN`은 핫스팟 조회가 거절됨. 없어도 게이트·이슈는 보임). 새 `feature` 브랜치에서 고쳐 다시 merge합니다. 게이트를 통과하기 전에는 버전을 올리지 않습니다.
 - 게이트는 "새 코드" 기준입니다. 분석의 버전이 서비스 버전이라, 새 코드 = 이번 버전 동안 쌓인 변경입니다(서버의 새 코드 기준이 "이전 버전"일 때). 게이트 조건은 서버 관리자가 정합니다.
 - 비밀값: GitHub Secrets `SONAR_TOKEN`(이 프로젝트 분석 전용 토큰), `SONAR_HOST_URL`. 서버가 http라 토큰이 암호화 없이 오가므로 다른 권한이 있는 토큰은 쓰지 않고, 의심되면 서버의 My Account → Security에서 폐기·재발급합니다.
 - **코드 쓰는 중에 미리 보기**: VS Code의 SonarQube for IDE 확장(Java는 Red Hat "Language Support for Java" 확장도 필요)에서 SonarQube Server 연결을 추가하고(서버 주소 + 개인 토큰, CI용과 따로) 프로젝트 `one-blog`에 묶으면 서버와 같은 규칙으로 바로 검사합니다.
