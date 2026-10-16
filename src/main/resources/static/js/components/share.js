@@ -16,18 +16,19 @@
   const isPublic = (scope) => scope === 'PUBLIC';
 
   // 아이콘 줄 (순서대로). 카카오톡은 키가 준비되면 여기에 하나 더한다 (R7).
-  // image: 각 서비스가 브랜드 자료로 주는 공식 아이콘 파일(/images/share/…). 없으면 short 글자를 원 안에 넣는다.
+  // image: 각 서비스가 브랜드 자료로 주는 공식 아이콘 파일(/images/share/…, 텔레그램·페이스북). 없으면 short 글자를 원 안에 넣는다.
+  // X는 공식 브랜드 툴킷에 새 로고 파일이 없어 글자로 둔다(밝은 화면은 검정 원, 어두운 화면은 흰 원: X 가이드의 배경 규칙).
   const TARGETS = [
     {
       key: 'x', label: 'X', short: 'X', image: null, show: isPublic,
       href: (p) => 'https://x.com/intent/tweet?text=' + encode(p.title) + '&url=' + encode(p.url)
     },
     {
-      key: 'telegram', label: '텔레그램', short: '텔', image: null, show: isPublic,
+      key: 'telegram', label: '텔레그램', short: '텔', image: '/images/share/telegram.svg', show: isPublic,
       href: (p) => 'https://t.me/share/url?url=' + encode(p.url) + '&text=' + encode(p.title)
     },
     {
-      key: 'facebook', label: '페이스북', short: '페', image: null, show: isPublic,
+      key: 'facebook', label: '페이스북', short: '페', image: '/images/share/facebook.png', show: isPublic,
       href: (p) => 'https://www.facebook.com/sharer/sharer.php?u=' + encode(p.url)
     },
     {
@@ -103,6 +104,9 @@
       const img = document.createElement('img');
       img.src = target.image;
       img.alt = '';
+      img.width = 52;
+      img.height = 52;
+      circle.classList.add('has-image');
       circle.append(img);
     } else {
       circle.textContent = target.short;

@@ -2401,10 +2401,23 @@ button.primary.inline-button {
   transition: background-color 0.15s ease;
 }
 
+/* 공식 아이콘 파일은 원 모양 그대로 쓴다 (테두리·바탕 없이) */
+.share-badge.has-image {
+  border: none;
+}
+
 .share-badge img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+/* X: 공식 새 로고 파일이 없어 글자로. 밝은 화면은 검정 원·흰 글자, 어두운 화면은 반대 (--text·--surface가 테마를 따른다) */
+.share-item[data-share="x"] .share-badge {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+  font-size: 22px;
 }
 
 .share-badge .icon {
@@ -2420,6 +2433,20 @@ button.primary.inline-button {
 .share-item:hover .share-badge,
 .share-item:focus-visible .share-badge {
   background: var(--sun-soft);
+}
+
+/* 색이 있는 아이콘(공식 파일·X)은 바탕을 바꾸지 않고 살짝 흐리게 */
+.share-item:hover .share-badge.has-image,
+.share-item:focus-visible .share-badge.has-image,
+.share-item[data-share="x"]:hover .share-badge,
+.share-item[data-share="x"]:focus-visible .share-badge {
+  background: var(--text);
+  opacity: 0.85;
+}
+
+.share-item:hover .share-badge.has-image,
+.share-item:focus-visible .share-badge.has-image {
+  background: none;
 }
 
 .share-name {
