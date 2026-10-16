@@ -220,8 +220,9 @@ public class HttpVideoThumbnailFetcher implements VideoThumbnailFetcher {
 
         @Override
         public boolean equals(Object other) {
-            return other instanceof Fetched that && status == that.status
-                    && Objects.equals(location, that.location) && Arrays.equals(data, that.data);
+            return other instanceof Fetched(byte[] otherData, String otherLocation, int otherStatus)
+                    && status == otherStatus && Objects.equals(location, otherLocation)
+                    && Arrays.equals(data, otherData);
         }
 
         @Override
