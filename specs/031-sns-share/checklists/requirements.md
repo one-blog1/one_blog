@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — Q1 인스타그램, Q2 일부 공개 블로그 SNS 공유 (사용자 답 대기)
+- [x] No [NEEDS CLARIFICATION] markers remain — 인스타그램은 기기 공유로, 일부 공개는 링크 복사·기기 공유만 (2026-10-16)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,4 +31,4 @@
 
 ## Notes
 
-- 카카오 JavaScript 키·도메인 등록은 사용자 작업
+- 범위: X·페이스북·텔레그램·기기 공유 먼저 (사용자 결정). 카카오톡은 키 준비 뒤 다음 스펙
