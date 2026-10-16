@@ -19,6 +19,9 @@ import jakarta.servlet.http.Cookie;
 /** 글 쓰기·보기·고치기·지우기와 목록 (BRD-01, BRD-02, 6.6, D-07, D-33, D-58 / specs/004-posts). */
 class PostIntegrationTest extends PostTestSupport {
 
+    private static final String SHARE_SCOPE = "$.shareScope";
+    private static final String MEMBERS = "MEMBERS";
+
     private Cookie owner;
     private Cookie member;
     private Cookie stranger;
@@ -172,6 +175,34 @@ class PostIntegrationTest extends PostTestSupport {
         mvc.perform(get("/api/posts/" + id).cookie(stranger)).andExpect(status().isForbidden());
         mvc.perform(get("/api/blogs/secret-blog/posts").cookie(stranger)).andExpect(status().isForbidden());
         mvc.perform(get("/api/posts/" + id).cookie(owner)).andExpect(status().isOk());
+    }
+
+    @Test
+    void 글_상세에_공유_범위가_들어간다() throws Exception {
+        // 공유 창에 보일 항목은 서버가 정한다: 공개 PUBLIC, 일부 공개 LINK, 비공개·숨김 MEMBERS (031, BRD-07, 6.2)
+        Long open = writePost(owner, "open-blog", "공개 글", "본문");
+        mvc.perform(get("/api/posts/" + open)).andExpect(jsonPath(SHARE_SCOPE).value("PUBLIC"));
+
+        createBlog(owner, "link-blog", "UNLISTED").andExpect(status().isCreated());
+        Long linked = writePost(owner, "link-blog", "일부 공개 글", "본문");
+        String key = jdbc.queryForObject("SELECT share_token FROM blogs WHERE slug = 'link-blog'", String.class);
+        mvc.perform(get("/api/posts/" + linked).param("key", key)).andExpect(jsonPath(SHARE_SCOPE).value("LINK"));
+
+        createBlog(owner, "secret-blog", "PRIVATE").andExpect(status().isCreated());
+        Long secret = writePost(owner, "secret-blog", "비공개 글", "본문");
+        mvc.perform(get("/api/posts/" + secret).cookie(owner)).andExpect(jsonPath(SHARE_SCOPE).value(MEMBERS));
+
+        // 관리자가 숨긴 블로그는 멤버만 본다 (ADM-02) → 공유도 멤버끼리
+        jdbc.update("UPDATE blogs SET is_hidden = 1 WHERE slug = 'open-blog'");
+        mvc.perform(get("/api/posts/" + open).cookie(owner)).andExpect(jsonPath(SHARE_SCOPE).value(MEMBERS));
+        jdbc.update("UPDATE blogs SET is_hidden = 0 WHERE slug = 'open-blog'");
+
+        // 숨긴 글은 관리자만 본다 (D-106) → 공유는 주소 칸만
+        Cookie admin = createAdminAndLogin("admin01");
+        jdbc.update("UPDATE posts SET is_hidden = 1 WHERE id = ?", open);
+        mvc.perform(get("/api/posts/" + open).cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(SHARE_SCOPE).value(MEMBERS));
     }
 
     @Test

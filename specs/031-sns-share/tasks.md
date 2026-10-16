@@ -18,11 +18,11 @@
 
 **Goal**: 글 상세 응답에 `shareScope`가 들어간다 (data-model, R4).
 
-- [ ] T001 [P] `post/ShareScope.java`를 만든다: enum `PUBLIC`, `LINK`, `MEMBERS`와 `static ShareScope of(BlogVisibility visibility, boolean blogHidden, boolean postHidden)`.
+- [X] T001 [P] `post/ShareScope.java`를 만든다: enum `PUBLIC`, `LINK`, `MEMBERS`와 `static ShareScope of(BlogVisibility visibility, boolean blogHidden, boolean postHidden)`.
   - 규칙(data-model 그대로): "글이 숨김이 아니고 블로그도 숨김이 아닐 때: 공개 → `PUBLIC`, 일부 공개 → `LINK`, 비공개 → `MEMBERS`. 글이나 블로그가 숨김이면 `MEMBERS`"
-- [ ] T002 [P] `post/ShareScopeTest.java`(단위): 공개·일부 공개·비공개 × 블로그 숨김 × 글 숨김 전체 조합을 표로 확인한다 (BRD-07, 6.2, D-142).
-- [ ] T003 `post/dto/PostDetailResponse.java`에 `ShareScope shareScope` 칸을 맨 끝(`adminViewReason` 앞이 아니라 뒤)에 더하고 `withViewCount`도 넘긴다. `post/PostService.java` `detail()`에서 `ShareScope.of(blog.getVisibility(), blog.isHidden(), post.isHidden())`로 채운다. (T001 뒤)
-- [ ] T004 `post/PostIntegrationTest.java`에 `글_상세에_공유_범위가_들어간다`를 더한다: 공개 블로그 글 `PUBLIC`, 일부 공개 블로그 글(key로) `LINK`, 비공개 블로그 글(멤버로) `MEMBERS`, 관리자가 숨긴 글(관리자로) `MEMBERS`. `$.shareScope`로 확인. (T003 뒤)
+- [X] T002 [P] `post/ShareScopeTest.java`(단위): 공개·일부 공개·비공개 × 블로그 숨김 × 글 숨김 전체 조합을 표로 확인한다 (BRD-07, 6.2, D-142).
+- [X] T003 `post/dto/PostDetailResponse.java`에 `ShareScope shareScope` 칸을 맨 끝(`adminViewReason` 앞이 아니라 뒤)에 더하고 `withViewCount`도 넘긴다. `post/PostService.java` `detail()`에서 `ShareScope.of(blog.getVisibility(), blog.isHidden(), post.isHidden())`로 채운다. (T001 뒤)
+- [X] T004 `post/PostIntegrationTest.java`에 `글_상세에_공유_범위가_들어간다`를 더한다: 공개 블로그 글 `PUBLIC`, 일부 공개 블로그 글(key로) `LINK`, 비공개 블로그 글(멤버로) `MEMBERS`, 관리자가 숨긴 글(관리자로) `MEMBERS`. `$.shareScope`로 확인. (T003 뒤)
 
 **Checkpoint**: push → CI `unit`(T002), 직접 실행 `full`(T004).
 
@@ -31,16 +31,16 @@
 **Goal**: 링크 복사 아이콘 버튼이 공유 아이콘 버튼이 되고, 누르면 가운데 창 위에 주소 칸·복사 버튼이 있다 (contracts/share-ui.md).
 **Independent Test**: 공유 → 창(주소 칸에 글 주소) → 복사 → "링크를 복사했어요.", Esc로 닫힘.
 
-- [ ] T005 [P] [US3] `static/js/lib/icons.js`에 `share` 아이콘(선 아이콘, 다른 아이콘과 같은 굵기·크기)을 더한다.
-- [ ] T006 [US3] `static/js/components/share.js`를 만든다: `window.share.open({ title, url, scope, message })`.
+- [X] T005 [P] [US3] `static/js/lib/icons.js`에 `share` 아이콘(선 아이콘, 다른 아이콘과 같은 굵기·크기)을 더한다.
+- [X] T006 [US3] `static/js/components/share.js`를 만든다: `window.share.open({ title, url, scope, message })`.
   - `window.modal.open({ title: '공유' })`로 창을 띄우고 창에 `modal-narrow` 클래스를 더한다.
   - 위: `.share-link` 안에 읽기 전용 `input[data-share="url"]`(공유 주소, aria-label "글 주소")와 버튼 "복사"(`data-share="copy"`). post.js의 `copyLink` 동작을 그대로 옮긴다(복사 성공 "링크를 복사했어요.", 실패하면 주소를 보여 줌). 누르면 창을 닫고 `message`(글 화면의 `#post-message`)에 안내.
   - 아래: 아이콘 줄 `ul.share-icons`. 항목은 배열로 정의한다(다음 스펙에서 카카오톡을 하나 더할 수 있게, R7): `{ key, label, short, image, show(scope), build }`. 원형 아이콘은 `image`(공식 아이콘 파일 경로)가 있으면 `<img alt="">`, 없으면 `short` 글자. 아래에 이름.
   - 보이는 아이콘이 없으면 줄을 만들지 않는다. `LINK`·`MEMBERS`면 안내 한 줄(`.share-note`, contracts 문구).
-- [ ] T007 [US3] `static/js/pages/post/post.js`: `copyLink`를 지우고 `$('share-button')` 클릭 시 `window.share.open({ title: post.title, url: 글 주소 + keyQuery(), scope: post.shareScope, message: $('post-message') })`.
+- [X] T007 [US3] `static/js/pages/post/post.js`: `copyLink`를 지우고 `$('share-button')` 클릭 시 `window.share.open({ title: post.title, url: 글 주소 + keyQuery(), scope: post.shareScope, message: $('post-message') })`.
   - 글 주소 만들기는 지금 `copyLink`와 같다: `window.location.origin + window.location.pathname + keyQuery()`.
-- [ ] T008 [US3] `static/post.html`: `#share-button`의 `data-icon="link"` → `data-icon="share"`, 글자(이름) "링크 복사" → "공유". id는 그대로. `js/components/share.js`를 `post.js` 앞에 불러온다. 맨 위 주석에 031을 적는다.
-- [ ] T009 [US3] `static/css/app.css`: 2부 창(모달) 자리에 `.modal.card.modal-narrow`(폭 min(400px, 100%)), 3부 "글(004)" 자리에 `.share-link`(주소 칸 + 복사 버튼 한 줄), `.share-icons`(원형 52px 아이콘을 가로로 고르게, 아래 이름, 휴대폰에서 넘치지 않음), `.share-note`. 새 색 없이 기존 변수만, 다크 모드에서도 보이게.
+- [X] T008 [US3] `static/post.html`: `#share-button`의 `data-icon="link"` → `data-icon="share"`, 글자(이름) "링크 복사" → "공유". id는 그대로. `js/components/share.js`를 `post.js` 앞에 불러온다. 맨 위 주석에 031을 적는다.
+- [X] T009 [US3] `static/css/app.css`: 2부 창(모달) 자리에 `.modal.card.modal-narrow`(폭 min(400px, 100%)), 3부 "글(004)" 자리에 `.share-link`(주소 칸 + 복사 버튼 한 줄), `.share-icons`(원형 52px 아이콘을 가로로 고르게, 아래 이름, 휴대폰에서 넘치지 않음), `.share-note`. 새 색 없이 기존 변수만, 다크 모드에서도 보이게.
 
 **Checkpoint**: 복사가 창 안에서 지금 링크 복사처럼 된다.
 
@@ -49,24 +49,24 @@
 **Goal**: `PUBLIC` 글에서 세 서비스 공유 화면이 새 창으로 열린다 (R1, R2).
 **Independent Test**: 세 링크의 주소에 글 주소(인코딩)가 들어 있고 새 창(`target=_blank`)이다.
 
-- [ ] T010 [US1] `share.js` 아이콘 배열에 3개를 이 순서로 더한다(`show`: `scope === 'PUBLIC'`). 모두 `<a target="_blank" rel="noopener noreferrer">`, 누르면 창을 닫는다.
+- [X] T010 [US1] `share.js` 아이콘 배열에 3개를 이 순서로 더한다(`show`: `scope === 'PUBLIC'`). 모두 `<a target="_blank" rel="noopener noreferrer">`, 누르면 창을 닫는다.
   - `x` "X": `https://x.com/intent/tweet?text={encode(title)}&url={encode(url)}`
   - `telegram` "텔레그램": `https://t.me/share/url?url={encode(url)}&text={encode(title)}`
   - `facebook` "페이스북": `https://www.facebook.com/sharer/sharer.php?u={encode(url)}`
-  - 공식 아이콘 파일은 사용자가 주면 `static/images/share/`에 넣고 `image`에 경로를 적는다. 그 전에는 `short`("X", "TG", "f" 같은 글자 대신 이름 첫 글자: "X", "텔", "페").
+  - 공식 아이콘 파일은 사용자가 주면 `static/images/share/`에 넣고 `image`에 경로를 적는다. 그 전에는 `short`(이름 첫 글자: "X", "텔", "페")를 원 안에 넣는다.
 
 ## Phase 5: US2 - 기기 공유 (P2)
 
 **Goal**: 공유 창을 지원하는 기기에서 기기 공유로 인스타그램 DM 등에 보낸다 (R3).
 **Independent Test**: `navigator.share`가 있을 때만 보이고, 누르면 `{ title, url }`이 넘어간다.
 
-- [ ] T011 [US2] `share.js` 아이콘 배열 끝에 `device` 항목 "기기 공유"(버튼, 원 안에는 사이트 아이콘 세트의 `share` 아이콘)를 더한다.
+- [X] T011 [US2] `share.js` 아이콘 배열 끝에 `device` 항목 "기기 공유"(버튼, 원 안에는 사이트 아이콘 세트의 `share` 아이콘)를 더한다.
   - `show`: `(scope === 'PUBLIC' || scope === 'LINK') && typeof navigator.share === 'function'`
   - 누르면 창을 닫고 `navigator.share({ title, url })`. `AbortError`면 아무것도 안 하고, 다른 오류면 `message`에 "공유하지 못했어요. 링크 복사를 이용해 주세요."
 
 ## Phase 6: E2E와 마무리
 
-- [ ] T012 `e2e/PostShareE2ETest.java`를 만든다 (quickstart 1~5). 블로그·글은 `apiCreateBlog`·`apiWritePost`로 준비한다.
+- [X] T012 `e2e/PostShareE2ETest.java`를 만든다 (quickstart 1~5). 블로그·글은 `apiCreateBlog`·`apiWritePost`로 준비한다.
   - 공개 글: 공유 → `data-share` url(값 = 글 주소)·copy·x·telegram·facebook 보임, device 안 보임. 세 링크 `href`에 인코딩된 글 주소가 들어 있고 `target=_blank`. 복사 → `#post-message` "링크를 복사했어요."(컨텍스트에 clipboard 권한 부여). Esc로 창이 닫힘.
   - 가짜 기기 공유: `page.addInitScript`로 `navigator.share`를 기록하는 가짜로 넣고 → device 보임 → 누르면 기록된 title·url이 글 제목·주소.
   - 비공개 블로그 글(블로그장으로 로그인): url·copy만 보임.
