@@ -125,7 +125,8 @@ public class VideoThumbnailService {
 
         @Override
         public boolean equals(Object other) {
-            return other instanceof Thumbnail that && type == that.type && Arrays.equals(data, that.data);
+            return other instanceof Thumbnail(byte[] otherData, ImageType otherType)
+                    && type == otherType && Arrays.equals(data, otherData);
         }
 
         @Override
