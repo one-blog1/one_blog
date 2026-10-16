@@ -2,7 +2,7 @@
 
 **Branch**: `feature/sns-share` | **Date**: 2026-10-16 | **Spec**: [spec.md](./spec.md)
 
-**Input**: `specs/031-sns-share/spec.md` (2026-10-16 확인. 범위: X·페이스북·텔레그램·기기 공유, 카카오톡은 다음)
+**Input**: `specs/031-sns-share/spec.md` (2026-10-16 확인. 범위: X·페이스북·텔레그램·기기 공유, 카카오톡은 다음) / plan 확인 2026-10-16: "링크 복사 아이콘을 공유로 바꾸고 그 안에서 플랫폼 선택, 링크 복사도 그 안에"
 
 ## Summary
 
@@ -17,8 +17,8 @@
 | `post/dto/PostDetailResponse.java`, `post/PostService.java` | 응답에 `shareScope` 한 칸 |
 | `static/js/components/share.js` (새) | 공유 창: 항목 목록 만들기, 링크 복사, 기기 공유 |
 | `static/js/pages/post/post.js` | 공유 버튼이 `share.js`를 부른다. 기존 `copyLink`는 `share.js`로 옮김 |
-| `static/post.html` | 버튼 글자 "공유"(id 유지), `share.js` 불러오기, 아이콘 |
-| `static/js/lib/icons.js` | 공유 아이콘 하나 (필요하면) |
+| `static/post.html` | 지금의 링크 복사 아이콘 버튼을 공유 아이콘 버튼으로(이름 "공유", id 유지). 링크 복사는 공유 창 안 첫 항목으로 남김. `share.js` 불러오기 |
+| `static/js/lib/icons.js` | 공유 아이콘 하나 추가 |
 | `static/css/app.css` | 3부 "글(004)" 자리에 공유 목록 모양 |
 
 DB·ERD·Flyway·보안 헤더(CSP)·설정 변경 없음.
