@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 class ImageMetadataStripperTest {
 
     /** 위도 값으로 넣을 알아보기 쉬운 바이트 */
-    private static final byte[] GPS_MARK = "GPSGPSGPSGPSGPSGPSGPSGPS".getBytes(StandardCharsets.US_ASCII);
+    static final byte[] GPS_MARK = "GPSGPSGPSGPSGPSGPSGPSGPS".getBytes(StandardCharsets.US_ASCII);
 
     @Test
     void JPEG의_GPS는_지우고_사진_방향은_남긴다() throws Exception {
@@ -103,7 +103,7 @@ class ImageMetadataStripperTest {
     }
 
     /** SOI 뒤에 Exif(방향 6 + GPS 위도) APP1과 XMP APP1을 넣은 JPEG. */
-    private static byte[] jpegWithExifGpsAndXmp() {
+    static byte[] jpegWithExifGpsAndXmp() {
         // TIFF (little endian). IFD0 at 8: 2 entries → 8 + 2 + 24 + 4 = 38 → GPS IFD at 38
         ByteArrayOutputStream tiff = new ByteArrayOutputStream();
         tiff.writeBytes(new byte[] {'I', 'I', 42, 0});

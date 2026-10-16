@@ -1,6 +1,7 @@
 package com.oneblog.batch;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Component;
 public class DailyBatch {
 
     static final String LOCK_NAME = "daily-batch";
+    /** 배치를 끝내도 잠금을 남겨 두는 최소 시간 (029 FR-010). */
+    static final Duration MIN_HOLD = Duration.ofMinutes(5);
     private static final Logger log = LoggerFactory.getLogger(DailyBatch.class);
 
     private final List<DailyTask> tasks;
@@ -32,14 +35,17 @@ public class DailyBatch {
 
     @Scheduled(cron = "0 0 4 * * *", zone = "Asia/Seoul")
     public void scheduled() {
+        Instant started = Instant.now();
         if (!lock.tryLock(LOCK_NAME, Duration.ofHours(1))) {
-            log.info("다른 서버가 04:00 배치를 실행 중이라 건너뜁니다.");
+            log.info("다른 서버가 04:00 배치를 실행 중이거나 막 끝내서 건너뜁니다.");
             return;
         }
         try {
             runAll(LocalDateTime.now());
         } finally {
-            lock.release(LOCK_NAME);
+            // 운영은 앱이 2개 동시에 떠서 둘 다 04:00에 여기로 온다. 한쪽이 금방 끝내고 바로 풀면 조금 늦게 온 쪽이
+            // 같은 날 한 번 더 돌 수 있으므로, 시작 뒤 5분까지는 잠가 둔다 (SCL-03, 029 FR-010)
+            lock.release(LOCK_NAME, started.plus(MIN_HOLD));
         }
     }
 

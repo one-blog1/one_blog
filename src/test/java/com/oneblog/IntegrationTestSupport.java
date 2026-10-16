@@ -107,20 +107,33 @@ public abstract class IntegrationTestSupport {
         return result.getResponse().getCookie(CookieNames.SIGNUP_TICKET);
     }
 
+    /** 기본 테스트 회원의 이름·전화번호. 블랙리스트처럼 이름·번호로 비교하는 기능은 회원마다 다른 값을 쓴다 (029 R1). */
+    protected static final String DEFAULT_NAME = "홍길동";
+    protected static final String DEFAULT_PHONE = "010-1234-5678";
+
     protected String signupBody(String nickname) {
+        return signupBody(nickname, DEFAULT_NAME, DEFAULT_PHONE);
+    }
+
+    protected String signupBody(String nickname, String name, String phone) {
         return """
-                {"password":"%s","passwordConfirm":"%s","name":"홍길동","nickname":"%s",
-                 "phone":"010-1234-5678","agreeTerms":true,"agreePrivacy":true}
-                """.formatted(PASSWORD, PASSWORD, nickname);
+                {"password":"%s","passwordConfirm":"%s","name":"%s","nickname":"%s",
+                 "phone":"%s","agreeTerms":true,"agreePrivacy":true}
+                """.formatted(PASSWORD, PASSWORD, name, nickname, phone);
     }
 
     /** 가입 세 단계를 끝까지 진행한다. */
     protected void signUp(String email, String nickname) throws Exception {
+        signUp(email, nickname, DEFAULT_NAME, DEFAULT_PHONE);
+    }
+
+    /** 이름·전화번호를 정해 가입한다 (029 R1). */
+    protected void signUp(String email, String nickname, String name, String phone) throws Exception {
         String code = requestSignupCode(email);
         Cookie ticket = verifyCode(email, code);
         mvc.perform(post("/api/auth/signup").with(csrf()).cookie(ticket)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(signupBody(nickname)))
+                        .content(signupBody(nickname, name, phone)))
                 .andExpect(status().isCreated());
     }
 
@@ -142,6 +155,12 @@ public abstract class IntegrationTestSupport {
     /** 가입하고 로그인해 ACCESS_TOKEN 쿠키를 돌려준다. */
     protected Cookie signUpAndLogin(String email, String nickname) throws Exception {
         signUp(email, nickname);
+        return loginCookie(email);
+    }
+
+    /** 이름·전화번호를 정해 가입하고 로그인한다 (029 R1). */
+    protected Cookie signUpAndLogin(String email, String nickname, String name, String phone) throws Exception {
+        signUp(email, nickname, name, phone);
         return loginCookie(email);
     }
 
