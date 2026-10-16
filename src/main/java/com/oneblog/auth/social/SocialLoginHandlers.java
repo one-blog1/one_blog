@@ -57,7 +57,7 @@ public class SocialLoginHandlers implements AuthenticationSuccessHandler, Authen
         Optional<SocialProvider> provider = SocialProvider.from(token.getAuthorizedClientRegistrationId());
         Optional<SocialTickets.Pending> profile = provider
                 .flatMap(p -> SocialProfiles.from(p, token.getPrincipal().getAttributes()));
-        if (profile.isEmpty()) {
+        if (provider.isEmpty() || profile.isEmpty()) {
             response.sendRedirect(linkCookie != null ? "/account.html?social_error=failed"
                     : "/login.html?social_error=failed");
             return;

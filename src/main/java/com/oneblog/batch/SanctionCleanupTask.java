@@ -1,6 +1,7 @@
 package com.oneblog.batch;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -48,6 +49,6 @@ public class SanctionCleanupTask implements DailyTask {
             total += jdbc.update("DELETE FROM reports WHERE created_at < :yearAgo", args);
             return total;
         });
-        return count == null ? 0 : count;
+        return Objects.requireNonNullElse(count, 0);
     }
 }

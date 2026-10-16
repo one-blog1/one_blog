@@ -68,7 +68,7 @@ public class FileController {
         if (file == null || file.isDeleted()) {
             return ResponseEntity.notFound().build();
         }
-        InputStream in = storage.open(storedName);
+        InputStream in = storage.open(storedName).orElse(null);
         if (in == null) {
             return ResponseEntity.notFound().build();
         }

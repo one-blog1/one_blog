@@ -73,6 +73,13 @@ public class CommentService {
         Set<Long> hiddenAuthors = member == null && !admin ? hiddenAuthorsOf.of(viewerId) : Set.of();
         List<Comment> all = commentRepository.findByPost(postId).stream()
                 .filter(c -> (admin || !c.isHidden()) && !hiddenAuthors.contains(c.getUserId())).toList();
+        Map<Long, String> names = userDisplay.names(authorIds(all));
+        Map<Long, List<CommentResponse>> replies = replies(all, names, viewerId, manager);
+        return threads(all, replies, names, viewerId, manager);
+    }
+
+    /** 댓글 쓴 사람과 답글이 가리키는 사람. 이름을 한 번에 찾는다. */
+    private static Set<Long> authorIds(List<Comment> all) {
         Set<Long> userIds = new HashSet<>();
         for (Comment c : all) {
             userIds.add(c.getUserId());
@@ -80,7 +87,12 @@ public class CommentService {
                 userIds.add(c.getReplyToUserId());
             }
         }
-        Map<Long, String> names = userDisplay.names(userIds);
+        return userIds;
+    }
+
+    /** 지우지 않은 답글을 첫 댓글별로 모은다. */
+    private Map<Long, List<CommentResponse>> replies(List<Comment> all, Map<Long, String> names, Long viewerId,
+            boolean manager) {
         Map<Long, List<CommentResponse>> replies = new LinkedHashMap<>();
         for (Comment c : all) {
             if (c.isReply() && !c.isDeleted()) {
@@ -88,6 +100,12 @@ public class CommentService {
                         .add(toResponse(c, names, viewerId, manager, List.of()));
             }
         }
+        return replies;
+    }
+
+    /** 첫 댓글마다 답글을 붙인다. */
+    private List<CommentResponse> threads(List<Comment> all, Map<Long, List<CommentResponse>> replies,
+            Map<Long, String> names, Long viewerId, boolean manager) {
         List<CommentResponse> result = new ArrayList<>();
         for (Comment c : all) {
             if (c.isReply()) {

@@ -66,8 +66,7 @@ public class VideoThumbnailService {
     /** 이 글의 영상 썸네일을 본문에 맞춘다. 실패해도 예외를 밖으로 내지 않는다 (글 저장은 이미 끝났음). */
     public void refresh(Long postId) {
         try {
-            Plan plan = readTx.execute(status -> plan(postId));
-            if (plan == null || plan.keep()) {
+            if (!(readTx.execute(status -> plan(postId)) instanceof Plan plan) || plan.keep()) {
                 return;
             }
             if (plan.key() == null) {
@@ -119,7 +118,24 @@ public class VideoThumbnailService {
         fileRepository.save(file);
     }
 
-    record Thumbnail(byte[] data, ImageType type) {
+    /** 확인을 마친 썸네일 바이트와 형식. 넘기기만 하므로 값 비교가 필요 없어 일반 클래스로 둔다 (S6218). */
+    static final class Thumbnail {
+
+        private final byte[] data;
+        private final ImageType type;
+
+        Thumbnail(byte[] data, ImageType type) {
+            this.data = data;
+            this.type = type;
+        }
+
+        byte[] data() {
+            return data;
+        }
+
+        ImageType type() {
+            return type;
+        }
     }
 
     /** 받은 바이트가 jpg·png·gif·webp 사진인지 앞부분으로 확인하고 위치 정보를 지운다. 아니면 빈 값. */

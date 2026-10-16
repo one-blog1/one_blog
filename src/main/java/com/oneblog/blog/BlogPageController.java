@@ -41,7 +41,7 @@ public class BlogPageController {
     }
 
     /** 글쓰기·고치기 화면 (004). */
-    @GetMapping({"/blog/{slug}/write", "/blog/{slug}/posts/{id}/edit"})
+    @GetMapping({"/blog/{slug}/write", "/blog/{slug}/posts/*/edit"})
     public String editorPage(@PathVariable("slug") String slug) {
         return "forward:/post-edit.html";
     }

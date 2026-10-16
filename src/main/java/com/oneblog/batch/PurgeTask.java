@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +80,7 @@ public class PurgeTask implements DailyTask {
                 log.warn("파일을 지우지 못했습니다: {}", name, e);
             }
         }
-        return count == null ? 0 : count;
+        return Objects.requireNonNullElse(count, 0);
     }
 
     private int purgeClosedBlogs(LocalDateTime cutoff, LocalDateTime now, List<String> files) {

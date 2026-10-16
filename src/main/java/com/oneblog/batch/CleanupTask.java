@@ -1,6 +1,7 @@
 package com.oneblog.batch;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -54,6 +55,6 @@ public class CleanupTask implements DailyTask {
                     new MapSqlParameterSource("viewCutoff", now.toLocalDate().minusDays(2)));
             return total;
         });
-        return count == null ? 0 : count;
+        return Objects.requireNonNullElse(count, 0);
     }
 }

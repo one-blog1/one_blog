@@ -67,12 +67,16 @@ public class SanctionService {
     @Transactional
     public void apply(String slug, Long userId, AuthenticatedUser principal, SanctionRequest request) {
         Blog blog = accessService.check(slug, null, principal.id()).blog();
-        apply(blog, userId, principal, request, null);
+        applyToMember(blog, userId, principal, request, null);
     }
 
     /** 신고 처리(ReportService)도 이것을 부른다. type: WARNING, SUSPENSION, KICK, RELEASE. */
     @Transactional
     public void apply(Blog blog, Long userId, AuthenticatedUser principal, SanctionRequest request, Long reportId) {
+        applyToMember(blog, userId, principal, request, reportId);
+    }
+
+    private void applyToMember(Blog blog, Long userId, AuthenticatedUser principal, SanctionRequest request, Long reportId) {
         BlogMember actor = accessService.activeMembership(blog.getId(), principal.id());
         if (actor == null || !actor.canManageMembers()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "멤버를 제재할 권한이 없습니다.");
