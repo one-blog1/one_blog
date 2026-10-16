@@ -59,7 +59,7 @@ CI가 실패하면 배포하지 않습니다. 품질 게이트 실패도 CI 실�
 | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET` | 선택 | 카카오 로그인 (D-126). REST API 키와 Client Secret. 시크릿을 끈 앱이면 ID만 |
 | `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` | 선택 | 네이버 로그인 (D-126) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | 선택 | 구글 로그인 (D-126) |
-| `CODE_PEPPER`, `PRIVACY_HASH_PEPPER`, `JWT_SECRET` | 선택 | 넣으면 서버 `secrets.env` 대신 이 값을 씀. 로컬과 같은 DB를 쓰는 동안 `CODE_PEPPER`(`.env`에 있으면 `PRIVACY_HASH_PEPPER`도)는 로컬 `.env`와 같은 값이어야 함: 블랙리스트(이름·이메일·전화번호)를 이 값으로 해시해 DB에 저장하므로, 다르면 로컬에서 등록한 블랙리스트를 서버가 알아보지 못함 |
+| `CODE_PEPPER`, `PRIVACY_HASH_PEPPER`, `JWT_SECRET` | 선택 | 넣으면 서버 `secrets.env` 대신 이 값을 씀. 운영 DB에 이미 저장된 해시(블랙리스트의 이름·이메일·전화번호, 요청 제한 기록)가 이 값으로 만들어졌으므로, 운영 값은 바꾸지 않는다. 로컬은 2026-10-16부터 개발용 DB(Crowfoot MySQL #2)를 따로 써서 운영과 같은 값일 필요가 없다 |
 
 `JWT_SECRET`, `CODE_PEPPER`를 Secrets에 넣지 않으면 처음 배포할 때 서버가 만들어 `~/one-blog/secrets.env`에 두고 이후 계속 같은 값을 씁니다. 이 파일을 지우면 모든 로그인이 풀리고, 이메일 인증 중이던 코드와 블랙리스트 확인이 맞지 않게 됩니다.
 
