@@ -14,6 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * - 보관 기간(30일 또는 7일)이 지난 알림 (4.5, 6.7)
  * - 1년 지난 관리자 활동 기록 (4.5 예외). 신고·제재 기록은 SanctionCleanupTask
  * - 이틀 지난 글 조회 기록 (014)
+ * - 1시간 지난 요청 제한 기록 (032, 가장 긴 제한이 1시간)
  */
 @Component
 public class CleanupTask implements DailyTask {
@@ -53,6 +54,9 @@ public class CleanupTask implements DailyTask {
             // 조회 기록은 같은 날 중복만 막으면 되므로 이틀 지난 것은 지운다 (BRD-11)
             total += jdbc.update("DELETE FROM post_views WHERE view_date < :viewCutoff",
                     new MapSqlParameterSource("viewCutoff", now.toLocalDate().minusDays(2)));
+            // 요청 제한은 대상별로 기록할 때도 지우지만, 다시 오지 않는 IP의 기록은 여기서 지운다 (SCL-01)
+            total += jdbc.update("DELETE FROM rate_limit_hits WHERE created_at < :hourAgo",
+                    new MapSqlParameterSource("hourAgo", now.minusHours(1)));
             return total;
         });
         return Objects.requireNonNullElse(count, 0);

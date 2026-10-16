@@ -1,46 +1,34 @@
 package com.oneblog.common.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.time.Duration;
 
 import org.junit.jupiter.api.Test;
 
-import com.oneblog.common.web.ApiException;
-
-/** IP·회원별 요청 제한 (D-80, USR-08: 같은 IP 10분에 5번). */
+/**
+ * IP·회원별 요청 제한 (D-80, USR-08). DB에 기록하는 부분은 RateLimiterIntegrationTest (032).
+ * 여기서는 DB 없이 확인할 수 있는 것만 본다.
+ */
 class RateLimiterTest {
 
     @Test
-    void 창_안에서_정한_횟수까지만_통과하고_시간이_지나면_다시_된다() {
-        RateLimiter limiter = new RateLimiter(true);
-        Duration window = Duration.ofMinutes(10);
-        long t = 1_000_000L;
-        for (int i = 0; i < 5; i++) {
-            assertThat(limiter.tryAcquire("find-email:1.2.3.4", 5, window, t + i)).isTrue();
-        }
-        assertThat(limiter.tryAcquire("find-email:1.2.3.4", 5, window, t + 10)).isFalse();
-        // 다른 IP는 따로 센다
-        assertThat(limiter.tryAcquire("find-email:5.6.7.8", 5, window, t + 10)).isTrue();
-        // 10분이 지나면 가장 오래된 기록이 빠진다
-        assertThat(limiter.tryAcquire("find-email:1.2.3.4", 5, window, t + window.toMillis() + 1)).isTrue();
-    }
-
-    @Test
-    void 넘으면_429와_다시_시도할_시간을_준다() {
-        RateLimiter limiter = new RateLimiter(true);
-        limiter.check("login", "ip", 1, Duration.ofMinutes(1));
-        assertThatThrownBy(() -> limiter.check("login", "ip", 1, Duration.ofMinutes(1)))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("요청이 너무 많습니다");
-    }
-
-    @Test
     void 꺼져_있으면_검사하지_않는다() {
-        RateLimiter limiter = new RateLimiter(false);
-        for (int i = 0; i < 10; i++) {
-            limiter.check("login", "ip", 1, Duration.ofMinutes(1));
-        }
+        RateLimiter limiter = new RateLimiter(false, null, null, "test-pepper");
+        assertThatCode(() -> {
+            for (int i = 0; i < 10; i++) {
+                limiter.check("login", "ip", 1, Duration.ofMinutes(1));
+            }
+        }).doesNotThrowAnyException();
+    }
+
+    @Test
+    void 대상은_비밀_값을_섞은_64자_해시로_바꾼다() {
+        RateLimiter limiter = new RateLimiter(false, null, null, "test-pepper");
+        String hash = limiter.hash("1.2.3.4");
+        assertThat(hash).hasSize(64).doesNotContain("1.2.3.4").isEqualTo(limiter.hash("1.2.3.4"));
+        // 같은 IP라도 비밀 값이 다르면 다른 해시 (IPv4 전체를 미리 계산해 맞힐 수 없게)
+        assertThat(new RateLimiter(false, null, null, "other-pepper").hash("1.2.3.4")).isNotEqualTo(hash);
     }
 }
