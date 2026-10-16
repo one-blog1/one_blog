@@ -43,16 +43,15 @@ class PostShareE2ETest extends E2ETestSupport {
         Page page = newPage(true);
         page.navigate("/blog/share-open/posts/" + postId);
         String url = page.url();
-        String encoded = URLEncoder.encode(url, StandardCharsets.UTF_8);
+        String encoded = encode(url);
+        String title = encode("공유할 글");
 
         page.locator(SHARE_BUTTON).click();
         assertThat(item(page, "url")).hasValue(url);
-        assertThat(item(page, "x")).hasAttribute(HREF,
-                Pattern.compile("^https://x\\.com/intent/tweet\\?text=.+&url=" + Pattern.quote(encoded) + "$"));
-        assertThat(item(page, "telegram")).hasAttribute(HREF,
-                Pattern.compile("^https://t\\.me/share/url\\?url=" + Pattern.quote(encoded) + "&text=.+$"));
-        assertThat(item(page, "facebook")).hasAttribute(HREF,
-                "https://www.facebook.com/sharer/sharer.php?u=" + encoded);
+        // 화면은 encodeURIComponent로 넣는다 (정규식은 브라우저가 JS 방식으로 읽어 Java의 Pattern.quote를 쓰지 않는다)
+        assertThat(item(page, "x")).hasAttribute(HREF, "https://x.com/intent/tweet?text=" + title + "&url=" + encoded);
+        assertThat(item(page, "telegram")).hasAttribute(HREF, "https://t.me/share/url?url=" + encoded + "&text=" + title);
+        assertThat(item(page, "facebook")).hasAttribute(HREF, "https://www.facebook.com/sharer/sharer.php?u=" + encoded);
         for (String key : List.of("x", "telegram", "facebook")) {
             assertThat(item(page, key)).hasAttribute("target", "_blank");
             assertThat(item(page, key)).hasAttribute("rel", "noopener noreferrer");
@@ -69,7 +68,7 @@ class PostShareE2ETest extends E2ETestSupport {
         item(page, "copy").click();
         assertThat(page.locator(MODAL)).hasCount(0);
         assertThat(page.locator("#post-message"))
-                .hasText(Pattern.compile("링크를 복사했어요\\.|" + Pattern.quote(url)));
+                .hasText(Pattern.compile("링크를 복사했어요[.]|^http"));
     }
 
     @Test
@@ -105,8 +104,11 @@ class PostShareE2ETest extends E2ETestSupport {
         Page guest = newPage(true);
         guest.addInitScript(FAKE_DEVICE_SHARE);
         guest.navigate("/blog/share-link/posts/" + linked + "?key=" + key);
+        assertThat(guest.locator("#post-title")).hasText("링크로만 볼 글");
+        assertThat(guest).hasURL(Pattern.compile("[?]key=" + key + "$"));
+        String linkUrl = guest.url();
         guest.locator(SHARE_BUTTON).click();
-        assertThat(item(guest, "url")).hasValue(Pattern.compile("\\?key=" + Pattern.quote(key) + "$"));
+        assertThat(item(guest, "url")).hasValue(linkUrl);
         assertThat(item(guest, DEVICE)).isVisible();
         assertThat(guest.locator(".modal [data-share=x], .modal [data-share=telegram], .modal [data-share=facebook]"))
                 .hasCount(0);
@@ -126,5 +128,10 @@ class PostShareE2ETest extends E2ETestSupport {
     /** 공유 창 안의 요소 (contracts/share-ui.md의 data-share 값). */
     private static Locator item(Page page, String key) {
         return page.locator(".modal [data-share=" + key + "]");
+    }
+
+    /** 화면의 encodeURIComponent와 같게 (공백은 %20). */
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 }
